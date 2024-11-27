@@ -1,2 +1,3 @@
-# rockverse
-Python tools for Computational Petrophysics
+# RockVerse
+
+RockVerse provides Python tools for Computational Petrophysics.

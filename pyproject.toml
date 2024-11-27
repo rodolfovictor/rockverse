@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rockverse"
+dynamic = ["version"]
+authors = [
+  { name="Rodolfo A. Victor", email="rodolfo@rodolfovictor.com" },
+]
+description = "Python tools for Computational Petrophysics"
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Development Status :: 1 - Planning",
+]
+dependencies = [
+    "matplotlib",
+    "numpy",
+    "tqdm",
+    "zarr",
+]
+keywords = ["petrophysics", "well", "log", "well log", "digital rock"]
+
+[project.urls]
+Homepage = "https://example.com"
+Documentation = "https://readthedocs.org"
+Repository = "https://github.com/rodolfoavictor/rockverse"
+Issues = "https://github.com/me/spam/issues"
+Changelog = "https://github.com/me/spam/blob/master/CHANGELOG.md"
+"Official Website" = "https://example.com"
