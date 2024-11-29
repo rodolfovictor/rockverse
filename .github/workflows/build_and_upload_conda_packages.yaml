@@ -18,8 +18,10 @@ jobs:
       - name: Set up Miniconda
         uses: conda-incubator/setup-miniconda@v2
         with:
-          conda-version: "latest"
+          miniconda-version: "latest"  # Automatically installs the latest Miniconda version
           python-version: "3.8"  # Specify Python version for the environment
+          auto-update-conda: true  # This will update conda to the latest version if needed
+
 
       - name: Install dependencies
         run: |
