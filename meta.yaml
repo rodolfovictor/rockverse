@@ -1,6 +1,6 @@
 package:
   name: rockverse
-  version: "{{ environ['GIT_DESCRIBE_TAG'] }}"
+  version: 0.0.0 #"{{ environ['GIT_DESCRIBE_TAG'] }}"
 
 source:
   path: .
