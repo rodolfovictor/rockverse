@@ -23,6 +23,7 @@ jobs:
 
       - name: Install dependencies
         run: |
+          conda update conda
           conda install conda-build anaconda-client  # Install conda-build and anaconda-client
 
       - name: Create Conda environment
