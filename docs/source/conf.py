@@ -24,6 +24,9 @@ author = 'Rodolfo A. Victor'
 # The full version, including alpha/beta/rc tags
 release = '0.0.1'
 
+# Set the root rst to load. This is required to be named contents to allow
+# readthedocs to host the docs using its default configuration.
+master_doc = 'index'
 
 # -- General configuration ---------------------------------------------------
 
