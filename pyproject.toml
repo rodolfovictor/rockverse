@@ -3,23 +3,31 @@ requires = ["setuptools>=61.0", "setuptools_scm"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools_scm]
-version_scheme = "post-release"  # This handles post-release versions, e.g., 1.0.1.post1
+version_scheme = "only-version"  # Only use the version from the tag, as given
 
 [project]
+
 name = "rockverse"
+
 dynamic = ["version"]
+
 authors = [
   { name="Rodolfo A. Victor", email="rodolfo@rodolfovictor.com" },
 ]
+
 description = "Python tools for Computational Petrophysics"
+
 readme = "README.md"
+
 requires-python = ">=3.8,<3.13"
+
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Development Status :: 1 - Planning",
 ]
+
 dependencies = [
     "colorama",
     "cython",
