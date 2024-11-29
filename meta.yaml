@@ -1,0 +1,18 @@
+package:
+  name: rockverse
+  version: "{{ environ['GIT_DESCRIBE_TAG'] }}"
+
+source:
+  path: ../../
+
+build:
+  number: 1
+
+channels:    # write here the list of channels to look for your library dependencies
+  - uibcdf
+  - conda-forge
+  - default
+
+dependencies:   # Keep this block with only these two packages
+  - anaconda-client
+  - conda-build
