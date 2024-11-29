@@ -15,30 +15,31 @@ jobs:
       - name: Checkout the repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Set up Miniconda
+        uses: conda-incubator/setup-miniconda@v2
         with:
-          python-version: '3.8'  # Use appropriate Python version
+          conda-version: "latest"
+          python-version: "3.8"  # Specify Python version for the environment
 
-      - name: Install Miniconda
-        uses: actions/conda-action@v2
-        with:
-          miniconda-version: 'latest'
+      - name: Install dependencies
+        run: |
+          conda install conda-build anaconda-client  # Install conda-build and anaconda-client
 
       - name: Create Conda environment
         run: |
-          conda create --name myenv python=3.8
+          conda create --name myenv python=3.8  # Create environment with specified Python version
           conda activate myenv
-          conda install conda-build anaconda-client  # Install necessary tools
 
       - name: Build the Conda Package
         run: |
-          conda build .  # Assuming you're in the directory containing meta.yaml
+          conda build .  # This assumes meta.yaml is in the root of your repo
+          PACKAGE_PATH=$(conda build . --output)  # Capture the build output path
+          echo "Built package at: $PACKAGE_PATH"
 
       - name: Upload to Anaconda
         env:
-          ANACONDA_API_TOKEN: ${{ secrets.ANACONDA_TOKEN }}  # Store token in GitHub secrets
+          ANACONDA_API_TOKEN: ${{ secrets.ANACONDA_TOKEN }}  # Store your Anaconda API token in GitHub Secrets
         run: |
           conda activate myenv
-          anaconda login --token $ANACONDA_TOKEN
-          anaconda upload --force /path/to/package.tar.bz2  # Replace with your built package path
+          anaconda login --token $ANACONDA_API_TOKEN
+          anaconda upload --force $PACKAGE_PATH  # Use the captured path
