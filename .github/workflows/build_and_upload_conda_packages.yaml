@@ -25,12 +25,13 @@ jobs:
       - name: Install dependencies
         run: |
           conda install conda-build anaconda-client  # Install conda-build and anaconda-client
-          conda create --name myenv python=3.8  # Create environment with specified Python version
-          conda init
-          conda activate myenv
+          # conda create --name myenv python=3.8  # Create environment with specified Python version
+          # conda init
+          # conda activate myenv
           conda build .  # This assumes meta.yaml is in the root of your repo
           PACKAGE_PATH=$(conda build . --output)  # Capture the build output path
           echo "Built package at: $PACKAGE_PATH"
+          asdasdasd
 
       - name: Create Conda environment and install package
         run: |
