@@ -28,6 +28,7 @@ jobs:
 
       - name: Create Conda environment and install package
         run: |
+          conda init
           conda create --name myenv python=3.8  # Create environment with specified Python version
           conda activate myenv
           conda build .  # This assumes meta.yaml is in the root of your repo
