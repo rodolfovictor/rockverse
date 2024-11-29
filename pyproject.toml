@@ -18,32 +18,29 @@ classifiers = [
     "Development Status :: 1 - Planning",
 ]
 dependencies = [
-    "matplotlib",
-    "numpy",
-    "tqdm",
-    "zarr",
-    "pip",
-    "spyder",
-    "numpy",
-    "scipy=1.13",
-    "pandas",
-    "sympy",
-    "cython",
     "colorama",
-    "zarr[jupyter]=2.18",
+    "cython",
     "ipython[all]",
-    "conda-forge::tqdm",
-    "seaborn",
-    "jupyterlab",
     "ipywidgets",
+    "jupyterlab",
+    "matplotlib",
+    "nbsphinx",
+    "numba",
+    "numpy",
+    "pandas",
+    "pip",
+    "pydata-sphinx-theme",
     "pyvista[all,trame,jupyter]",
     "trame-vtk",
     "trame-vuetify",
+    "scipy==1.13",
+    "seaborn",
     "sphinx",
     "sphinx-design",
-    "pydata-sphinx-theme",
-    "nbsphinx",
-    "numba",
+    "spyder",
+    "sympy",
+    "tqdm",
+    "zarr[jupyter]>=2.18",
 ]
 keywords = ["petrophysics", "well", "log", "well log", "digital rock"]
 
@@ -52,5 +49,5 @@ Homepage = "https://example.com"
 Documentation = "https://readthedocs.org"
 Repository = "https://github.com/rodolfovictor/rockverse"
 Issues = "https://github.com/rodolfovictor/rockverse/issues"
-Changelog = "https://github.com/me/spam/blob/master/CHANGELOG.md"
+Changelog = "https://github.com/rodolfovictor/rockverse/blob/main/Changelog.md"
 "Official Website" = "https://example.com"
