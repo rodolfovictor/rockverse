@@ -10,7 +10,7 @@ authors = [
 ]
 description = "Python tools for Computational Petrophysics"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.8,<3.13"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
