@@ -1,6 +1,9 @@
 name: Publish Python 🐍 distribution 📦 to PyPI
 
-on: push
+on:
+  push:
+    tags:
+      - "v*"  # This will trigger on tags like v0.1.0, v1.0.0, etc.
 
 jobs:
   build:
