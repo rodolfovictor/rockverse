@@ -3,16 +3,47 @@ package:
   version: "{{ environ['GIT_DESCRIBE_TAG'] }}"
 
 source:
-  path: ../../
+  path: .
 
 build:
-  number: 1
+  noarch: python  # Indicating it's a Python package, not platform-specific
 
-channels:    # write here the list of channels to look for your library dependencies
-  - uibcdf
-  - conda-forge
-  - default
+requirements:
+  build:
+    - python
+    - setuptools
+  run:
+    - python
+    - numpy
+    - scipy
+    - colorama
+    - cython
+    - ipython[all]
+    - ipywidgets
+    - jupyterlab
+    - matplotlib
+    - nbsphinx
+    - numba
+    - numpy
+    - pandas
+    - pip
+    - pydata-sphinx-theme
+    - pyvista[all,trame,jupyter]
+    - trame-vtk
+    - trame-vuetify
+    - scipy==1.13
+    - seaborn
+    - sphinx
+    - sphinx-design
+    - spyder
+    - sympy
+    - tqdm
+    - zarr[jupyter]>=2.18
 
-dependencies:   # Keep this block with only these two packages
-  - anaconda-client
-  - conda-build
+test:
+  commands:
+    - python -c "import rockverse"  # Example test
+
+about:
+  home: "https://example.com"
+  license: MIT

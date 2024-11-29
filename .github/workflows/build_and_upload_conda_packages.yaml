@@ -4,37 +4,41 @@ name: Build and upload conda packages
 on:
   push:
     tags:
-      - "v*"  # This will trigger on tags like v0.1.0, v1.0.0, etc.
-
-# workflow_dispatch:        # Un comment line if you also want to trigger action manually
+      - "*"  # This will trigger on tags like v0.1.0, v1.0.0, etc.
 
 jobs:
-  conda_deployment_with_new_tag:
-    name: Conda deployment of package with Python ${{ matrix.python-version }}
+  build:
+    name: Build and Publish Conda Package
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.8", "3.9", "3.10"]
+
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout the repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          fetch-depth: 0
-      - name: Conda environment creation and activation
-        uses: conda-incubator/setup-miniconda@v2
+          python-version: '3.8'  # Use appropriate Python version
+
+      - name: Install Miniconda
+        uses: goanpeca/conda-action@v2
         with:
-          python-version: ${{ matrix.python-version }}
-          environment-file: devtools/conda-envs/build_env.yaml    # Path to the build conda environment
-          auto-update-conda: false
-          auto-activate-base: false
-          show-channel-urls: true
-      - name: Build and upload the conda packages
-        uses: uibcdf/action-build-and-upload-conda-packages@v1.3.0
-        with:
-          meta_yaml_dir: devtools/conda-build
-          python-version: ${{ matrix.python-version }} # Values previously defined in `matrix`
-          platform_linux-64: true
-          platform_osx-64: true
-          platform_win-64: true
-          user: uibcdf
-          label: auto
-          token: ${{ secrets.ANACONDA_TOKEN }} # Replace with the right name of your secret
+          miniconda-version: 'latest'
+
+      - name: Create Conda environment
+        run: |
+          conda create --name myenv python=3.8
+          conda activate myenv
+          conda install conda-build anaconda-client  # Install necessary tools
+
+      - name: Build the Conda Package
+        run: |
+          conda build .  # Assuming you're in the directory containing meta.yaml
+
+      - name: Upload to Anaconda
+        env:
+          ANACONDA_API_TOKEN: ${{ secrets.ANACONDA_TOKEN }}  # Store token in GitHub secrets
+        run: |
+          conda activate myenv
+          anaconda login --token $ANACONDA_TOKEN
+          anaconda upload --force /path/to/package.tar.bz2  # Replace with your built package path
