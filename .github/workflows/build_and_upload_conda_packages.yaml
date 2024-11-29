@@ -21,7 +21,7 @@ jobs:
           python-version: '3.8'  # Use appropriate Python version
 
       - name: Install Miniconda
-        uses: goanpeca/conda-action@v2
+        uses: actions/conda-action@v2
         with:
           miniconda-version: 'latest'
 
