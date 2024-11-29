@@ -22,13 +22,35 @@ dependencies = [
     "numpy",
     "tqdm",
     "zarr",
+    "pip",
+    "spyder",
+    "numpy",
+    "scipy=1.13",
+    "pandas",
+    "sympy",
+    "cython",
+    "colorama",
+    "zarr[jupyter]=2.18",
+    "ipython[all]",
+    "conda-forge::tqdm",
+    "seaborn",
+    "jupyterlab",
+    "ipywidgets",
+    "pyvista[all,trame,jupyter]",
+    "trame-vtk",
+    "trame-vuetify",
+    "sphinx",
+    "sphinx-design",
+    "pydata-sphinx-theme",
+    "nbsphinx",
+    "numba",
 ]
 keywords = ["petrophysics", "well", "log", "well log", "digital rock"]
 
 [project.urls]
 Homepage = "https://example.com"
 Documentation = "https://readthedocs.org"
-Repository = "https://github.com/rodolfoavictor/rockverse"
-Issues = "https://github.com/me/spam/issues"
+Repository = "https://github.com/rodolfovictor/rockverse"
+Issues = "https://github.com/rodolfovictor/rockverse/issues"
 Changelog = "https://github.com/me/spam/blob/master/CHANGELOG.md"
 "Official Website" = "https://example.com"

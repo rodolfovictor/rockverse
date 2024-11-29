@@ -540,9 +540,9 @@ def _draw(ax, linewidth, facecolor):
 
     ax.set_aspect('equal')
     ax.set_proj_type('ortho')
-    ax.xaxis.set_pane_color(facecolor)
-    ax.yaxis.set_pane_color(facecolor)
-    ax.zaxis.set_pane_color(facecolor)
+    ax.xaxis.set_pane_color((0, 0, 0, 0))
+    ax.yaxis.set_pane_color((0, 0, 0, 0))
+    ax.zaxis.set_pane_color((0, 0, 0, 0))
 
 
 def make_logo(mode=1, facecolor='white'):
