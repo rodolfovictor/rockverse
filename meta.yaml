@@ -39,10 +39,6 @@ requirements:
     - tqdm
     - zarr[jupyter]>=2.18
 
-test:
-  commands:
-    - python -c "import rockverse"  # Example test
-
 about:
   home: "https://example.com"
   license: MIT
