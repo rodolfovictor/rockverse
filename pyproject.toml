@@ -42,8 +42,6 @@ dependencies = [
     "pip",
     "pydata-sphinx-theme",
     "pyvista[all,trame,jupyter]",
-    "trame-vtk",
-    "trame-vuetify",
     "scipy==1.13",
     "seaborn",
     "sphinx",
