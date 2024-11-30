@@ -545,17 +545,17 @@ def _draw(ax, linewidth, facecolor):
     ax.zaxis.set_pane_color((0, 0, 0, 0))
 
 
-def make_logo(mode=1, facecolor='white'):
+def make_logo(model=1, facecolor='white'):
     """
     Create and the RockVerse logo in a Matplotlib figure.
 
     Parameters
     ----------
-    mode : {1, 2, 3}
+    model : {1, 2, 3}
         Determines the style and layout of the logo.
         - 1: 4x4 figure with the rock model and "RockVerse" text below (default)
         - 2: 4x4 figure with only the rock model
-        - 3: 9x2.9 figure with rock model and "RockVerse" text on the side
+        - 3: 9.7x2 figure with rock model and "RockVerse" text on the side
 
     facecolor : {'black', 'white'}
         The figure and axis face color. Default is 'white'.
@@ -568,12 +568,16 @@ def make_logo(mode=1, facecolor='white'):
     Raises
     ------
     ValueError
-        If the mode is not 1, 2, or 3 or if facecolor is not 'black' or 'white'.
+        If model is not 1, 2, or 3 or if facecolor is not 'black' or 'white'.
 
     Examples
     --------
-    >>> fig = make_logo()  # Creates the default logo (mode 1, white facecolor)
-    >>> fig.savefig('/path/to/logo.png', dpi=400)  # Save the figure in high resolution
+    >>> fig = make_logo()  # Creates the default logo (model 1, white facecolor)
+    >>> # Save the figure in high resolution
+    >>> fig.savefig('/path/to/logo.png', dpi=400)
+    >>> # Save the figure in high resolution and transparent facecolor for
+    >>> # placing over non-white (but still light color) background
+    >>> fig.savefig('/path/to/logo.png', dpi=400, transparent=True)
     """
 
     if facecolor not in ('black', 'white'):
@@ -597,7 +601,7 @@ def make_logo(mode=1, facecolor='white'):
                   )
     dpi = 100
 
-    if mode == 1:
+    if model == 1:
         kwargs['fontsize'] = 45
         fig = plt.figure(figsize=(4, 4), dpi=dpi, facecolor=facecolor)
         ax = fig.add_axes(rect=[0, 0.09, 1, 1], projection='3d', facecolor=facecolor)
@@ -606,22 +610,26 @@ def make_logo(mode=1, facecolor='white'):
         x, y, z = -6.4, 3, -15
         ax.text(x, y, z, color='forestgreen' if facecolor=='white' else 'white', **kwargs)
 
-    elif mode == 2:
+    elif model == 2:
         fig = plt.figure(figsize=(4, 4), dpi=dpi, facecolor=facecolor)
         ax = fig.add_axes(rect=[0, 0, 1, 1], projection='3d', facecolor=facecolor)
         _draw(ax, linewidth=3, facecolor=facecolor)
         colorize(ax, facecolor)
 
-    elif mode == 3:
-        fig = plt.figure(figsize=(10, 3), dpi=dpi, facecolor=facecolor)
+    elif model == 3:
+        fig = plt.figure(figsize=(9.7, 2), dpi=dpi, facecolor=facecolor)
         ax = fig.add_axes(rect=[0, 0, 0.3, 1], projection='3d', facecolor=facecolor)
         _draw(ax, linewidth=3, facecolor=facecolor)
         colorize(ax, facecolor)
         kwargs['fontsize'] = 80
-        x, y, z = 55, 0, 10
+        x, y, z = 55, 0, 8.5
         ax.text(x, y, z, color='forestgreen' if facecolor=='white' else 'white', **kwargs)
 
     else:
-        raise ValueError("mode must be 1, 2, or 3.")
+        raise ValueError("model must be 1, 2, or 3.")
 
     return fig
+
+if __name__ == "__main__":
+    fig=make_logo(model=3)
+# %%

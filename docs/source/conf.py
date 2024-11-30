@@ -67,8 +67,8 @@ html_theme = 'pydata_sphinx_theme'
 html_theme_options = {
     "navigation_with_keys": False,
     "logo": {
-        "image_light": "_static/logo_mode3_whitebackground_transparencyTrue.png",
-        "image_dark": "_static/logo_mode3_blackbackground_transparencyTrue.png",
+        "image_light": "_static/RockVerse_logo_model3_for_white_background_facecolor_transparent_True.png",
+        "image_dark": "_static/RockVerse_logo_model3_for_black_background_facecolor_transparent_True.png",
         "alt_text": "RockVerse documentation - Home",
     },
     "use_edit_page_button": False,

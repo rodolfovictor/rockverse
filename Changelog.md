@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ???
 
 ### Fixed
-- ???
+- Proportions in logo horizontal mode.
 
 ## [0.0.1] - 2024-09-15
 ### Added
