@@ -95,3 +95,34 @@ jobs:
         gh release upload
         '${{ github.ref_name }}' dist/**
         --repo '${{ github.repository }}'
+
+  publish-to-conda-forge:
+    name: >-
+      Publish Python 🐍 distribution 📦 to conda-forge
+    if: startsWith(github.ref, 'refs/tags/')  # only publish on tag pushes
+    needs:
+    - publish-to-pypi
+    run: |
+      pip install grayskull rockverse
+      grayskull pypi rockverse
+
+    - name: Submit Conda Recipe to Conda-Forge
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # GitHub token for creating a PR
+      run: |
+        # Clone the conda-forge feedstock repository
+        git clone https://github.com/conda-forge/your-package-feedstock.git
+        cd your-package-feedstock
+
+        # Copy the generated recipe into the feedstock repo
+        cp -r ../rockverse/* .
+
+        # Commit the changes and push to the feedstock repo
+        git config user.name "GitHub Actions"
+        git config user.email "rodolfoavictor@gmail.com"
+        git add .
+        git commit -m "Add new recipe for rockverse v${GITHUB_REF#refs/tags/}"
+        git push origin master
+
+        # Create a pull request to conda-forge
+        gh pr create --title "Add ${GITHUB_REF#refs/tags/} to conda-forge" --body "Automated PR to add ${GITHUB_REF#refs/tags/} to conda-forge feedstock." --base master --head main
