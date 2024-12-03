@@ -39,11 +39,12 @@ extensions = [
     'sphinx.ext.autosummary',
     "sphinx.ext.viewcode",
     'nbsphinx',
+    'sphinx_gallery.load_style',
     'sphinx_design',
 ]
 
 nbsphinx_thumbnails = {
-    'notebooks/dual_energy': 'notebooks/sample-data-dual-energy-thumbnail.jpg',
+    'gallery/miscellaneous/logo': 'gallery/miscellaneous/rockverse_logo_model1_white.png',
 }
 
 autoclass_content = 'class'
@@ -74,9 +75,20 @@ html_theme_options = {
     "use_edit_page_button": False,
     "icon_links": [
         {
+            "name": "LinkedIn",
+            "url": "https://br.linkedin.com/in/rodolfovictor",
+            "icon": "fa-brands fa-linkedin",
+        },
+        {
             "name": "GitHub",
             "url": "https://github.com/rodolfovictor/rockverse",
             "icon": "fa-brands fa-github",
+        },
+        {
+            "name": "StackOverflow",
+            "url": "https://stackoverflow.com/tags/rockverse",
+            "icon": "fab fa-stack-overflow",
+            "type": "fontawesome",
         },
     ],
 }

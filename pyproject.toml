@@ -46,6 +46,7 @@ dependencies = [
     "seaborn",
     "sphinx",
     "sphinx-design",
+    "sphinx_gallery",
     "spyder",
     "sympy",
     "tqdm",
@@ -54,9 +55,9 @@ dependencies = [
 keywords = ["petrophysics", "well", "log", "well log", "digital rock"]
 
 [project.urls]
-Homepage = "https://example.com"
-Documentation = "https://readthedocs.org"
+Homepage = "https://rockverse.readthedocs.io/"
+Documentation = "https://rockverse.readthedocs.io/"
 Repository = "https://github.com/rodolfovictor/rockverse"
 Issues = "https://github.com/rodolfovictor/rockverse/issues"
 Changelog = "https://github.com/rodolfovictor/rockverse/blob/main/Changelog.md"
-"Official Website" = "https://example.com"
+"Official Website" = "https://rockverse.readthedocs.io/"
