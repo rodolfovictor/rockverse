@@ -39,8 +39,9 @@ extensions = [
     'sphinx.ext.autosummary',
     "sphinx.ext.viewcode",
     'nbsphinx',
-    'sphinx_gallery.load_style',
-    'sphinx_design',
+    #'sphinx_copybutton',
+    #'sphinx_gallery.load_style',
+    #'sphinx_design',
 ]
 
 nbsphinx_thumbnails = {
@@ -66,7 +67,6 @@ exclude_patterns = []
 html_theme = 'pydata_sphinx_theme'
 
 html_theme_options = {
-    "navigation_with_keys": False,
     "logo": {
         "image_light": "_static/RockVerse_logo_model3_for_white_background_facecolor_transparent_True.png",
         "image_dark": "_static/RockVerse_logo_model3_for_black_background_facecolor_transparent_True.png",
@@ -98,6 +98,7 @@ html_context = {
     "github_repo": "rockverse",
     "github_version": "main",
     "doc_path": "docs",
+    "default_mode": "light",
 }
 
 # Add any paths that contain custom static files (such as style sheets) here,
@@ -105,4 +106,5 @@ html_context = {
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
 html_css_files = [
+    'custom.css',
 ]

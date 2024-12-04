@@ -81,6 +81,7 @@ If you encounter issues or have questions about RockVerse, here are some ways to
 
     install.rst
     gallery.rst
+    gallery/miscellaneous/logo
 
 Indices and tables
 ==================

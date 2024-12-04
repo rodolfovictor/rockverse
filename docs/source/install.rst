@@ -40,7 +40,7 @@ Pre-installation using conda
 ----------------------------
 
 .. note::
-    Conda is preferred if you don't have a working MPI installation on your system.
+    Conda is the only option if you don't have a working MPI installation on your system.
 
 Optional (but strongly recommended!): if you do not have a recent conda (23.10 or later),
 update it to take advantage of the faster
@@ -111,25 +111,23 @@ Pre-installation using pip
     implementation with development headers and libraries. Make sure ``mpicc`` and ``mpirun``
     point to the desired MPI installation.
 
-Create virtual environment:
-Change to the directory where you want to place your environment and create it:
+Create and activate the virtual environment (again, let's call it rockverse-env):
+
+If using Windows,
 
 .. code-block:: sh
 
-    $ cd /path/to/my/environment
+    $ cd path\to\my\environment
     $ python -m venv rockverse-env
-
-Now activate. If using Windows,
-
-.. code-block:: sh
-
     $ .\rockverse-env\Scripts\activate
 
-for Linux (example for bash shell),
+for Linux (example for bash shell):
 
 .. code-block:: sh
 
-    $ source ./tutorial-env/bin/activate
+    $ cd path/to/my/environment
+    python -m venv rockverse-env
+    $ source ./rockverse-env/bin/activate
 
 Install numba and mpi4py:
 
@@ -147,6 +145,9 @@ Install the NVIDIA bindings with
 You'll need to set the environment variable ``NUMBA_CUDA_USE_NVIDIA_BINDING`` to ``"1"``.
 If you want to use specific CUDA versions, set also the environment variable
 ``CUDA_HOME`` to the directory of the installed CUDA toolkit (e.g. ``/home/user/cuda-12``).
+
+
+
 
 
 
