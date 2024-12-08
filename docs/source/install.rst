@@ -27,9 +27,6 @@ Prerequisites
 - Basic familiarity with conda and pip
 
 
-1. Create a virtual environment and install Numba
--------------------------------------------------
-
 RockVerse uses several third-party libraries, and conflicts could potentially
 break your existing Python installation. To prevent breaking any working Python
 installation, install RockVerse in a dedicated virtual environment.
@@ -47,48 +44,54 @@ In this tutorial we'll name the virtual environment ``rockverse-env``.
     installation. If you don't have a working MPI installation in your system,
     then you must use Conda.
 
+1. Create a virtual environment and install Numba
+-------------------------------------------------
 
-Using Conda
-~~~~~~~~~~~~
+.. tab-set::
 
-Update Conda (optional but recommended):
-if you do not have conda 23.10 or later,
-update it to take advantage of the faster
-`conda-libmamba-solver plugin <https://conda.github.io/conda-libmamba-solver/user-guide/>`_
-and speed up your installation:
+    .. tab-item:: conda
 
-.. code-block:: sh
+        Update Conda (optional but recommended):
+        if you do not have conda 23.10 or later,
+        update it to take advantage of the faster
+        `conda-libmamba-solver plugin <https://conda.github.io/conda-libmamba-solver/user-guide/>`_
+        and speed up your installation:
 
-    $ conda update -n base conda
+        .. code-block:: sh
 
-Create your conda environment with Numba and activate:
+            $ conda update -n base conda
 
-.. code-block:: sh
+        Create your conda environment with Numba and activate:
 
-    $ conda create --name rockverse-env numba
-    $ conda activate rockverse-env
+        .. code-block:: sh
+
+            $ conda create --name rockverse-env numba
+            $ conda activate rockverse-env
 
 
-Using Pip
-~~~~~~~~~~
+    .. tab-item:: pip
 
-Create and activate a virtual environment:
+        Create and activate a virtual environment:
 
-If using Windows:
+        If using Windows:
 
-.. code-block:: sh
+        .. code-block:: sh
 
-    $ cd path\to\my\environment
-    $ python -m venv rockverse-env
-    $ .\rockverse-env\Scripts\activate
+            $ cd path\to\my\environment
+            $ python -m venv rockverse-env
+            $ .\rockverse-env\Scripts\activate
 
-For Linux (example for bash shell):
+        For Linux (example for bash shell):
 
-.. code-block:: sh
+        .. code-block:: sh
 
-    $ cd path/to/my/environment
-    $ python -m venv rockverse-env
-    $ source ./rockverse-env/bin/activate
+            $ cd path/to/my/environment
+            $ python -m venv rockverse-env
+            $ source ./rockverse-env/bin/activate
+
+
+
+
 
 Test Numba
 ~~~~~~~~~~
@@ -137,45 +140,43 @@ RockVerse calculations can be greatly enhanced using GPUs.
 If you have GPUs available, take a look at
 `Numba's documentation for supported GPUs <https://numba.readthedocs.io/en/stable/cuda/overview.html#supported-gpus>`_.
 
+.. tab-set::
 
-Using Conda
-~~~~~~~~~~~~
+    .. tab-item:: conda
 
-For CUDA 12, install ``cuda-nvcc`` and ``cuda-nvrtc``:
+        For CUDA 12, install ``cuda-nvcc`` and ``cuda-nvrtc``:
 
-.. code-block:: sh
+        .. code-block:: sh
 
-    $ conda install -c conda-forge cuda-nvcc cuda-nvrtc
+            $ conda install -c conda-forge cuda-nvcc cuda-nvrtc
 
-For CUDA 11, ``cudatoolkit`` is required:
+        For CUDA 11, ``cudatoolkit`` is required:
 
-.. code-block:: sh
+        .. code-block:: sh
 
-    $ conda install -c conda-forge cudatoolkit
+            $ conda install -c conda-forge cudatoolkit
 
+    .. tab-item:: pip
 
-Using Pip
-~~~~~~~~~~
+        Install the NVIDIA bindings with
 
-Install the NVIDIA bindings with
+        .. code-block:: sh
 
-.. code-block:: sh
+            $ pip install cuda-python
 
-    $ pip install cuda-python
+        Set the environment variable for Numba:
 
-Set the environment variable for Numba:
+        .. code-block:: sh
 
-.. code-block:: sh
+            export NUMBA_CUDA_USE_NVIDIA_BINDING="1"  # For Linux
+            set NUMBA_CUDA_USE_NVIDIA_BINDING="1"  # For Windows
 
-    export NUMBA_CUDA_USE_NVIDIA_BINDING="1"  # For Linux
-    set NUMBA_CUDA_USE_NVIDIA_BINDING="1"  # For Windows
+        If using specific CUDA versions, set also CUDA_HOME:
 
-If using specific CUDA versions, set also CUDA_HOME:
+        .. code-block:: sh
 
-.. code-block:: sh
-
-    export CUDA_HOME=/path/to/cuda  # For Linux
-    set CUDA_HOME=C:\path\to\cuda  # For Windows
+            export CUDA_HOME=/path/to/cuda  # For Linux
+            set CUDA_HOME=C:\path\to\cuda  # For Windows
 
 
 Test Numba access to GPUs
@@ -217,40 +218,71 @@ If you get empty list or errors Numba cannot access your GPU devices.
 If you have a working MPI installation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Make sure command-line ``mpicc`` and ``mpirun`` point to the right MPI installation
+Make sure command-line ``mpicc`` and ``mpirun`` or ``mpiexec`` point to the right MPI installation
 (such as in cluster computers through `environment modules <https://modules.sourceforge.net/>`_).
-If using conda, run
+Then install ``mpi4py``:
 
-.. code-block:: sh
+.. tab-set::
 
-    $ conda install -c conda-forge mpi4py
+    .. tab-item:: conda
 
-If using pip, run
+        .. code-block:: sh
 
-.. code-block:: sh
+            $ conda install -c conda-forge mpi4py
 
-    $ pip install --no-cache-dir mpi4py
+    .. tab-item:: pip
+
+        .. code-block:: sh
+
+            $ pip install --no-cache-dir mpi4py
 
 
 If you do not have a working MPI installation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-In this case you must use conda. There are four MPI implementations available on conda-forge:
+.. tab-set::
 
-1. ``openmpi``: installs `Open MPI <https://www.open-mpi.org/>`_  (Linux and macOS);
-2. ``mpich``: installs `MPICH <https://www.mpich.org/>`_  (Linux and macOS);
-3. ``impi_rt``: installs `Intel MPI <https://www.intel.com/content/www/us/en/developer/tools/oneapi/mpi-library.html>`_ (Linux and Windows);
-4. ``msmpi``: installs `Microsoft MPI <https://learn.microsoft.com/en-us/message-passing-interface/microsoft-mpi>`_ (Windows).
+    .. tab-item:: conda
 
-Pick your favorite and run ONE of the following commands:
+        There are four MPI implementations available on conda-forge you can use to work with ``mpi4py``:
 
-.. code-block:: sh
+        .. tab-set::
 
-    $ # Choose one!
-    $ conda install -c conda-forge mpi4py openmpi
-    $ conda install -c conda-forge mpi4py mpich
-    $ conda install -c conda-forge mpi4py impi_rt
-    $ conda install -c conda-forge mpi4py msmpi
+            .. tab-item:: openmpi
+
+                **For Linux and macOS:** installs `Open MPI <https://www.open-mpi.org/>`_
+
+                .. code-block:: sh
+
+                    $ conda install -c conda-forge mpi4py openmpi
+
+            .. tab-item:: mpich
+
+                **For Linux and macOS:** installs `MPICH <https://www.mpich.org/>`_
+
+                .. code-block:: sh
+
+                    $ conda install -c conda-forge mpi4py mpich
+
+            .. tab-item:: impi_rt
+
+                **For Linux and Windows:** installs `Intel MPI <https://www.intel.com/content/www/us/en/developer/tools/oneapi/mpi-library.html>`_
+
+                .. code-block:: sh
+
+                    $ conda install -c conda-forge mpi4py impi_rt
+
+            .. tab-item:: msmpi
+
+                **For Windows:** installs `Microsoft MPI <https://learn.microsoft.com/en-us/message-passing-interface/microsoft-mpi>`_
+
+                .. code-block:: sh
+
+                    $ conda install -c conda-forge mpi4py msmpi
+
+    .. tab-item:: pip
+
+        Nope!... Go back to conda.
 
 
 Test if MPI is working
@@ -258,17 +290,21 @@ Test if MPI is working
 
 Test the MPI installation:
 
-.. code-block:: sh
+.. tab-set::
 
-    $ mpiexec -n 5 python -m mpi4py.bench helloworld
+    .. tab-item:: mpirun
 
-or
+        .. code-block:: sh
 
-.. code-block:: sh
+            $ mpirun -n 5 python -m mpi4py.bench helloworld
 
-    $ mpirun -n 5 python -m mpi4py.bench helloworld
+    .. tab-item:: mpiexec
 
-depending on your installation. You should get an output similar to this
+        .. code-block:: sh
+
+            $ mpiexec -n 5 python -m mpi4py.bench helloworld
+
+You should get an output similar to this
 ('localhost' will be the hostname in your machine):
 
 .. code-block:: sh
@@ -280,8 +316,6 @@ depending on your installation. You should get an output similar to this
     Hello, World! I am process 4 of 5 on localhost.
 
 
-
-
 4. Install RockVerse
 --------------------
 
@@ -289,29 +323,41 @@ If Numba and MPI are working in your virtual environment, install RockVerse:
 
 Install the latest stable version from PyPI:
 
-.. code-block:: sh
+.. tab-set::
 
-    pip install rockverse
+    .. tab-item:: conda
 
-or via conda:
+        Latest stable release from conda forge:
 
-.. code-block:: sh
+        .. code-block:: sh
 
-    conda install -c conda-forge rockverse
+            conda install -c conda-forge rockverse
 
-To install the latest development version of RockVerse, you can use pip with the latest GitHub main:
+    .. tab-item:: pip
 
-$ pip install git+https://github.com/rodolfovictor/rockverse.git
+        Latest stable release from pip:
 
+        .. code-block:: sh
 
-To work with RockVerse source code in development, ``cd`` to the path
-where you want to clone the repository and install from GitHub:
+            pip install rockverse
 
-.. code-block:: sh
+    .. tab-item:: development
 
-    $ git clone https://github.com/rodolfovictor/rockverse.git
-    $ cd rockverse
-    $ pip install -e .
+        To install the latest development version of RockVerse,
+        you can use pip with the latest GitHub main:
+
+        .. code-block:: sh
+
+            $ pip install git+https://github.com/rodolfovictor/rockverse.git
+
+        To work with RockVerse source code in development, ``cd`` to the path
+        where you want to clone the repository and install from GitHub:
+
+        .. code-block:: sh
+
+            $ git clone https://github.com/rodolfovictor/rockverse.git
+            $ cd rockverse
+            $ pip install -e .
 
 Now run a quick test:
 
@@ -326,25 +372,18 @@ If you see "RockVerse X.X.X successfully installed!" printed, we are good to go!
 ---------------------
 
 To ensure that you are using the latest version of RockVerse with new features,
-improvements, and bug fixes, you can easily update it using either pip or conda.
+improvements, and bug fixes, you can easily update it every once in a while:
 
-Using Pip
-~~~~~~~~~
+.. tab-set::
 
-.. code-block:: sh
+    .. tab-item:: pip
 
-    $ pip install --upgrade rockverse
+        .. code-block:: sh
 
-This command will check for any available updates on PyPI and install them.
+            $ pip install --upgrade rockverse
 
-Using Conda
-~~~~~~~~~~~
+    .. tab-item:: conda
 
-If you installed RockVerse using Conda, you can update it by running:
+        .. code-block:: sh
 
-.. code-block:: sh
-
-    $ conda update -c conda-forge rockverse
-
-This command will update RockVerse to the latest version available in the
-conda-forge channel.
+            $ conda update -c conda-forge rockverse

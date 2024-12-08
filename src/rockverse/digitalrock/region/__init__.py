@@ -1,8 +1,20 @@
 """
-This module provides classes for defining abstract regions of interest in
-``VoxelImage`` objects. Regions can be used is several ``rockverse.digitalrock``
-classes and functions and will limit the operations to the voxels inside the
-defined regions of interest.
+This module provides classes to define abstract Regions of Interest (ROIs) within
+``VoxelImage`` objects. ROIs are used to focus computational operations on specific
+subsections of the voxel data, allowing for more efficient and targeted analysis. By
+defining ROIs, you can limit processing to only the voxels inside these regions,
+which is particularly useful for large-scale digital rock simulations and petrophysical
+analyses.
+
+The defined regions can be applied to various functions and classes within the
+``rockverse.digitalrock`` module, enabling precise manipulation of image data,
+segmentation, and the calculation of petrophysical properties within selected areas.
+
+Key Features:
+-------------
+- Define ROIs using geometric shapes such as spheres and cylinders.
+- Use ROIs to restrict computational operations, improving memory usage and performance.
+- Seamlessly integrate with other classes and functions within the ``rockverse.digitalrock`` module.
 """
 
 from rockverse.digitalrock.region.sphere import Sphere

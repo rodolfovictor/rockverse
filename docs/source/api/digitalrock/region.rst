@@ -1,7 +1,7 @@
 .. _region module:
 
 The ``region`` module
--------------------------
+---------------------
 
 .. currentmodule:: rockverse.digitalrock.region
 

@@ -1,5 +1,7 @@
 .. _rockverse_docs_mainpage:
 
+:html_theme.sidebar_secondary.remove:
+
 ***********************
 RockVerse Documentation
 ***********************
