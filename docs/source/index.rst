@@ -81,6 +81,7 @@ If you encounter issues or have questions about RockVerse, here are some ways to
 
     install.rst
     gallery.rst
+    api.rst
 
 Indices and tables
 ==================

@@ -99,7 +99,7 @@ Run the following Python code:
 .. code-block:: python
 
     from numba import config, get_thread_id, get_num_threads, njit, prange, threading_layer
-    config.THREADING_LAYER = 'threadsafe'
+    config.THREADING_LAYER = 'workqueue'
 
     @njit(parallel=True)
     def print_procs():
@@ -127,7 +127,7 @@ You should see something similar to this (number of processes depend on your mac
     proc 11 working!
     proc 6 working!
     proc 2 working!
-    Threading layer chosen: omp
+    Threading layer chosen: workqueue
 
 
 2. Install Numba support for GPUs (optional)
@@ -246,6 +246,7 @@ Pick your favorite and run ONE of the following commands:
 
 .. code-block:: sh
 
+    $ # Choose one!
     $ conda install -c conda-forge mpi4py openmpi
     $ conda install -c conda-forge mpi4py mpich
     $ conda install -c conda-forge mpi4py impi_rt
@@ -255,7 +256,7 @@ Pick your favorite and run ONE of the following commands:
 Test if MPI is working
 ~~~~~~~~~~~~~~~~~~~~~~
 
-Quickly test the MPI installation:
+Test the MPI installation:
 
 .. code-block:: sh
 
@@ -301,6 +302,16 @@ or via conda:
 To install the latest development version of RockVerse, you can use pip with the latest GitHub main:
 
 $ pip install git+https://github.com/rodolfovictor/rockverse.git
+
+
+To work with RockVerse source code in development, ``cd`` to the path
+where you want to clone the repository and install from GitHub:
+
+.. code-block:: sh
+
+    $ git clone https://github.com/rodolfovictor/rockverse.git
+    $ cd rockverse
+    $ pip install -e .
 
 Now run a quick test:
 

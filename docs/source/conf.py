@@ -39,9 +39,9 @@ extensions = [
     'sphinx.ext.autosummary',
     "sphinx.ext.viewcode",
     'nbsphinx',
-    #'sphinx_copybutton',
-    #'sphinx_gallery.load_style',
-    #'sphinx_design',
+    'sphinx_copybutton',
+    'sphinx_gallery.load_style',
+    'sphinx_design',
 ]
 
 nbsphinx_thumbnails = {
