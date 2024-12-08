@@ -341,16 +341,17 @@ Install the latest stable version from PyPI:
 
             pip install rockverse
 
-    .. tab-item:: development
+    .. tab-item:: nightly build
 
-        To install the latest development version of RockVerse,
-        you can use pip with the latest GitHub main:
+        Install the latest development version available in GitHub:
 
         .. code-block:: sh
 
             $ pip install git+https://github.com/rodolfovictor/rockverse.git
 
-        To work with RockVerse source code in development, ``cd`` to the path
+    .. tab-item:: development
+
+        To work with RockVerse source code in development mode, ``cd`` to the path
         where you want to clone the repository and install from GitHub:
 
         .. code-block:: sh
@@ -387,3 +388,17 @@ improvements, and bug fixes, you can easily update it every once in a while:
         .. code-block:: sh
 
             $ conda update -c conda-forge rockverse
+
+    .. tab-item:: nightly build
+
+        .. code-block:: sh
+
+            $ pip install --upgrade git+https://github.com/rodolfovictor/rockverse.git
+
+    .. tab-item:: development
+
+        Just ``cd`` to repository path and
+
+        .. code-block:: sh
+
+            $ git pull

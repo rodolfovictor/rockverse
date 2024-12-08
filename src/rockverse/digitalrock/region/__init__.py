@@ -6,10 +6,6 @@ defining ROIs, you can limit processing to only the voxels inside these regions,
 which is particularly useful for large-scale digital rock simulations and petrophysical
 analyses.
 
-The defined regions can be applied to various functions and classes within the
-``rockverse.digitalrock`` module, enabling precise manipulation of image data,
-segmentation, and the calculation of petrophysical properties within selected areas.
-
 Key Features:
 -------------
 - Define ROIs using geometric shapes such as spheres and cylinders.
@@ -17,5 +13,6 @@ Key Features:
 - Seamlessly integrate with other classes and functions within the ``rockverse.digitalrock`` module.
 """
 
+from rockverse.digitalrock.region.region import Region
 from rockverse.digitalrock.region.sphere import Sphere
 from rockverse.digitalrock.region.cylinder import Cylinder

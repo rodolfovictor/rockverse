@@ -7,20 +7,14 @@ The ``Cylinder`` class
 
 .. autoclass:: Cylinder
 
-   .. rubric:: Attributes summary
-
-   .. autosummary::
-
-      ~Cylinder.P
-      ~Cylinder.v
-      ~Cylinder.r
-      ~Cylinder.l
-      ~Cylinder.region
-
-   .. rubric:: Attributes documentation
+   .. rubric:: Attributes
 
    .. autoattribute:: P
    .. autoattribute:: v
    .. autoattribute:: r
    .. autoattribute:: l
    .. autoattribute:: region
+
+   .. rubric:: Methods
+
+   .. automethod:: contains_point

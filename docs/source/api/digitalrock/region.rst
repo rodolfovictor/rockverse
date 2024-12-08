@@ -11,5 +11,6 @@ The ``region`` module
 .. toctree::
    :maxdepth: 1
 
+   region/region
    region/sphere
    region/cylinder

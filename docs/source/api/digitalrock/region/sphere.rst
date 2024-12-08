@@ -7,16 +7,12 @@ The ``Sphere`` class
 
 .. autoclass:: Sphere
 
-   .. rubric:: Attributes summary
-
-   .. autosummary::
-
-      ~Sphere.P
-      ~Sphere.r
-      ~Sphere.region
-
-   .. rubric:: Attributes documentation
+   .. rubric:: Attributes
 
    .. autoattribute:: P
    .. autoattribute:: r
    .. autoattribute:: region
+
+   .. rubric:: Methods
+
+   .. automethod:: contains_point

@@ -1,7 +1,7 @@
 .. _Digital Rock api:
 
-Digital Rock
-============
+Digital Rock Petrophysics
+=========================
 
 .. automodule:: rockverse.digitalrock
 

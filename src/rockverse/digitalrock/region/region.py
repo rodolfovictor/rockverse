@@ -31,7 +31,7 @@ MASK_CHUNK_GPU_BLOCK = '''
 class Region():
     '''
     This is the base class for defining abstract regions of interest
-    in the DRP arrays. SHOULD NOT BE INSTANTIATED ETC ETC
+    in voxel images. It should not be directly instantiated.
     '''
 
     def __repr__(self):
