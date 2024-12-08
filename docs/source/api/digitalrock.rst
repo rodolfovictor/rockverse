@@ -9,6 +9,7 @@ Digital Rock
     :maxdepth: 2
 
     digitalrock/voxelimage
+    digitalrock/region
 
 
 Indices and tables

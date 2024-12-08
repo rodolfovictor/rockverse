@@ -6,6 +6,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+- None
+
+### Changed
+- None
+
+### Fixed
+- None
+
+
+## [0.1.0]
+### Added
 - Initial documentation
 - Gallery/miscellaneous: Using the RockVerse logo
 - Assertion methods
