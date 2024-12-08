@@ -8,11 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial documentation
 - Gallery/miscellaneous: Using the RockVerse logo
+- Assertion methods
 - Digital rock Module
     - VoxelImage class
         - Creation functions
         - Sphere pack
-        - Import raw data
+        - Import/export raw data
         - Parallel math
 
 ### Changed

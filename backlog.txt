@@ -1,7 +1,0 @@
-fine tune threads per block GPU
-autoset MPI, OMP, GPU
-add description to finney pack
-generic open function for rockverse data
-128-bit data in importing raw
-fix badges in sphinx doc
-add documentation for dependencies

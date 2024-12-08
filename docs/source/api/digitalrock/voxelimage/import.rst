@@ -1,7 +1,7 @@
 .. _voxel image import functions:
 
-Creation functions
-------------------
+Importing to VoxelImage
+-----------------------
 
 NOT DONE
 

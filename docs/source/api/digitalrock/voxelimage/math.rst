@@ -1,7 +1,7 @@
 .. _voxel image math functions:
 
-Creation functions
-------------------
+VoxelImage parallel math
+------------------------
 
 NOT DONE
 

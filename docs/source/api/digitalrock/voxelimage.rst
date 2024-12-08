@@ -14,8 +14,8 @@ NOT DONE
 .. toctree::
    :maxdepth: 1
 
-   voxelimage_class
-   voxelimage_creation
-   voxelimage_math
-   voxelimage_import
-   voxelimage_export
+   voxelimage/class
+   voxelimage/creation
+   voxelimage/math
+   voxelimage/import
+   voxelimage/export

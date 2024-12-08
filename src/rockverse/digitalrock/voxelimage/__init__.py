@@ -7,7 +7,7 @@ the VoxelImage class, intended to contain voxelized images and scalar fields in
 general. The VoxelImage class builds upon
 `Zarr arrays <https://zarr.readthedocs.io/en/stable/_autoapi/zarr.core.Array.html#zarr.core.Array>`_
 by adding attributes and methods specifically designed for digital rock
-petrophysics in a high-performance parallel computing environment.
+petrophysics in a high-performance, parallel computing environment.
 
 Since it is derived from Zarr arrays, it can efficiently handle large images by
 leveraging Zarr's chunked storage. Methods in this class also take advantage of
@@ -31,7 +31,7 @@ mpi_rank = comm.Get_rank()
 mpi_nprocs = comm.Get_size()
 
 from rockverse import _assert
-from rockverse.digitalrock.voxelimage._array_math import _array_math
+from rockverse.digitalrock.voxelimage._math import _array_math
 from rockverse.digitalrock.voxelimage._finneypack import _fill_finney_pack
 from rockverse._utils import rvtqdm
 
@@ -313,14 +313,14 @@ class VoxelImage(zarr.Array):
             The spatial coordinate in the z-direction.
         allow_outside : Boolean
             If False (default) return None in case the spatial coordinates point
-            to a region outside the image bounding box.
+            to a region outside the image bounding box. If True, return the
+            the voxel indices even if (x, y, z) falls outside the image bounding box.
 
         Returns
         -------
         tuple or None
             A tuple containing the voxel indices (i, j, k) corresponding to the
-            specified spatial coordinates if the point (x, y, z) is inside the
-            image, or None otherwise.
+            specified spatial coordinates (x, y, z), or None.
         """
         pos = (int(round((x-self.ox)/self.hx)),
                int(round((y-self.oy)/self.hy)),
@@ -379,7 +379,7 @@ class VoxelImage(zarr.Array):
         :bdg-info:`CPU`
         :bdg-info:`GPU`
 
-        Parallel computing element-wise math operations.
+        Element-wise math operations.
 
         This method applies math operations for each voxel in the image.
         Optional parameters allow for selective setting based on mask,
@@ -397,9 +397,9 @@ class VoxelImage(zarr.Array):
 
         op : str
             The operation to be performed. Let :math:`v` represent each voxel
-            in the image. Valid values for ``op`` are:
+            in the image. See table below:
 
-            .. list-table::
+            .. list-table:: Operations
                 :header-rows: 1
 
                 * -  ``op``
@@ -487,10 +487,10 @@ class VoxelImage(zarr.Array):
             in the original image and :math:`a` represent each voxel in ``a``.
             Valid values for ``op`` are:
 
-            .. list-table::
+            .. list-table:: Operations
                 :header-rows: 1
 
-                * -``op``
+                * -  ``op``
                   - Operation
                 * - 'copy'
                   - :math:`v = a`
@@ -499,7 +499,7 @@ class VoxelImage(zarr.Array):
                 * - 'subtract'
                   - :math:`v = v - a`
                 * - 'multiply'
-                  - :math:`v = v \\times a`
+                  - :math:`v = v a`
                 * - 'divide'
                   - :math:`v = v / a`
                 * - 'logical and'
@@ -529,10 +529,6 @@ class VoxelImage(zarr.Array):
             segmentation phases. Used together with ``segmentation``.
             Segmentation phases not in ``phases`` will be ignored by the
             operation.
-        phases : iterable of int, optional
-            Any iterable of non negative integers representing the phases. Used
-            together with ``segmentation`` to specify which segmentation phases
-            should be set to the specified value.
         region : Region, optional
             A region specification. If provided, only voxels within the
             specified region will be set to the specified value.
@@ -575,10 +571,12 @@ class VoxelImage(zarr.Array):
             Data type to be used in the exported raw file. If None, the original
             image data type will be used. Boolean types will be cast to unsigned
             8-bit integers in the exported file.
+
             .. warning::
                 Pay attention if setting `dtype`, as there is no internal check
                 to ensure that the exported data will be correctly cast from the
                 original array dtype.
+
         order : {'C', 'F'}, optional
             The order of the exported raw array layout: 'C' for C-style (most
             rapidly changing index last), 'F' for Fortran-style (most rapidly

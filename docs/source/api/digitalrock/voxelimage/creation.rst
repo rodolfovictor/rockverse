@@ -1,7 +1,7 @@
 .. _voxel image creation functions:
 
-Creation functions
-------------------
+VoxelImage creation functions
+-----------------------------
 
 NOT DONE
 

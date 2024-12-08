@@ -1,7 +1,7 @@
 .. _voxel image export functions:
 
-Creation functions
-------------------
+Exporting VoxelImage
+--------------------
 
 NOT DONE
 
