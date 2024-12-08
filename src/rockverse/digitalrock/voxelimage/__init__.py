@@ -749,7 +749,7 @@ def create(shape,
     Returns
     -------
     VoxelImage
-        The created voxel image with the specified shape and metadata.
+        The created ``VoxelImage`` object.
     """
     _assert.iterable.ordered_integers_positive('shape', shape)
     if voxel_length is not None:
@@ -827,7 +827,7 @@ def empty(shape, dtype, **kwargs):
     Returns
     -------
     VoxelImage
-        The created empty voxel image.
+        The created ``VoxelImage`` object.
     """
     kwargs['shape'] = shape
     kwargs['dtype'] = dtype
@@ -855,7 +855,7 @@ def zeros(shape, dtype, **kwargs):
     Returns
     -------
     VoxelImage
-        The created voxel image.
+        The created ``VoxelImage`` object.
     """
 
     kwargs['shape'] = shape
@@ -883,7 +883,7 @@ def ones(shape, dtype, **kwargs):
     Returns
     -------
     VoxelImage
-        The created voxel image.
+        The created ``VoxelImage`` object.
     """
     kwargs['shape'] = shape
     kwargs['dtype'] = dtype
@@ -912,7 +912,7 @@ def full(shape, dtype, fill_value, **kwargs):
     Returns
     -------
     VoxelImage
-        The created voxel image.
+        The created ``VoxelImage`` object.
     """
 
     kwargs['shape'] = shape
@@ -951,7 +951,7 @@ def empty_like(a, dtype, **kwargs):
     Returns
     -------
     VoxelImage
-        The created voxel image.
+        The created ``VoxelImage`` object.
     """
     _assert.rockverse_instance(a, 'a', ('VoxelImage',))
     _put_meta(a, kwargs)
@@ -980,7 +980,7 @@ def zeros_like(a, dtype, **kwargs):
     Returns
     -------
     VoxelImage
-        The created voxel image.
+        The created ``VoxelImage`` object.
     """
     _assert.rockverse_instance(a, 'a', ('VoxelImage',))
     _put_meta(a, kwargs)
@@ -1008,7 +1008,7 @@ def ones_like(a, dtype, **kwargs):
     Returns
     -------
     VoxelImage
-        The created voxel image.
+        The created ``VoxelImage`` object.
     """
     _assert.rockverse_instance(a, 'a', ('VoxelImage',))
     _put_meta(a, kwargs)
@@ -1038,7 +1038,7 @@ def full_like(a, dtype, fill_value, **kwargs):
     Returns
     -------
     VoxelImage
-        The created voxel image.
+        The created ``VoxelImage`` object.
     """
     _assert.rockverse_instance(a, 'a', ('VoxelImage',))
     _put_meta(a, kwargs)
@@ -1105,7 +1105,7 @@ def sphere_pack(shape,
     Returns
     -------
     VoxelImage
-        The created voxel image representing the sphere pack.
+        The created ``VoxelImage`` object.
     '''
     ox, fx = xlim
     oy, fy = ylim
@@ -1248,7 +1248,7 @@ def import_raw(rawfile,
     Returns
     -------
     VoxelImage
-        The created voxel image with the imported raw data.
+        The created ``VoxelImage`` object.
     """
 
     _assert.instance('rawfile', rawfile, 'string', (str,))

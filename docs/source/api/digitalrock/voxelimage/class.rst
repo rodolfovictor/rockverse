@@ -1,15 +1,9 @@
 .. _VoxelImage class:
 
-The VoxelImage class
---------------------
-
-NOT DONE
-
+The ``VoxelImage`` class
+------------------------
 
 .. currentmodule:: rockverse.digitalrock.voxelimage
-
-.. toctree::
-   :maxdepth: 1
 
 .. autoclass:: VoxelImage
 

@@ -1,3 +1,10 @@
+"""
+These are methods for High-Performance Computing (HPC) operations for
+voxel by voxel image manipulation. They leverage both CPU and GPU
+parallelization techniques to perform a wide range of mathematical
+operations such as element-wise arithmetic and logical operations.
+"""
+
 import numpy as np
 from rockverse._utils import rvtqdm
 from numba import njit, cuda

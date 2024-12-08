@@ -3,9 +3,6 @@
 The ``voxelimage`` module
 -------------------------
 
-NOT DONE
-
-
 .. currentmodule:: rockverse.digitalrock.voxelimage
 
 .. automodule:: rockverse.digitalrock.voxelimage
@@ -17,5 +14,4 @@ NOT DONE
    voxelimage/class
    voxelimage/creation
    voxelimage/math
-   voxelimage/import
-   voxelimage/export
+   voxelimage/io

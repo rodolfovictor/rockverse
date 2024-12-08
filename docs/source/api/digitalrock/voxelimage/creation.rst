@@ -1,15 +1,14 @@
 .. _voxel image creation functions:
 
-VoxelImage creation functions
------------------------------
+Creation functions
+------------------
 
-NOT DONE
+Creation functions adapt the
+`Zarr creation functions <https://zarr.readthedocs.io/en/stable/api/creation.html>`_
+to efficiently create ``VoxelImage`` objects in a parallel MPI execution
+environment across multiple CPU cores and GPUs.
 
 .. currentmodule:: rockverse.digitalrock.voxelimage
-
-.. toctree::
-   :maxdepth: 1
-
 .. autofunction:: create
 .. autofunction:: empty
 .. autofunction:: zeros
