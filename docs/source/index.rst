@@ -2,79 +2,140 @@
 
 :html_theme.sidebar_secondary.remove:
 
-***********************
-RockVerse Documentation
-***********************
+.. image:: _static/RockVerse_logo_model1_for_white_background_facecolor_transparent_True.png
+  :class: only-light,
+  :align: center
+  :width: 400px
 
-**RockVerse** is designed to be an advanced and comprehensive open Python library
-to support computational petrophysics workflows with high-performance computing
-capabilities. Built to handle complex, data-intensive tasks, it is tailored
-for researchers and professionals in the fields of digital rock petrophysics,
-formation evaluation, well logging, and laboratory data analysis.
+.. image:: _static/RockVerse_logo_model1_for_black_background_facecolor_transparent_True.png
+  :class: only-dark
+  :align: center
+  :width: 400px
 
+.. rst-class:: h2 text-center font-weight-light my-4
 
-Key Features
-------------
+  Python tools for Computational Petrophysics
 
-- **Digital Rock Petrophysics (DRP)**:
-  Analyze high-resolution digital rock images efficiently, even when dealing with
-  files that exceed available computing memory. RockVerse leverages advanced computational
-  techniques to handle massive datasets with ease.
+**RockVerse** is an open-source Python library designed to support high-performance
+computational petrophysics workflows. It is tailored for researchers and professionals
+in digital rock petrophysics, formation evaluation, well logging, and laboratory data
+analysis. Built to handle complex, data-intensive tasks, RockVerse provides
+high-performance capabilities for large-scale simulations and data analysis.
 
-- **High-Performance Parallel Computing**:
-  Designed for deployment in high-performance computing (HPC) environments, RockVerse utilizes
-  message passing interface (MPI) parallel processing to support distributed computations on
-  cluster computers. It is optimized for both CPU and GPU architectures, enabling scalable
-  performance across diverse systems.
-
-- **Well Logging and Laboratory Data**:
-  Streamline the analysis and processing of well log and laboratory data.
+RockVerse is an ongoing post-doctoral research project under active development. Contributions,
+bug reports, and feature suggestions are welcome as we continue to evolve the library. Be sure to
+check back for updates, tutorials, and new features. You can also join our mailing list to receive
+notifications about new releases and tutorials.
 
 
+.. rst-class:: h1 text-center font-weight-light my-4
 
-Development and Community
--------------------------
+    Key Features
 
-This library is part of my ongoing post-doctoral research project and is under active development.
-Contributions and feedback are welcome as RockVerse evolves to include new features and capabilities.
-Check back regularly for updates and tutorials that will help you get the most out of the library.
-If you'd like, join our mailing list to receive updates whenever new features or tutorials are released.
+.. dropdown:: High-Performance Parallel Computing
+  :animate: fade-in
+
+  Optimized for deployment in high-performance computing (HPC) environments, RockVerse
+  supports distributed parallel processing using MPI (Message Passing Interface). It is fully
+  compatible with both CPU and GPU architectures, enabling scalable performance across
+  diverse systems.
+
+.. dropdown:: Digital Rock Petrophysics (DRP)
+  :animate: fade-in
+
+  Efficiently analyze high-resolution digital rock images, even when working with large
+  files that exceed available computing memory.
+
+.. dropdown:: Well Logging and Laboratory Data
+  :animate: fade-in
+
+  Process and analyze well log and laboratory data, supporting a wide variety of formats
+  and offering streamlined workflows for petrophysical analysis.
 
 
-Getting Started
----------------
+.. rst-class:: h1 text-center font-weight-light my-4
 
-Explore the documentation to learn more about RockVerse:
-
-- Installation instructions to set up your environment.
-
-- Tutorials and examples to guide you through common workflows.
-
-- API references for in-depth understanding of library capabilities.
+  Getting Started
 
 
+.. grid:: 2
+  :gutter: 4
 
-Getting Help
-------------
+  .. grid-item-card:: Install
+    :text-align: center
+    :link: rockverse_docs_install
+    :link-type: ref
 
-If you encounter issues or have questions about RockVerse, here are some ways to help and get help:
+    .. image:: _static/Install_light_background.svg
+      :class: only-light,
+      :align: center
+      :width: 80px
 
-- **GitHub Issues**:
-  Report bugs, suggest new features, or ask questions by visiting our
-  `GitHub Issues page <https://github.com/rodolfovictor/rockverse/issues>`_.
+    .. image:: _static/Install_dark_background.svg
+      :class: only-dark,
+      :align: center
+      :width: 80px
 
-- **Stack Overflow**:
-  Join the community discussion on Stack Overflow by tagging your questions with
-  ``rockverse`` for targeted support. Explore answers or post your
-  queries at `Stack Overflow <https://stackoverflow.com/tags/rockverse>`_.
+    ^^^^^^
+    Installation instructions to set up your environment.
 
-- **LinkedIn**: Connect with me on
-  `LinkedIn <https://br.linkedin.com/in/rodolfovictor>`_
-  to stay updated on my research.
 
-- **Email**: Fell free to
-  `email me <mailto:rodolfo@rodolfovictor.com>`_
-  for questions, feedback, collaboration opportunities, or just to say hello!...
+  .. grid-item-card::  Gallery
+    :text-align: center
+    :link: rockverse_docs_gallery
+    :link-type: ref
+
+    .. image:: _static/notebook_computer_light_background.svg
+      :class: only-light,
+      :align: center
+      :width: 80px
+
+    .. image:: _static/notebook_computer_dark_background.svg
+      :class: only-dark,
+      :align: center
+      :width: 80px
+
+    ^^^^^^
+    Gallery of Jupyter notebooks with tutorials and examples to guide you through common workflows.
+
+
+  .. grid-item-card::  API
+    :text-align: center
+    :link: rockverse_docs_api
+    :link-type: ref
+
+    .. image:: _static/api_light_background.svg
+      :class: only-light,
+      :align: center
+      :width: 80px
+
+    .. image:: _static/api_dark_background.svg
+      :class: only-dark,
+      :align: center
+      :width: 80px
+
+    ^^^^^^
+    API references for in-depth understanding of library capabilities.
+
+
+  .. grid-item-card::  Get help
+    :text-align: center
+    :link: rockverse_docs_gethelp
+    :link-type: ref
+
+    .. image:: _static/gethelp_light_background.svg
+      :class: only-light,
+      :align: center
+      :width: 80px
+
+    .. image:: _static/gethelp_dark_background.svg
+      :class: only-dark,
+      :align: center
+      :width: 80px
+
+    ^^^^^^
+    If you encounter issues or have questions, here are the ways to get support.
+
 
 
 .. toctree::
@@ -84,10 +145,4 @@ If you encounter issues or have questions about RockVerse, here are some ways to
     install.rst
     gallery.rst
     api.rst
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+    gethelp

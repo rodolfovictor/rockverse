@@ -1,5 +1,7 @@
-API reference
-=============
+.. _rockverse_docs_api:
+
+API
+===
 
 .. toctree::
     :maxdepth: 2

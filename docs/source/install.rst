@@ -1,3 +1,5 @@
+.. _rockverse_docs_install:
+
 Installation
 ============
 
