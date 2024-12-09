@@ -22,7 +22,8 @@ copyright = '2024, Rodolfo A. Victor'
 author = 'Rodolfo A. Victor'
 
 # The full version, including alpha/beta/rc tags
-release = '0.0.1'
+import rockverse as rv
+release = rv.__version__
 
 # Set the root rst to load. This is required to be named contents to allow
 # readthedocs to host the docs using its default configuration.

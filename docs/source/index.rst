@@ -2,6 +2,9 @@
 
 :html_theme.sidebar_secondary.remove:
 
+.. title::
+  RockVerse
+
 .. image:: _static/RockVerse_logo_model1_for_white_background_facecolor_transparent_True.png
   :class: only-light,
   :align: center
@@ -22,15 +25,10 @@ in digital rock petrophysics, formation evaluation, well logging, and laboratory
 analysis. Built to handle complex, data-intensive tasks, RockVerse provides
 high-performance capabilities for large-scale simulations and data analysis.
 
-RockVerse is an ongoing post-doctoral research project under active development. Contributions,
-bug reports, and feature suggestions are welcome as we continue to evolve the library. Be sure to
-check back for updates, tutorials, and new features. You can also join our mailing list to receive
-notifications about new releases and tutorials.
-
 
 .. rst-class:: h1 text-center font-weight-light my-4
 
-    Key Features
+  Key Features
 
 .. dropdown:: High-Performance Parallel Computing
   :animate: fade-in
@@ -52,11 +50,9 @@ notifications about new releases and tutorials.
   Process and analyze well log and laboratory data, supporting a wide variety of formats
   and offering streamlined workflows for petrophysical analysis.
 
-
 .. rst-class:: h1 text-center font-weight-light my-4
 
   Getting Started
-
 
 .. grid:: 2
   :gutter: 4
@@ -79,7 +75,6 @@ notifications about new releases and tutorials.
     ^^^^^^
     Installation instructions to set up your environment.
 
-
   .. grid-item-card::  Gallery
     :text-align: center
     :link: rockverse_docs_gallery
@@ -96,8 +91,7 @@ notifications about new releases and tutorials.
       :width: 80px
 
     ^^^^^^
-    Gallery of Jupyter notebooks with tutorials and examples to guide you through common workflows.
-
+    Gallery of notebooks with tutorials and examples to guide you through common workflows.
 
   .. grid-item-card::  API
     :text-align: center
@@ -117,7 +111,6 @@ notifications about new releases and tutorials.
     ^^^^^^
     API references for in-depth understanding of library capabilities.
 
-
   .. grid-item-card::  Get help
     :text-align: center
     :link: rockverse_docs_gethelp
@@ -136,7 +129,18 @@ notifications about new releases and tutorials.
     ^^^^^^
     If you encounter issues or have questions, here are the ways to get support.
 
+.. rst-class:: h1 text-center font-weight-light my-4
 
+  Mailing list
+
+RockVerse is an ongoing post-doctoral research project under active development. Contributions,
+bug reports, and feature suggestions are welcome as we continue to evolve the library. Be sure to
+check back for updates, tutorials, and new features. You can also join our mailing list to receive
+notifications about new releases and tutorials.
+
+.. raw:: html
+
+  <iframe width="450" height="480" src="https://52f75dbc.sibforms.com/serve/MUIFAC2tkhJj8UnKQUqfvI8mcMjO3iZqF__e2VE3r44qFYTCkqNZ1c7-rrKm8oHCMn8v73xApnLWsl1RkLOvss7u0Qf5iorC8LS9f3Je6ZF_VosNdxwHSv4FE32oKv2CwUvr5I5KjXuHIwWKDXMOZoCRhorlTz4YlvUe4ThEbRb3SjlNT6Croa_sWG6AL3fHUR28ppzflI8z6lRT" frameborder="0" scrolling="auto" allowfullscreen style="display: block;margin-left: auto;margin-right: auto;max-width: 100%;"></iframe>
 
 .. toctree::
     :maxdepth: 1
