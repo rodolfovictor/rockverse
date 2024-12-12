@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Digital rock Module
     - Region module
+        - Region class
         - Sphere class
         - Cylinder class
 
@@ -15,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - None
 
 ### Fixed
-- None
+- Zarr parameters not being passes to VoxelImage create function.
 
 
 ## [0.1.0]

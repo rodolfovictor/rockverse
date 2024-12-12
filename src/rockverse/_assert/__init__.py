@@ -8,7 +8,7 @@ comm = MPI.COMM_WORLD
 mpi_rank = comm.Get_rank()
 mpi_nprocs = comm.Get_size()
 
-def dtype(varname, var):
+def drpdtype(varname, var):
     if var not in ('|b1', '|u1', '|i1',
                    '<u2', '<u4', '<u8', '<u16',
                    '>u2', '>u4', '>u8', '>u16',
@@ -76,11 +76,11 @@ def in_group(varname, var, group):
     else:
         collective_raise(ValueError(f"{varname} must be {', '.join(group[:-1])} or {group[-1]}."))
 
-#def list_of_zarray(varname, var):
-#    conditions = [isinstance(var, list),
-#                  all(isinstance(k, zarr.core.Array) for k in var)]
-#    if not all(conditions):
-#        collective_raise(ValueError(f"Expected list of Zarr arrays for {varname}."))
+def list_of_zarray(varname, var):
+    conditions = [isinstance(var, list),
+                  all(isinstance(k, zarr.core.Array) for k in var)]
+    if not all(conditions):
+        collective_raise(ValueError(f"Expected list of Zarr arrays for {varname}."))
 
 def same_chunk_size(message, varlist):
    chunks = [k.chunks for k in varlist]
@@ -92,10 +92,10 @@ def same_shape(message, varlist):
    if not all(sh==shapes[0] for sh in shapes):
        collective_raise(ValueError(f'{message} must have same shape.'))
 
-#def same_shape_if_not_None(message, varlist):
-#    shapes = [k.shape for k in varlist if k is not None]
-#    if not all(sh==shapes[0] for sh in shapes):
-#        collective_raise(ValueError(f'{message} must have same shape.'))
+def same_shape_if_not_None(message, varlist):
+    shapes = [k.shape for k in varlist if k is not None]
+    if not all(sh==shapes[0] for sh in shapes):
+        collective_raise(ValueError(f'{message} must have same shape.'))
 
 def same_voxel_length(message, varlist):
    lengths1 = varlist[0].voxel_length
@@ -123,21 +123,21 @@ def same_voxel_unit(message, varlist):
        if var.voxel_unit != unit:
            collective_raise(ValueError(f'{message} must have same voxel unit.'))
 
-#def zarr_array(varname, var):
-#    if not isinstance(var, zarr.core.Array):
-#        collective_raise(ValueError(f'Expected Zarr array for {varname}'))
-#    for n in ('voxel_origin', 'voxel_length', 'voxel_unit'):
-#        if n not in var.attrs:
-#            collective_raise(KeyError(f"'{n}' not found in zarr array attributes"))
+def zarr_array(varname, var):
+    if not isinstance(var, zarr.core.Array):
+        collective_raise(ValueError(f'Expected Zarr array for {varname}'))
+    for n in ('voxel_origin', 'voxel_length', 'voxel_unit'):
+        if n not in var.attrs:
+            collective_raise(KeyError(f"'{n}' not found in zarr array attributes"))
 
-#def zarr_store(varname, var):
-#    if mpi_nprocs > 1 and not isinstance(var, (str, zarr.storage.DirectoryStore)):
-#        collective_raise(
-#            ValueError(f"Invalid {varname}. Zarr store must be a directory"
-#                       " when running with multiple MPI processes."))
+def zarr_store(varname, var):
+    if mpi_nprocs > 1 and not isinstance(var, (str, zarr.storage.DirectoryStore)):
+        collective_raise(
+            ValueError(f"Invalid {varname}. Zarr store must be a directory"
+                       " when running with multiple MPI processes."))
 
-#def zarr_or_none_iterable(varname, var):
-#    if not (hasattr(var, '__iter__')
-#            and all(k is None or isinstance(k, zarr.core.Array) for k in var)
-#            ):
-#        collective_raise(ValueError(f'Expected list of None or Zarr arrays for {varname}.'))
+def zarr_or_none_iterable(varname, var):
+    if not (hasattr(var, '__iter__')
+            and all(k is None or isinstance(k, zarr.core.Array) for k in var)
+            ):
+        collective_raise(ValueError(f'Expected list of None or Zarr arrays for {varname}.'))

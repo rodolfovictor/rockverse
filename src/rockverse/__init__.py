@@ -4,20 +4,17 @@ from rockverse._utils.logo import make_logo
 
 import rockverse.digitalrock as digitalrock
 
-from rockverse.rc import RcParams
-rcParams = RcParams()
+# Expose RcParams as a library-wide instance
+from rockverse.rc import rcparams
 
-from mpi4py import MPI
-from numba import cuda
-_launch_params = {
-    'MPI': {
-        'comm': MPI.COMM_WORLD,
-        'mpi_rank': MPI.COMM_WORLD.Get_rank(),
-        'mpi_nprocs': MPI.COMM_WORLD.Get_size(),
-        'processor_name': MPI.Get_processor_name()
-        },
-    'gpus': {},
-    }
-if cuda.is_available():
-    for g, gpu in enumerate(cuda.gpus):
-        _launch_params['gpus'][g] = gpu.name.decode()
+# Expose Config as a library-wide instance
+from rockverse.config import config
+
+# Define the public API
+__all__ = [
+    "__version__",
+    "config",
+    "rcParams",
+    "make_logo",
+    "digitalrock",
+]

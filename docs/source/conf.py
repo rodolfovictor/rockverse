@@ -23,7 +23,7 @@ author = 'Rodolfo A. Victor'
 
 # The full version, including alpha/beta/rc tags
 import rockverse as rv
-release = rv.__version__
+version = rv.__version__
 
 # Set the root rst to load. This is required to be named contents to allow
 # readthedocs to host the docs using its default configuration.
@@ -76,11 +76,6 @@ html_theme_options = {
     "use_edit_page_button": False,
     "icon_links": [
         {
-            "name": "LinkedIn",
-            "url": "https://br.linkedin.com/in/rodolfovictor",
-            "icon": "fa-brands fa-linkedin",
-        },
-        {
             "name": "GitHub",
             "url": "https://github.com/rodolfovictor/rockverse",
             "icon": "fa-brands fa-github",
@@ -90,6 +85,11 @@ html_theme_options = {
             "url": "https://stackoverflow.com/tags/rockverse",
             "icon": "fab fa-stack-overflow",
             "type": "fontawesome",
+        },
+        {
+            "name": "LinkedIn",
+            "url": "https://br.linkedin.com/in/rodolfovictor",
+            "icon": "fa-brands fa-linkedin",
         },
     ],
 }

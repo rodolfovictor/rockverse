@@ -2,8 +2,7 @@
 
 :html_theme.sidebar_secondary.remove:
 
-.. title::
-  RockVerse
+.. title:: RockVerse Documentation | Python Tools for Computational Petrophysics
 
 .. image:: _static/RockVerse_logo_model1_for_white_background_facecolor_transparent_True.png
   :class: only-light,
@@ -19,12 +18,21 @@
 
   Python tools for Computational Petrophysics
 
+.. rst-class:: h5 text-center font-weight-light my-4
+
+  Version |version|
+
 **RockVerse** is an open-source Python library designed to support high-performance
 computational petrophysics workflows. It is tailored for researchers and professionals
 in digital rock petrophysics, formation evaluation, well logging, and laboratory data
 analysis. Built to handle complex, data-intensive tasks, RockVerse provides
 high-performance capabilities for large-scale simulations and data analysis.
 
+RockVerse (and this documentation site) is part of an ongoing post-doctoral research project
+under active development. We welcome contributions, bug reports, and feature suggestions to
+help improve and expand the library. Check back regularly for updates, tutorials, and new
+features, or :ref:`join our mailing list <rockverse_docs_maillist>` to stay informed about the
+latest developments.
 
 .. rst-class:: h1 text-center font-weight-light my-4
 
@@ -41,8 +49,8 @@ high-performance capabilities for large-scale simulations and data analysis.
 .. dropdown:: Digital Rock Petrophysics (DRP)
   :animate: fade-in
 
-  Efficiently analyze high-resolution digital rock images, even when working with large
-  files that exceed available computing memory.
+  Efficiently analyze 3D digital rock images using memory-efficient Digital Rock workflows.
+  Supports larger than memory datasets.
 
 .. dropdown:: Well Logging and Laboratory Data
   :animate: fade-in
@@ -91,7 +99,7 @@ high-performance capabilities for large-scale simulations and data analysis.
       :width: 80px
 
     ^^^^^^
-    Gallery of notebooks with tutorials and examples to guide you through common workflows.
+    Explore real-world examples and Jupyter notebooks showcasing RockVerse workflows.
 
   .. grid-item-card::  API
     :text-align: center
@@ -129,24 +137,12 @@ high-performance capabilities for large-scale simulations and data analysis.
     ^^^^^^
     If you encounter issues or have questions, here are the ways to get support.
 
-.. rst-class:: h1 text-center font-weight-light my-4
-
-  Mailing list
-
-RockVerse is an ongoing post-doctoral research project under active development. Contributions,
-bug reports, and feature suggestions are welcome as we continue to evolve the library. Be sure to
-check back for updates, tutorials, and new features. You can also join our mailing list to receive
-notifications about new releases and tutorials.
-
-.. raw:: html
-
-  <iframe width="450" height="480" src="https://52f75dbc.sibforms.com/serve/MUIFAC2tkhJj8UnKQUqfvI8mcMjO3iZqF__e2VE3r44qFYTCkqNZ1c7-rrKm8oHCMn8v73xApnLWsl1RkLOvss7u0Qf5iorC8LS9f3Je6ZF_VosNdxwHSv4FE32oKv2CwUvr5I5KjXuHIwWKDXMOZoCRhorlTz4YlvUe4ThEbRb3SjlNT6Croa_sWG6AL3fHUR28ppzflI8z6lRT" frameborder="0" scrolling="auto" allowfullscreen style="display: block;margin-left: auto;margin-right: auto;max-width: 100%;"></iframe>
-
 .. toctree::
     :maxdepth: 1
     :hidden:
 
     install.rst
+    tutorials.rst
     gallery.rst
     api.rst
     gethelp

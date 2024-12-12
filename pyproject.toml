@@ -32,6 +32,7 @@ dependencies = [
     "colorama",
     "cython",
     "ipython[all]",
+    "ipyparallel",
     "ipywidgets",
     "jupyter",
     "jupyterlab",

@@ -4079,9 +4079,9 @@ def process_block_gpu(block, box, boy, boz, ox, oy, oz, hx, hy, hz, radius, fill
 def _fill_finney_pack(array,
                       sphere_radius,
                       fill_value,
-                      hx, hy, hz, ox, oy, oz,
-                      GPU):
+                      hx, hy, hz, ox, oy, oz):
 
+    GPU = False
     threadsperblock = (4, 4, 2)
 
     chunks = array.chunks

@@ -7,4 +7,3 @@ mpi_nprocs = comm.Get_size()
 def collective_raise(e):
     if mpi_rank == 0:
         raise e
-    exit(1)

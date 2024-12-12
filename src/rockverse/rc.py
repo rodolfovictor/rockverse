@@ -10,3 +10,5 @@ class RcParams(dict):
             }
 
         self['voxel.connectivity'] = 6
+
+rcparams = RcParams()

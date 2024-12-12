@@ -569,15 +569,19 @@ def _array_math(array1,
                 region=None,
                 mask=None,
                 segmentation=None,
-                phases=(),
-                use_gpu=True
-                ):
+                phases=None):
+
     #Array assertions must be done at the calling function
     if value is not None:
         _assert.instance('value', value, 'boolean, integer, or float', (bool, int, float))
 
     if region is not None:
         _assert.instance('region', region, 'Region', (Region,))
+
+    array1.check_mask_and_segmentation(mask=mask, segmentation=segmentation)
+
+    if phases is not None:
+        _assert.iterable.any_iterable_non_negative_integers('phases', phases)
 
     arrays = [array1,]
     if array2 is not None:
@@ -594,13 +598,14 @@ def _array_math(array1,
     ox, oy, oz = array1.voxel_origin
     hx, hy, hz = array1.voxel_length
 
-    GPU = cuda.is_available() and use_gpu
+    GPU = cuda.is_available()
     device_index = None
-    cphases = np.array([k for k in phases], dtype='u8')
-    if GPU:
-        device_index = mpi_rank % len(cuda.gpus)
-        with cuda.gpus[device_index]:
-            dphases = cuda.to_device(cphases)
+    if phases is not None:
+        cphases = np.array([k for k in phases], dtype='u8')
+        if GPU:
+            device_index = mpi_rank % len(cuda.gpus)
+            with cuda.gpus[device_index]:
+                dphases = cuda.to_device(cphases)
 
     desc, OP = '<none>', None
     OPType = None
@@ -624,11 +629,11 @@ def _array_math(array1,
         elif op == 'logical xor':
             desc, OP = 'Logical xor', _logical_xor_array_gpu if GPU else _logical_xor_array_cpu
         elif op == 'min':
-            desc, OP = 'Minimium', _min_array_gpu if GPU else _min_array_gpu
+            desc, OP = 'Minimium', _min_array_gpu if GPU else _min_array_cpu
         elif op == 'max':
-            desc, OP = 'Maximum', _max_array_gpu if GPU else _max_array_gpu
+            desc, OP = 'Maximum', _max_array_gpu if GPU else _max_array_cpu
         elif op == 'average':
-            desc, OP = 'Average', _avg_array_gpu if GPU else _avg_array_gpu
+            desc, OP = 'Average', _avg_array_gpu if GPU else _avg_array_cpu
         elif op == 'absolute difference':
             desc, OP = 'Absolute difference', _absdiff_array_gpu if GPU else _absdiff_array_cpu
         else:
@@ -708,7 +713,7 @@ def _array_math(array1,
                 region._mask_chunk(skip, ox, oy, oz, hx, hy, hz, box, boy, boz)
             if mask is not None:
                 _apply_mask_cpu(dskip, dmask)
-            if segmentation is not None:
+            if segmentation is not None and phases is not None:
                 _apply_segmentation_cpu(skip, csegmentation, cphases)
 
             if OPType == 'array-array':

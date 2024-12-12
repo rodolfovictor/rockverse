@@ -70,3 +70,5 @@ class Sphere(Region):
         return {False if self._region=='outside' else True}
         '''
         return string
+
+# %%

@@ -33,6 +33,7 @@ mpi_nprocs = comm.Get_size()
 from rockverse import _assert
 from rockverse.digitalrock.voxelimage._math import _array_math
 from rockverse.digitalrock.voxelimage._finneypack import _fill_finney_pack
+#from rockverse.digitalrock.voxelimage.histogram import Histogram
 from rockverse._utils import rvtqdm
 
 from mpi4py import MPI
@@ -357,6 +358,7 @@ class VoxelImage(zarr.Array):
             the current voxel image.
         """
         return
+        raise Exception('Not implemented')
         if mask is not None:
             _assert.rockverse_instance(mask, 'mask', ('VoxelImage',))
             _assert.dtype('mask', mask, 'boolean', 'b')
@@ -372,8 +374,7 @@ class VoxelImage(zarr.Array):
             _assert.same_voxel_origin('Segmentation image', (segmentation, self))
             _assert.same_voxel_unit('Segmentation image', (segmentation, self))
 
-    def math(self, a, op, *, mask=None, segmentation=None, phases=(),
-             region=None, use_gpu=True):
+    def math(self, value, op, *, mask=None, segmentation=None, phases=None, region=None):
         '''
         :bdg-info:`Parallel`
         :bdg-info:`CPU`
@@ -387,16 +388,16 @@ class VoxelImage(zarr.Array):
 
         Parameters
         ----------
-        a : scalar
+        value : scalar
             The value to be used in the operation.
 
             .. note::
-                There is no internal check for the correct data type of ``a``.
-                Ensure that the ``a`` provided is compatible with the image
+                There is no internal check for the correct data type of ``value``.
+                Ensure that the value provided is compatible with the image
                 data type.
 
         op : str
-            The operation to be performed. Let :math:`v` represent each voxel
+            The operation to be performed. Let :math:`voxel` represent each voxel
             in the image. See table below:
 
             .. list-table:: Operations
@@ -405,25 +406,25 @@ class VoxelImage(zarr.Array):
                 * -  ``op``
                   - Operation
                 * - 'set'
-                  - :math:`v = a`
+                  - :math:`voxel = value`
                 * - 'add'
-                  - :math:`v = v + a`
+                  - :math:`voxel = voxel + value`
                 * - 'subtract'
-                  - :math:`v = v - a`
+                  - :math:`voxel = voxel - value`
                 * - 'multiply'
-                  - :math:`v = v \\times a`
+                  - :math:`voxel = voxel \\times value`
                 * - 'divide'
-                  - :math:`v = v / a`
+                  - :math:`voxel = voxel / value`
                 * - 'logical and'
-                  - :math:`v = v \\land a`
+                  - :math:`voxel = voxel \\land value`
                 * - 'logical or'
-                  - :math:`v = v \\lor a`
+                  - :math:`voxel = voxel \\lor value`
                 * - 'logical xor'
-                  - :math:`v = v \\oplus a` (exclusive OR)
+                  - :math:`voxel = voxel \\oplus value` (exclusive OR)
                 * - 'min'
-                  - :math:`v = \\min(v, a)`
+                  - :math:`voxel = \\min(voxel, value)`
                 * - 'max'
-                  - :math:`v = \\max(v, a)`
+                  - :math:`voxel = \\max(voxel, value)`
 
         mask : voxel image, optional
             Boolean voxel image. If provided, the operation will ignore masked
@@ -440,25 +441,19 @@ class VoxelImage(zarr.Array):
         region : Region, optional
             A region specification. If provided, only voxels within the
             specified region will be set to the specified value.
-        use_gpu : bool, optional
-            Whether to use available GPUs for computation. Default is True.
-
         '''
         self.check_mask_and_segmentation(mask=mask, segmentation=segmentation)
-        _assert.iterable.any_iterable_non_negative_integers('phases', phases)
         _array_math(array1=self,
                     array2=None,
-                    value=a,
+                    value=value,
                     op=op,
                     mask=mask,
                     segmentation=segmentation,
                     phases=phases,
-                    region=region,
-                    use_gpu=use_gpu)
+                    region=region)
 
 
-    def combine(self, a, op, *, mask=None, segmentation=None, phases=(),
-             region=None, use_gpu=True):
+    def combine(self, image, op, *, mask=None, segmentation=None, phases=None, region=None):
         '''
         :bdg-info:`Parallel`
         :bdg-info:`CPU`
@@ -472,7 +467,7 @@ class VoxelImage(zarr.Array):
 
         Parameters
         ----------
-        a : VoxelImage
+        image : VoxelImage
             The voxel image to be used in the operation. Must have shape,
             voxel origin, voxel length and voxel unit equal to the ones in the
             original array.
@@ -483,8 +478,8 @@ class VoxelImage(zarr.Array):
                 data type.
 
         op : str
-            The operation to be performed. Let :math:`v` represent each voxel
-            in the original image and :math:`a` represent each voxel in ``a``.
+            The operation to be performed. Let :math:`voxel1` represent each voxel
+            in the original image and :math:`voxel2` represent each voxel in ``image``.
             Valid values for ``op`` are:
 
             .. list-table:: Operations
@@ -493,29 +488,29 @@ class VoxelImage(zarr.Array):
                 * -  ``op``
                   - Operation
                 * - 'copy'
-                  - :math:`v = a`
+                  - :math:`voxel1 = voxel2`
                 * - 'add'
-                  - :math:`v = v + a`
+                  - :math:`voxel1 = voxel1 + voxel2`
                 * - 'subtract'
-                  - :math:`v = v - a`
+                  - :math:`voxel1 = voxel1 - voxel2`
                 * - 'multiply'
-                  - :math:`v = v a`
+                  - :math:`voxel1 = voxel1 voxel2`
                 * - 'divide'
-                  - :math:`v = v / a`
+                  - :math:`voxel1 = voxel1 / voxel2`
                 * - 'logical and'
-                  - :math:`v = v \\land a`
+                  - :math:`voxel1 = voxel1 \\land voxel2`
                 * - 'logical or'
-                  - :math:`v = v \\lor a`
+                  - :math:`voxel1 = voxel1 \\lor voxel2`
                 * - 'logical xor'
-                  - :math:`v = v \\oplus a` (exclusive OR)
+                  - :math:`voxel1 = voxel1 \\oplus voxel2` (exclusive OR)
                 * - 'min'
-                  - :math:`v = \\min(v, a)`
+                  - :math:`voxel1 = \\min(voxel1, voxel2)`
                 * - 'max'
-                  - :math:`v = \\max(v, a)`
+                  - :math:`voxel1 = \\max(voxel1, voxel2)`
                 * - 'average'
-                  - :math:`v = (v + a)/2`
+                  - :math:`voxel1 = (voxel1 + voxel2)/2`
                 * - 'absolute difference'
-                  - :math:`v = |v - a|`
+                  - :math:`voxel1 = |voxel1 - voxel2|`
 
         mask : VoxelImage, optional
             Boolean voxel image. If provided, the operation will ignore masked
@@ -532,22 +527,92 @@ class VoxelImage(zarr.Array):
         region : Region, optional
             A region specification. If provided, only voxels within the
             specified region will be set to the specified value.
-        use_gpu : bool, optional
-            Whether to use available GPUs for computation. Default is True.
-
         '''
         self.check_mask_and_segmentation(mask=mask, segmentation=segmentation)
-        _assert.iterable.any_iterable_non_negative_integers('phases', phases)
         _array_math(array1=self,
-                    array2=a,
+                    array2=image,
                     value=None,
                     op=op,
                     mask=mask,
                     segmentation=segmentation,
                     phases=phases,
-                    region=region,
-                    use_gpu=use_gpu)
+                    region=region)
 
+
+    def __iadd__(self, value, *, mask=None, segmentation=None, phases=None, region=None):
+        self.check_mask_and_segmentation(mask=mask, segmentation=segmentation)
+        if phases is not None:
+            _assert.iterable.any_iterable_non_negative_integers('phases', phases)
+        if isinstance(value, (int, float)):
+            self.math(value, op='add', mask=mask,
+                      segmentation=segmentation,
+                      phases=phases,
+                      region=region)
+        else:
+            _assert.collective_raise(TypeError(
+                f"unsupported operand type(s) for +=: 'VoxelImage' and {type(value)}"))
+        return self
+
+
+    def broadcast_borders(self, border_voxels=1):
+        """
+        :bdg-info:`Parallel`
+        :bdg-info:`CPU`
+
+        Exchanges border voxels from each Zarr data block with its immediate
+        neighbors.
+
+        This method ensures that neighboring processes share boundary data for
+        voxel computations, which is often required in stencil operations,
+        finite difference methods, or other numerical algorithms involving
+        neighboring voxels.
+
+        Parameters:
+        -----------
+        border_voxels : non negative integer
+            Number of border voxels to be sent.
+        """
+        _assert.non_negative_integer('border_voxels', border_voxels)
+        if border_voxels == 0 or mpi_nprocs == 1:
+            return
+
+        def set_slice(ind, bo, be, border_voxels):
+            if ind == -1:
+                return slice(bo, bo+border_voxels, 1)
+            if ind == 1:
+                return slice(be-border_voxels, be, 1)
+            return slice(bo, be, 1)
+
+        Nblocks = self.cdata_shape
+        for bli in range(Nblocks[0]):
+            for blj in range(Nblocks[1]):
+                for blk in range(Nblocks[2]):
+                    sender_id = bli + blj*Nblocks[0] + blk*Nblocks[0]*Nblocks[1]
+                    box, bex, boy, bey, boz, bez = self.chunk_slice_indices(sender_id)
+                    tag = 0
+                    for i in [-1, 0, 1]:
+                        if not (0 <= (bli+i) < Nblocks[0]):
+                            continue
+                        slicex = set_slice(i, box, bex, border_voxels)
+                        for j in [-1, 0, 1]:
+                            if not (0 <= (blj+j) < Nblocks[1]):
+                                continue
+                            slicey = set_slice(j, boy, bey, border_voxels)
+                            for k in [-1, 0, 1]:
+                                if not (0 <= (blk+k) < Nblocks[2]):
+                                    continue
+                                slicez = set_slice(k, boz, bez, border_voxels)
+                                if i == 0 and j == 0 and k == 0:
+                                    continue
+                                receiver_id = (bli+i) + (blj+j)*Nblocks[0] + (blk+k)*Nblocks[0]*Nblocks[1]
+                                if (receiver_id % mpi_nprocs) == (sender_id % mpi_nprocs):
+                                    continue
+                                if mpi_rank == sender_id % mpi_nprocs:
+                                    data = self[slicex, slicey, slicez].copy()
+                                    comm.send(obj=data, dest=(receiver_id % mpi_nprocs), tag=tag)
+                                if mpi_rank == receiver_id % mpi_nprocs:
+                                    data = comm.recv(None, source=(sender_id % mpi_nprocs), tag=tag)
+                                    self[slicex, slicey, slicez] = data.copy()
 
 
     def export_raw(self, filename, dtype=None, order='F', byteorder='=',
@@ -766,6 +831,9 @@ def create(shape,
     _assert.instance('voxel_unit', voxel_unit, 'string', (str,))
 
     kwargs['shape'] = shape
+    kwargs['dtype'] = dtype
+    kwargs['chunks'] = chunks
+    kwargs['store'] = store
     kwargs['overwrite'] = overwrite
     kwargs['store'] = store
     kwargs['order'] = 'C'
@@ -1054,7 +1122,6 @@ def sphere_pack(shape,
                 zlim=(-10, 10),
                 sphere_radius=1,
                 fill_value=1,
-                GPU=True,
                 **kwargs):
     '''
     :bdg-info:`Parallel`
@@ -1122,7 +1189,7 @@ def sphere_pack(shape,
     z = zeros(shape, dtype, **kwargs)
     _fill_finney_pack(array=z, sphere_radius=sphere_radius,
                       hx=hx, hy=hy, hz=hz, ox=ox, oy=oy, oz=oz,
-                      fill_value=fill_value, GPU=GPU)
+                      fill_value=fill_value)
     return z
 
 
@@ -1264,7 +1331,7 @@ def import_raw(rawfile,
         _voxel_origin = [0 for k in shape]
     _assert.iterable.ordered_numbers('voxel_origin', _voxel_origin)
     _assert.instance('dtype', dtype, 'string', (str,))
-    _assert.dtype('dtype', dtype)
+    _assert.drpdtype('dtype', dtype)
     _assert.instance('name', field_name, 'string', (str,))
     _assert.instance('unit', field_unit, 'string', (str,))
     _assert.instance('offset', offset, 'integer', (int,))
