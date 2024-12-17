@@ -27,5 +27,5 @@ Key Features:
 
 """
 
-import rockverse.digitalrock.voxelimage as voxelimage
+import rockverse.digitalrock.voxel_image as voxel_image
 import rockverse.digitalrock.region as region

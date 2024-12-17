@@ -598,7 +598,7 @@ def _array_math(array1,
     ox, oy, oz = array1.voxel_origin
     hx, hy, hz = array1.voxel_length
 
-    GPU = cuda.is_available()
+    GPU = cuda.is_available() and False
     device_index = None
     if phases is not None:
         cphases = np.array([k for k in phases], dtype='u8')

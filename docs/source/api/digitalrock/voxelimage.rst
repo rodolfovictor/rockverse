@@ -1,11 +1,11 @@
-.. _voxelimage module:
+.. _voxel_image_module:
 
 The ``voxelimage`` module
 -------------------------
 
-.. currentmodule:: rockverse.digitalrock.voxelimage
+.. currentmodule:: rockverse.digitalrock.voxel_image
 
-.. automodule:: rockverse.digitalrock.voxelimage
+.. automodule:: rockverse.digitalrock.voxel_image
 
 
 .. toctree::

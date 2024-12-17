@@ -29,32 +29,28 @@ classifiers = [
 ]
 
 dependencies = [
-    "colorama",
-    "cython",
-    "ipython[all]",
+    "ipython",
     "ipyparallel",
     "ipywidgets",
     "jupyter",
     "jupyterlab",
     "matplotlib",
+    "mpi4py",
     "nbsphinx",
     "numba",
     "numpy",
     "pandas",
     "pip",
     "pydata-sphinx-theme",
-    "pyvista[all,trame,jupyter]",
-    "scipy==1.13",
-    "seaborn",
     "sphinx",
     "sphinx-copybutton",
     "sphinx-design",
     "sphinx_gallery",
-    "spyder",
-    "sympy",
     "tqdm",
-    "zarr[jupyter]>=2.18",
+    "zarr",
 ]
+
+
 keywords = ["petrophysics", "well", "log", "well log", "digital rock"]
 
 [project.urls]

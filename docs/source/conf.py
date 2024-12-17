@@ -51,6 +51,8 @@ nbsphinx_thumbnails = {
 
 autoclass_content = 'class'
 
+language = 'en'
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
@@ -66,13 +68,14 @@ exclude_patterns = []
 # a list of builtin themes.
 #
 html_theme = 'pydata_sphinx_theme'
-
+html_last_updated_fmt = ""
 html_theme_options = {
     "logo": {
         "image_light": "_static/RockVerse_logo_model3_for_white_background_facecolor_transparent_True.png",
         "image_dark": "_static/RockVerse_logo_model3_for_black_background_facecolor_transparent_True.png",
         "alt_text": "RockVerse documentation - Home",
     },
+    "footer_center": ["last-updated"],
     "use_edit_page_button": False,
     "icon_links": [
         {

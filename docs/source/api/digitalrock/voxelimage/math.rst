@@ -3,6 +3,6 @@
 Parallel math
 ------------------------
 
-.. automodule:: rockverse.digitalrock.voxelimage._math
-.. automethod:: rockverse.digitalrock.voxelimage.VoxelImage.math
-.. automethod:: rockverse.digitalrock.voxelimage.VoxelImage.combine
+.. automodule:: rockverse.digitalrock.voxel_image._math
+.. automethod:: rockverse.digitalrock.voxel_image.VoxelImage.math
+.. automethod:: rockverse.digitalrock.voxel_image.VoxelImage.combine

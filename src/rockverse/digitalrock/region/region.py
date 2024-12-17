@@ -50,7 +50,7 @@ class Region():
 
     def _contains_point_source_code(self):
         string = '''def _is_inside(x, y, z):
-        return False
+        return True
         '''
         return string
 

@@ -23,16 +23,18 @@
   Version |version|
 
 **RockVerse** is an open-source Python library designed to support high-performance
-computational petrophysics workflows. It is tailored for researchers and professionals
-in digital rock petrophysics, formation evaluation, well logging, and laboratory data
-analysis. Built to handle complex, data-intensive tasks, RockVerse provides
-high-performance capabilities for large-scale simulations and data analysis.
+computational petrophysics workflows. It is tailored for researchers and
+professionals working in **digital rock petrophysics**, **formation evaluation**,
+**well logging**, and **laboratory data analysis**.
 
-RockVerse (and this documentation site) is part of an ongoing post-doctoral research project
-under active development. We welcome contributions, bug reports, and feature suggestions to
-help improve and expand the library. Check back regularly for updates, tutorials, and new
-features, or :ref:`join our mailing list <rockverse_docs_maillist>` to stay informed about the
-latest developments.
+Built to handle large-scale simulations and memory-intensive data processing,
+RockVerse leverages state-of-the-art tools to deliver optimized performance
+across CPU and GPU parallel computational environments.
+
+This library is part of an ongoing post-doctoral research project under active
+development. We welcome contributions, bug reports, and feature suggestions.
+Check back regularly for updates, tutorials, and new features.
+Want to stay informed? :ref:`Join our mailing list <rockverse_docs_maillist>`.
 
 .. rst-class:: h1 text-center font-weight-light my-4
 
@@ -41,10 +43,9 @@ latest developments.
 .. dropdown:: High-Performance Parallel Computing
   :animate: fade-in
 
-  Optimized for deployment in high-performance computing (HPC) environments, RockVerse
-  supports distributed parallel processing using MPI (Message Passing Interface). It is fully
-  compatible with both CPU and GPU architectures, enabling scalable performance across
-  diverse systems.
+  Optimized for **HPC environments**, RockVerse enables scalable, distributed parallel
+  processing through **MPI** (Message Passing Interface). Fully compatible with CPU
+  and GPU architectures for efficient large-scale computations.
 
 .. dropdown:: Digital Rock Petrophysics (DRP)
   :animate: fade-in
@@ -65,9 +66,9 @@ latest developments.
 .. grid:: 2
   :gutter: 4
 
-  .. grid-item-card:: Install
+  .. grid-item-card:: Installation
     :text-align: center
-    :link: rockverse_docs_install
+    :link: rockverse_docs_gettingstarted
     :link-type: ref
 
     .. image:: _static/Install_light_background.svg
@@ -81,9 +82,10 @@ latest developments.
       :width: 80px
 
     ^^^^^^
-    Installation instructions to set up your environment.
+    Follow installation instructions and basic tutorials to
+    get RockVerse up and running.
 
-  .. grid-item-card::  Gallery
+  .. grid-item-card::  Tutorials and gallery
     :text-align: center
     :link: rockverse_docs_gallery
     :link-type: ref
@@ -99,7 +101,7 @@ latest developments.
       :width: 80px
 
     ^^^^^^
-    Explore real-world examples and Jupyter notebooks showcasing RockVerse workflows.
+    Explore tutorials and examples with Jupyter notebooks showcasing RockVerse workflows.
 
   .. grid-item-card::  API
     :text-align: center
@@ -139,10 +141,11 @@ latest developments.
 
 .. toctree::
     :maxdepth: 1
-    :hidden:
 
-    install.rst
+
+    getting_started.rst
     tutorials.rst
     gallery.rst
     api.rst
-    gethelp
+    gethelp.rst
+    subscribe.rst

@@ -8,7 +8,7 @@ rock formats, ensuring flexibility in data handling. These functionalities facil
 compatibility with other software tools, enable seamless data sharing, and support
 further analysis outside the RockVerse framework.
 
-.. currentmodule:: rockverse.digitalrock.voxelimage
+.. currentmodule:: rockverse.digitalrock.voxel_image.creation
 
 Import raw data
 ~~~~~~~~~~~~~~~
@@ -18,4 +18,4 @@ Import raw data
 Export to raw data
 ~~~~~~~~~~~~~~~~~~
 
-.. autofunction:: rockverse.digitalrock.voxelimage.VoxelImage.export_raw
+.. autofunction:: rockverse.digitalrock.voxel_image.VoxelImage.export_raw

@@ -3,7 +3,7 @@
 The ``VoxelImage`` class
 ------------------------
 
-.. currentmodule:: rockverse.digitalrock.voxelimage
+.. currentmodule:: rockverse.digitalrock.voxel_image.voxel_image
 
 .. autoclass:: VoxelImage
 

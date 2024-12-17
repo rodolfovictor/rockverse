@@ -22,6 +22,8 @@ class Config(dict):
             for g, gpu in enumerate(cuda.gpus):
                 self['GPU']['available_devices'][g] = gpu.name.decode()
 
+        self['collective_getitem'] = False
+
     @property
     def mpi_rank(self):
         return self['MPI']['mpi_rank']
@@ -37,6 +39,16 @@ class Config(dict):
     @property
     def mpi_comm(self):
         return self['MPI']['mpi_comm']
+
+    @property
+    def collective_getitem(self):
+        return self['collective_getitem']
+
+    @collective_getitem.setter
+    def collective_getitem(self, v):
+        if v not in (True, False):
+            _assert.collective_raise(ValueError("Expected boolean for collective_getitem."))
+        self['collective_getitem'] = v
 
     def exec_mode(self):
         if self['MPI']['mpi_nprocs'] > 1:
