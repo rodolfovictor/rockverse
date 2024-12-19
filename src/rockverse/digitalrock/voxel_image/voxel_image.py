@@ -236,6 +236,41 @@ class VoxelImage(zarr.Array):
 
         return box, bex, boy, bey, boz, bez
 
+    def collective_getitem(self, selection):
+        """
+        Retrieve a subset of the voxel image in a collective, parallel manner using MPI.
+
+        This method enables distributed retrieval of voxel data across multiple
+        processors by broadcasting chunks of the array as needed. It is particularly
+        useful for large datasets in high-performance computing (HPC) environments
+        where memory and processing must be optimized.
+
+        Parameters
+        ----------
+        selection : tuple of slices
+            The selection defining the subset of the array to retrieve. It must be
+            compatible with the array's shape and dimensions.
+
+        Returns
+        -------
+        numpy.ndarray
+            A NumPy array containing the selected subset of data. When running with
+            multiple processors, data is retrieved collectively, ensuring each processor
+            works on its assigned portion efficiently.
+        """
+        if mpi_nprocs == 1 or isinstance(self.store, zarr.storage.DirectoryStore):
+            return self[*selection]
+        array = 0*self[*selection]
+        for block_id in range(self.nchunks):
+            box, bex, boy, bey, boz, bez = self.chunk_slice_indices(block_id)
+            temp = zarr.zeros_like(self)
+            temp[box:bex, boy:bey, boz:bez] = comm.bcast(
+                self[box:bex, boy:bey, boz:bez], root=(block_id%mpi_nprocs))
+            array += temp[*selection]
+        return array
+
+
+
     def get_voxel_coordinates(self, i, j, k):
         """
         Get the spatial coordinates of the voxel at a given position.

@@ -17,9 +17,9 @@ def any_iterable_non_negative_integers(varname, var):
 #     if not all(isinstance(k, types) for k in var):
 #         collective_raise(ValueError(f"Expected elements of {typenames} for {varname}."))
 
-# def length(varname, var, length):
-#     if not (hasattr(var, '__iter__') and len(var)==length):
-#         collective_raise(ValueError(f'Expected {length}-element iterable for {varname}.'))
+def length(varname, var, length):
+    if not (hasattr(var, '__iter__') and len(var)==length):
+        collective_raise(ValueError(f'Expected {length}-element iterable for {varname}.'))
 
 # def each_in_group(varname, var, group):
 #     if any(k not in group for k in var):

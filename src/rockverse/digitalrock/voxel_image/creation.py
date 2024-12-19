@@ -467,7 +467,6 @@ def import_raw(rawfile,
                voxel_length=None,
                voxel_unit='',
                overwrite=False,
-               store=None,
                **kwargs):
 
     """
@@ -567,9 +566,6 @@ def import_raw(rawfile,
         If True, delete all pre-existing data in the store at the specified
         path before creating the new array. Default is False, to prevent
         accidental overwriting of existing data.
-    store : str or Zarr Store, optional
-        Zarr store or path to a directory in the file system, or name of a zip
-        file to be passed to the Zarr array creation function. Default is None.
     **kwargs
         Additional keyword arguments to be passed to the underlying
         :ref:`creation function <rockverse_digitalrock_create_function>`.
@@ -600,14 +596,12 @@ def import_raw(rawfile,
     _assert.in_group('raw_file_order', raw_file_order, ('C', 'F'))
     _assert.instance('voxel_unit', voxel_unit, 'string', (str,))
     _assert.instance('overwrite', overwrite, 'boolean', (bool,))
-    _assert.zarr_store('store', store)
 
     kwargs['dtype'] = np.dtype(dtype).kind + str(np.dtype(dtype).itemsize)
     kwargs['description'] = description
     kwargs['field_name'] = field_name
     kwargs['field_unit'] = field_unit
     kwargs['shape'] = shape
-    kwargs['store'] = store
     kwargs['voxel_origin'] = _voxel_origin
     kwargs['voxel_length'] = _voxel_length
     kwargs['voxel_unit'] = voxel_unit

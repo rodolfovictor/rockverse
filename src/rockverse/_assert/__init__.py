@@ -58,6 +58,14 @@ def rockverse_instance(var, var_name, var_types):
         else:
             collective_raise(TypeError(f"Expected {', '.join(var_types[:-1])} or {var_types[-1]} for {var_name}."))
 
+def boolean(varname, var):
+    if not isinstance(var, bool):
+        collective_raise(ValueError(f"Expected boolean for {varname}."))
+
+def dictionary(varname, var):
+    if not isinstance(var, dict):
+        collective_raise(ValueError(f"Expected dict for {varname}."))
+
 def instance(varname, var, vartypenames, vartypes):
     if not isinstance(var, vartypes):
         collective_raise(ValueError(f"Expected {vartypenames} for {varname}."))
