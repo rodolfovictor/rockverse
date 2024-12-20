@@ -51,8 +51,9 @@ def _region_mask_slice_cpu(mask, func, X, Y, Z):
 class OrthogonalViewer():
 
     """
-    The `OrthogonalViewer` class allows for the visualization of orthogonal
-    slices of an image along with its histogram.
+    Visualize orthogonal slices (XY, XZ, ZY planes) of a voxel image
+    and its histogram. Supports overlays like masks, segmentations,
+    and region-based filtering.
 
     Parameters
     ----------
@@ -61,71 +62,60 @@ class OrthogonalViewer():
             The image object to be visualized.
 
         region : drp.regions.Region, optional
-            Optional region object to apply on the image slices and histogram.
-            Voxels outside region will be masked out.
+            Region object to mask specific voxels on slices and histogram.
 
         mask : drp.core.Array, optional
-            mask object to apply on the image slices.
+            Boolean voxel image for masking specific voxels.
 
-        segmentation : drp.core.Array
-            Optional segmentation array to overlay on the image slices.
+        segmentation : drp.core.Array, optional
+            Segmentation array overlay to display labeled regions.
 
-        bins : bins : int or sequence of scalars, optional
-            Optional bins definition to be passed to the
-            :class:`Histogram` calculation.
+        bins : int or sequence of scalars, optional
+            Binning definition for histogram calculation.
 
-        ref_voxel : tuple, optional
-            Optional reference voxel coordinates (i, j, k) for the initial view.
-            Default is the center voxel of the image.
+        ref_voxel : tuple of int, optional
+            Reference voxel (i, j, k) coordinates for slice positioning.
+            Default is the center voxel.
 
-        ref_point : tuple, optional
-            Optional reference point coordinates (x, y, z) in physical space
-            for the initial view. Default is the center point of the image.
+        ref_point : tuple of float, optional
+            Physical coordinates (x, y, z) in voxel length units, for slice positioning.
+            Overrides `ref_voxel`.
 
         show_xy_plane : bool, optional
-            Flag to show the XY plane slice. Default is True.
+            Display the XY plane slice. Default is True.
 
         show_xz_plane : bool, optional
-            Flag to show the XZ plane slice. Default is True.
+            Display the XZ plane slice. Default is True.
 
         show_zy_plane : bool, optional
-            Flag to show the ZY plane slice. Default is True.
+            Display the ZY plane slice. Default is True.
 
         show_histogram : bool, optional
-            Flag to show the histogram. Default is True.
+            Display histogram alongside slices. Default is True.
 
         show_guide_lines : bool, optional
-            Flag to draw guide lines showing the slices' intersections.
-            Default is True.
+            Show guide lines marking slice intersections. Default is True.
 
         hide_masked : bool, optional
-            Flag to hide masked regions on the slices. Default is False.
+            Hide masked voxels in the slices. Default is False.
 
         hide_axis : bool, optional
-            Flag to hide the axis labels on the slices. Default is False.
+            Hide axis labels and ticks in the slices. Default is False.
 
         image_dict : dict, optional
-            Optional dictionary of keyword arguments to be passed to the
-            underlying Matplotlib imshow function. Use for customizing the
-            image plot.
+            Matplotlib's ``AxisImage`` custom options for image rendering.
 
         segmentation_dict : dict, optional
-            Optional dictionary of keyword arguments to be passed to the
-            underlying Matplotlib imshow function. Use for customizing the
-            segmentation plot.
+            Matplotlib's ``AxisImage`` custom options for rendering segmentation overlays.
 
         mask_dict : dict, optional
-            Optional dictionary of keyword arguments to be passed to the
-            underlying Matplotlib imshow function. Use for customizing the
-            mask plot.
+            Matplotlib's ``AxisImage`` custom options for rendering masks.
 
         guide_line_dict : dict, optional
-           Optional dictionary of keyword arguments to be passed to the
-           underlying Matplotlib plot function. Use for customizing the
-           reference lines plot.
+            Matplotlib's ``Line2D`` custom options for guide lines (e.g., linestyle, color, linewidth).
 
         figure_dict : dict, optional
-           Optional dictionary of keyword arguments to be passed to the
+           Dictionary of keyword arguments to be passed to the
            underlying Matplotlib figure creation.
 
         gridspec_dict : dict, optional
@@ -146,11 +136,11 @@ class OrthogonalViewer():
             - 'index' for voxel indices.
 
         mpi_proc : int, optional
-            The rank of the MPI process if running in parallel.
-            Only this rank will work on the figure. The others return
-            immediately. Note that is no MPI barrier implied in the execution.
-            Default is 0.
+            MPI process rank responsible for rendering. Default is 0.
 
+        Returns
+        -------
+        OrthogonalViewer
     """
 
     def __init__(self,
@@ -798,9 +788,9 @@ class OrthogonalViewer():
         self._fig.set_size_inches(fwidth, fheight)
 
 
-    def update(self):
+    def refresh(self):
         """
-        Update the OrthogonalViewer display.
+        Refresh the OrthogonalViewer display.
 
         This method forces the display refresh of to reflect any changes in the
         image data, reference point, or display settings. It can be called
@@ -819,7 +809,6 @@ class OrthogonalViewer():
         The Matplotlib Figure object.
         '''
         return self._fig
-
 
     @property
     def ax_xy(self):
@@ -842,14 +831,12 @@ class OrthogonalViewer():
         '''
         return self._slices['xz']['ax']
 
-
     @property
     def ax_histogram(self):
         '''
         The Matplotlib Axes object for the histogram plot.
         '''
         return self._slices['histogram']['ax']
-
 
     #Image must not have a setter
     @property
@@ -858,7 +845,6 @@ class OrthogonalViewer():
         Get the input image data. Cannot be changed once the object is created.
         '''
         return self._image
-
 
     @property
     def region(self):
@@ -874,7 +860,6 @@ class OrthogonalViewer():
             >>> viewer.region = None                                 # Remove the region
         '''
         return self._region
-
 
     @region.setter
     def region(self, v):
@@ -960,13 +945,13 @@ class OrthogonalViewer():
             _assert.iterable.ordered_numbers('ref_voxel', v)
             _assert.iterable.length('ref_voxel', v, 3)
             nx, ny, nz = self._image.shape
-            rx = int(v[0])
+            rx = int(round(v[0]))
             rx = 0 if rx < 0 else rx
             rx = nx-1 if rx >= nx else rx
-            ry = int(v[1])
+            ry = int(round(v[1]))
             ry = 0 if ry < 0 else ry
             ry = ny-1 if ry >= ny else ry
-            rz = int(v[2])
+            rz = int(round(v[2]))
             rz = 0 if rz < 0 else rz
             rz = nz-1 if rz >= nz else rz
             self._ref_voxel = np.array((rx, ry, rz)).astype(int)
@@ -1009,13 +994,13 @@ class OrthogonalViewer():
             point = np.array(v).astype(float)
             point -= np.array(self._image.voxel_origin).astype(float)
             point /= np.array(self._image.voxel_length).astype(float)
-            rx = int(point[0])
+            rx = int(round(point[0]))
             rx = 0 if rx < 0 else rx
             rx = nx-1 if rx >= nx else rx
-            ry = int(point[1])
+            ry = int(round(point[1]))
             ry = 0 if ry < 0 else ry
             ry = ny-1 if ry >= ny else ry
-            rz = int(point[2])
+            rz = int(round(point[2]))
             rz = 0 if rz < 0 else rz
             rz = nz-1 if rz >= nz else rz
             self._ref_voxel = np.array((rx, ry, rz)).astype(int)
@@ -1089,7 +1074,7 @@ class OrthogonalViewer():
         _assert.instance('show_guide_lines', v, 'boolean', (bool,))
         if self._show_guide_lines != v:
             self._show_guide_lines = v
-            self.update()
+            self.refresh()
 
     @property
     def hide_masked(self):
@@ -1104,7 +1089,7 @@ class OrthogonalViewer():
         _assert.instance('hide_masked', v, 'boolean', (bool,))
         if self._hide_masked != v:
             self._hide_masked = v
-            self.update()
+            self.refresh()
 
     @property
     def hide_axis(self):
@@ -1119,7 +1104,7 @@ class OrthogonalViewer():
         _assert.instance('hide_axis', v, 'boolean', (bool,))
         if self._hide_axis != v:
             self._hide_axis = v
-            self.update()
+            self.refresh()
 
     @property
     def image_dict(self):
@@ -1164,14 +1149,14 @@ class OrthogonalViewer():
         See the documentation for the image_dict method.
         """
         self._image_dict.update(**kwargs)
-        self.update()
+        self.refresh()
 
     def reset_image_dict(self):
         """
         Reset the image display settings to default values and refreshes the display.
         """
         self._image_dict = {**IMAGE_DICT}
-        self.update()
+        self.refresh()
 
 
     @property
@@ -1198,14 +1183,14 @@ class OrthogonalViewer():
         See the documentation for the segmentation_dict method.
         """
         self._segmentation_dict.update(**kwargs)
-        self.update()
+        self.refresh()
 
     def reset_segmentation_dict(self):
         """
         Reset the segmentation display settings to default values and refreshes the display.
         """
         self._segmentation_dict = {**SEGMENTATION_DICT}
-        self.update()
+        self.refresh()
 
 
     @property
@@ -1232,14 +1217,14 @@ class OrthogonalViewer():
         See the documentation for the mask_dict method.
         """
         self._mask_dict.update(**kwargs)
-        self.update()
+        self.refresh()
 
     def reset_mask_dict(self):
         """
         Reset the mask display settings to default values and refreshes the display.
         """
         self._mask_dict = {**MASK_DICT}
-        self.update()
+        self.refresh()
 
 
     @property
@@ -1267,14 +1252,14 @@ class OrthogonalViewer():
         See the documentation for the guide_line_dict method.
         """
         self._guide_line_dict.update(**kwargs)
-        self.update()
+        self.refresh()
 
     def reset_guide_line_dict(self):
         """
         Reset the guide line display settings to default values and refreshes the display.
         """
         self._guide_line_dict = {**GUIDE_LINE_DICT}
-        self.update()
+        self.refresh()
 
     @property
     def gridspec_dict(self):
@@ -1330,23 +1315,23 @@ class OrthogonalViewer():
     def background_color(self, v):
         _assert.instance('background_color', v, 'string', (str,))
         self._background_color = v
-        self.update()
+        self.refresh()
 
     def _get_ijk_xyz(self, xo, yo, axis):
         hx, hy, hz = self._image.voxel_length
         ox, oy, oz = self._image.voxel_origin
         if axis == 'xy':
-            i = int((xo-ox)/hx)
-            j = int((yo-oy)/hy)
-            k = int((self.ref_point[2]-oz)/hz)
+            i = int(round((xo-ox)/hx))
+            j = int(round((yo-oy)/hy))
+            k = self.ref_voxel[2]
         elif axis == 'xz':
-            i = int((xo-ox)/hx)
-            j = int((self.ref_point[1]-oy)/hy)
-            k = int((yo-oz)/hz)
+            i = int(round((xo-ox)/hx))
+            j = self.ref_voxel[1]
+            k = int(round((yo-oz)/hz))
         elif axis == 'zy':
-            i = int((self.ref_point[0]-ox)/hx)
-            j = int((yo-oy)/hy)
-            k = int((xo-oz)/hz)
+            i = self.ref_voxel[0]
+            j = int(round((yo-oy)/hy))
+            k = int(round((xo-oz)/hz))
         x = float(ox+i*hx)
         y = float(oy+j*hy)
         z = float(oz+k*hz)
@@ -1414,9 +1399,9 @@ class OrthogonalViewer():
         def print_data(self, ref_point):
             hx, hy, hz = self._image.voxel_length
             ox, oy, oz = self._image.voxel_origin
-            i = int((ref_point[0]-ox)/hx)
-            j = int((ref_point[1]-oy)/hy)
-            k = int((ref_point[2]-oz)/hz)
+            i = int(round((ref_point[0]-ox)/hx))
+            j = int(round((ref_point[1]-oy)/hy))
+            k = int(round((ref_point[2]-oz)/hz))
             pr = f"\nvoxel: {i, j, k}"
 
             x = float(ox+i*hx)
@@ -1508,26 +1493,28 @@ class OrthogonalViewer():
             self.ref_voxel = ref_voxel
 
 
-import matplotlib.pyplot as plt
-plt.close('all')
-import rockverse as rv
-%matplotlib qt
-try:
-    belgian_fieldstone_data.info
-except Exception:
-    belgian_fieldstone_data = rv.digitalrock.voxel_image.import_raw(
-        #rawfile='/MyDownloads/Fieldstone_1000x1000x861_16b.raw', #<- Original file path
-        rawfile=r'C:\Users\GOB7\Downloads\Rocha digital\Belgian Fieldstone\Fieldstone_1000x1000x861_16b.raw',
-        store=None,#'/estgf_dados/P_D/GOB7/BelgianFieldstone/src.zarr', #<- path where to put the voxel image
-        shape=(1000, 1000, 861),         #<- From metadata
-        dtype='>u2',                     #<- From metadata, big-endian 16-bit unsigned integer
-        offset=0,                        #<- From metadata
-        voxel_length=(4.98, 4.98, 4.98), #<- From metadata
-        voxel_unit='um',                 #<- From metadata
-        raw_file_order='F',              #<- Fortran file order
-        chunks=(500, 500, 431),          #<- Our choice of chunk size
-        overwrite=True,                   #<- Overwrite if file exists in disk
-        field_name='Attenuation',
-        )
-self=OrthogonalViewer(belgian_fieldstone_data)
-#self.statusbar_mode='voxel'
+#Test
+if __name__ == '__main__':
+    import matplotlib.pyplot as plt
+    plt.close('all')
+    import rockverse as rv
+    #%matplotlib qt
+    try:
+        belgian_fieldstone_data.info
+    except Exception:
+        belgian_fieldstone_data = rv.digitalrock.voxel_image.import_raw(
+            #rawfile='/MyDownloads/Fieldstone_1000x1000x861_16b.raw', #<- Original file path
+            rawfile=r'C:\Users\GOB7\Downloads\Rocha digital\Belgian Fieldstone\Fieldstone_1000x1000x861_16b.raw',
+            store=None,#'/estgf_dados/P_D/GOB7/BelgianFieldstone/src.zarr', #<- path where to put the voxel image
+            shape=(1000, 1000, 861),         #<- From metadata
+            dtype='>u2',                     #<- From metadata, big-endian 16-bit unsigned integer
+            offset=0,                        #<- From metadata
+            voxel_length=(4.98, 4.98, 4.98), #<- From metadata
+            voxel_unit='um',                 #<- From metadata
+            raw_file_order='F',              #<- Fortran file order
+            chunks=(500, 500, 431),          #<- Our choice of chunk size
+            overwrite=True,                  #<- Overwrite if file exists in disk
+            field_name='Attenuation',
+            )
+    self=OrthogonalViewer(belgian_fieldstone_data)
+    #self.statusbar_mode='voxel'
