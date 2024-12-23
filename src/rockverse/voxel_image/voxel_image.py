@@ -251,15 +251,10 @@ def full(shape, dtype, fill_value, **kwargs):
 
 def _put_meta(a, kwargs):
     kwargs['shape'] = a.shape
-    if 'dtype' not in kwargs:
-        kwargs['dtype'] = a.dtype
-    if 'voxel_origin' not in kwargs:
-        kwargs['voxel_origin'] = a.attrs['voxel_origin']
-    if 'voxel_unit' not in kwargs:
-        kwargs['voxel_unit'] = a.attrs['voxel_unit']
-    if 'voxel_length' not in kwargs:
-        kwargs['voxel_length'] = a.attrs['voxel_length']
-
+    for k in ('dtype', 'description', 'field_name', 'field_unit',
+              'voxel_origin', 'voxel_unit', 'voxel_length'):
+        if k not in kwargs:
+            kwargs[k] = getattr(a, k)
 
 
 def empty_like(a, **kwargs):
@@ -1433,5 +1428,5 @@ class VoxelImage(zarr.Array):
             cmd = f'{cmd}");\n'
             if mpi_rank == 0:
                 with open(filename+'.ijm', 'w') as fp:
-                    fp.write(cmd);
+                    fp.write(cmd)
         comm.barrier()
