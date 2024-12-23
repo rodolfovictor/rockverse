@@ -27,6 +27,5 @@ Key Features:
 
 """
 
-import rockverse.digitalrock.voxel_image as voxel_image
 import rockverse.digitalrock.region as region
 from rockverse.digitalrock.orthogonal_slices import OrthogonalViewer

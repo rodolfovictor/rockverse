@@ -138,11 +138,9 @@ def zarr_array(varname, var):
         if n not in var.attrs:
             collective_raise(KeyError(f"'{n}' not found in zarr array attributes"))
 
-def zarr_store(varname, var):
+def zarr_directorystore(varname, var):
     if mpi_nprocs > 1 and not isinstance(var, (str, zarr.storage.DirectoryStore)):
-        collective_raise(
-            ValueError(f"Invalid {varname}. Zarr store must be a directory"
-                       " when running with multiple MPI processes."))
+        collective_raise(ValueError(f"Invalid {varname}. Zarr store must be a directory."))
 
 def zarr_or_none_iterable(varname, var):
     if not (hasattr(var, '__iter__')

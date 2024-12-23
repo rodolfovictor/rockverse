@@ -19,5 +19,11 @@ Sample voxel image data
 
 .. nbgallery::
 
-   gallery/digitalrock/sample_data/import_belgian_fieldstone.ipynb
-   gallery/digitalrock/sample_data/import_C04B21_dualenergy.ipynb
+   tutorials/digitalrock/sample_data/import_belgian_fieldstone
+
+Image visualization
+-----------------------
+
+.. nbgallery::
+
+   tutorials/digitalrock/orthogonal_viewer

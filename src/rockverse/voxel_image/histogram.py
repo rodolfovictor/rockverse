@@ -49,20 +49,24 @@ def _block_update_histogram(hist, block_data, block_segm, skip, bins, phases):
     nx, ny, nz = block_data.shape
     hist_shape = hist.shape
     num_phases = hist_shape[1] - 1
+    mid = int(len(bins)/2)
+    N = len(bins)
     for i in range(nx):
         for j in range(ny):
             for k in range(nz):
-                if not skip[i, j, k]:
-                    value = block_data[i, j, k]
-                    if bins[0] <= value <= bins[-1]:
-                        bin_index = np.searchsorted(bins, value) - 1
-                        hist[bin_index, 0] += 1
+                if skip[i, j, k] or block_data[i, j, k] < bins[0] or block_data[i, j, k] > bins[-1]:
+                    continue
+                value = block_data[i, j, k]
+                for ind in range(1, N):
+                    if value < bins[ind]:
+                        hist[ind-1, 0] += 1
                         if num_phases > 0:
                             phase = block_segm[i, j, k]
                             for p, ph in enumerate(phases):
                                 if phase == ph:
-                                    hist[bin_index, p + 1] += 1
+                                    hist[ind, p + 1] += 1
                                     break
+                        break
 
 class Histogram():
     '''

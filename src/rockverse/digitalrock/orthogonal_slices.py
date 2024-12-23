@@ -13,7 +13,7 @@ orthogonal slices of an image along with its histogram.
 import numpy as np
 import matplotlib.pyplot as plt
 import rockverse._assert as _assert
-from rockverse.digitalrock.voxel_image.histogram import Histogram
+from rockverse.voxel_image.histogram import Histogram
 from rockverse.digitalrock.region.region import Region
 from matplotlib.backend_bases import MouseButton
 from numba import njit
@@ -1502,7 +1502,7 @@ if __name__ == '__main__':
     try:
         belgian_fieldstone_data.info
     except Exception:
-        belgian_fieldstone_data = rv.digitalrock.voxel_image.import_raw(
+        belgian_fieldstone_data = rv.voxel_image.import_raw(
             #rawfile='/MyDownloads/Fieldstone_1000x1000x861_16b.raw', #<- Original file path
             rawfile=r'C:\Users\GOB7\Downloads\Rocha digital\Belgian Fieldstone\Fieldstone_1000x1000x861_16b.raw',
             store=None,#'/estgf_dados/P_D/GOB7/BelgianFieldstone/src.zarr', #<- path where to put the voxel image

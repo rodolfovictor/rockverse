@@ -8,7 +8,7 @@ Creation functions adapt the
 to efficiently create ``VoxelImage`` objects in a parallel MPI execution
 environment across multiple CPU cores and GPUs.
 
-.. currentmodule:: rockverse.digitalrock.voxel_image.creation
+.. currentmodule:: rockverse.voxel_image.creation
 .. autofunction:: create
 .. autofunction:: empty
 .. autofunction:: zeros
@@ -19,3 +19,5 @@ environment across multiple CPU cores and GPUs.
 .. autofunction:: ones_like
 .. autofunction:: full_like
 .. autofunction:: sphere_pack
+.. autofunction:: copy_from
+.. autofunction:: import_raw

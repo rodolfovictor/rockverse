@@ -21,8 +21,8 @@ specialists through high-level functions.
 
 """
 
-from rockverse.digitalrock.voxel_image.voxel_image import VoxelImage
-from rockverse.digitalrock.voxel_image.creation import (
+from rockverse.voxel_image.voxel_image import VoxelImage
+from rockverse.voxel_image.voxel_image import (
     create,
     empty,
     zeros,
@@ -35,4 +35,4 @@ from rockverse.digitalrock.voxel_image.creation import (
     sphere_pack,
     import_raw
     )
-#from rockverse.digitalrock.voxel_image.histogram import Histogram
+#from rockverse.voxel_image.histogram import Histogram

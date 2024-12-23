@@ -28,7 +28,7 @@
 ### 8. Develop README.md
 - ???
 
-### 9. Activate GPU in voxelimage modulus
+### 9. Activate GPU in voxel_image modulus
 - math
 - sphere pack
 

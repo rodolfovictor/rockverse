@@ -1,12 +1,13 @@
+'''
 import zarr
 from zarr.errors import ContainsArrayError
 import numpy as np
 
 from rockverse import _assert
-from rockverse.digitalrock.voxel_image._math import _array_math
-from rockverse.digitalrock.voxel_image._finneypack import _fill_finney_pack
-from rockverse.digitalrock.voxel_image.voxel_image import VoxelImage
-#from rockverse.digitalrock.voxel_image.histogram import Histogram
+from rockverse.voxel_image._math import _array_math
+from rockverse.voxel_image._finneypack import _fill_finney_pack
+from rockverse.voxel_image.voxel_image import VoxelImage
+#from rockverse.voxel_image.histogram import Histogram
 from rockverse._utils import rvtqdm
 from rockverse.config import config
 
@@ -377,6 +378,47 @@ def full_like(a, dtype, fill_value, **kwargs):
     return full(**kwargs)
 
 
+def copy_from(array, **kwargs):
+    """
+    :bdg-info:`Parallel`
+    :bdg-info:`CPU`
+
+    Create a new VoxelImage object and copy array data into it.
+
+    Parameters
+    ----------
+    array : array-like
+        Input data to be copied. Must support `dtype` and `shape` attributes.
+
+    **kwargs
+        Additional keyword arguments to be passed to the underlying
+        :ref:`creation function <rockverse_digitalrock_create_function>`.
+        Notice that image shape will match original array shape, and therefore
+        keyword argument ``shape`` will be ignored in ``kwargs``.
+
+    Returns
+    -------
+    VoxelImage
+        The created ``VoxelImage`` object.
+    """
+    if not hasattr(array, 'dtype') or not hasattr(array, 'shape'):
+        _assert.collective_raise(TypeError("Input must be array-like and have 'dtype' and 'shape' attributes."))
+
+    if 'dtype' not in kwargs:
+        kwargs['dtype'] = array.dtype
+    kwargs['shape'] = array.shape
+    z = create(**kwargs)
+    desc = 'Copying array'
+    for block_id in rvtqdm(range(z.nchunks), desc=desc, unit='chunk'):
+        if block_id % mpi_nprocs == mpi_rank:
+            box, bex, boy, bey, boz, bez = z.chunk_slice_indices(block_id)
+            z[box:bex, boy:bey, boz:bez] = array[box:bex, boy:bey, boz:bez]
+    comm.barrier()
+    return z
+
+
+
+
 def sphere_pack(shape,
                 dtype='u1',
                 xlim=(-10, 10),
@@ -620,3 +662,4 @@ def import_raw(rawfile,
             z[box:bex, boy:bey, boz:bez] = data[box:bex, boy:bey, boz:bez]
     comm.barrier()
     return z
+'''

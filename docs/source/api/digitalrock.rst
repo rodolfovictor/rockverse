@@ -8,7 +8,7 @@ Digital Rock Petrophysics
 .. toctree::
     :maxdepth: 2
 
-    digitalrock/voxelimage
+    digitalrock/voxel_image
     digitalrock/region
 
 

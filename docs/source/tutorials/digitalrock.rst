@@ -7,4 +7,6 @@ Digital Rock Petrophysics
 .. toctree::
     :maxdepth: 2
 
-    digitalrock/voxelimages
+    digitalrock/voxel_image
+    digitalrock/sample_data/import_belgian_fieldstone.ipynb
+    digitalrock/orthogonal_viewer.ipynb
