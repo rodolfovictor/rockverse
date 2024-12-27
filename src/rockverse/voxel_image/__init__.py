@@ -29,7 +29,7 @@ __all__ = [
     'zeros',
     'ones',
     'full',
-    'mpty_like',
+    'empty_like',
     'zeros_like',
     'ones_like',
     'full_like',
@@ -291,8 +291,8 @@ def full(shape, dtype, fill_value, **kwargs):
 
 def _put_meta(a, kwargs):
     kwargs['shape'] = a.shape
-    for k in ('dtype', 'description', 'field_name', 'field_unit',
-              'voxel_origin', 'voxel_unit', 'voxel_length'):
+    for k in ('dtype', 'chunks', 'description', 'field_name',
+              'field_unit', 'voxel_origin', 'voxel_unit', 'voxel_length'):
         if k not in kwargs:
             kwargs[k] = getattr(a, k)
 
@@ -709,6 +709,11 @@ class VoxelImage(zarr.Array):
     """
 
     @property
+    def _rockverse_datatype(self):
+        '''The RockVerse data type.'''
+        return self.attrs['_ROCKVERSE_DATATYPE']
+
+    @property
     def description(self):
         '''Image or scalar field description.'''
         return self.attrs['description']
@@ -919,6 +924,7 @@ class VoxelImage(zarr.Array):
         bez = min(boz+self.chunks[2], self.shape[2])
 
         return box, bex, boy, bey, boz, bez
+
 
     def collective_getitem(self, selection):
         """

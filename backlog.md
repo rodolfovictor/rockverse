@@ -1,5 +1,9 @@
 # Backlog
 
+Now placing region
+Solve check mask segmentation region
+region wrong in orthgonal viewer
+
 ## Tasks to be completed
 
 ### 1. Fine-tune threads per block GPU
@@ -9,13 +13,6 @@
 ### 2. Autoset MPI, GPU
 - Implement automatic detection and configuration of MPI (Message Passing Interface), OpenMP, and GPU usage based on system capabilities.
 - Ensure compatibility with different computing environments.
-
-### 3. Add description to Finney pack
-- Include detailed documentation and explanation for the Finney pack in the project.
-
-### 4. Generic open function for RockVerse data
-- Create a more flexible, generic `open` function to handle different types of RockVerse data files.
-- Ensure compatibility across various data formats used in the project.
 
 ### 5. Support for 128-bit data in importing raw data
 - Extend the raw data import functionality to support 128-bit data types.
@@ -38,7 +35,6 @@
 
 ### 11. Check VoxelImage histogram low speed
 
-
-### Lint and gpt all before release
+### Lint all before release
 
 > Note: These tasks are subject to change based on project needs and priorities.

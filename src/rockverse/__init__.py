@@ -16,17 +16,19 @@ __all__ = [
     "make_logo",
     "open",
     "voxel_image",
+    "region",
 ]
 
 
-import zarr
 
 
 import rockverse.voxel_image as voxel_image
+import rockverse.region as region
 
 import rockverse.digitalrock as digitalrock
 
 
+import zarr
 from rockverse._assert import collective_raise as _collective_raise
 def open(store, **kwargs):
     """

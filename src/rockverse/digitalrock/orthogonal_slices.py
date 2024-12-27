@@ -14,7 +14,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import rockverse._assert as _assert
 from rockverse.voxel_image.histogram import Histogram
-from rockverse.digitalrock.region.region import Region
 from matplotlib.backend_bases import MouseButton
 from numba import njit
 from mpi4py import MPI
@@ -26,26 +25,58 @@ mpi_nprocs = comm.Get_size()
 FIGURE_DICT = {'layout': 'compressed'}
 IMAGE_DICT = dict(cmap='gray', origin='upper', interpolation='none')
 SEGMENTATION_DICT = dict(cmap='tab10', alpha=0.5, origin='upper', interpolation='none')
-MASK_DICT = dict(cmap='gray_r', alpha=0.75, origin='upper', interpolation='none')
+MASK_DICT = dict(cmap='jet', alpha=0.75, origin='upper', interpolation='none')
 GUIDE_LINE_DICT = dict(linestyle='-', color='y', alpha=0.75, linewidth=1)
 
 @njit()
-def _region_mask_slice_cpu(mask, func, X, Y, Z):
+def _region_mask_xy_slice(mask, func, ox, oy, oz, hx, hy, hz, z):
     '''
     mask: numpy array, slice from Image
     func: region_njitted function
-    X, Y, Z: meshgrid for voxel coordinates
     '''
-    nxm, nym = mask.shape
-    nxx, nyx = X.shape
-    nxy, nyy = Y.shape
-    nxz, nyz = Z.shape
-    if (nxx!=nxm or nxy!=nxm or nxz!=nxm or nyx!=nym or nyy!=nym or nyz!=nym):
-        raise Exception('Invalid shapes.')
-    for i in range(nxm):
-        for j in range(nym):
-            if not func(X[i, j], Y[i, j], Z[i, j]):
+    nx, ny = mask.shape
+    x = ox
+    for i in range(nx):
+        x += hx
+        y = float(oy)
+        for j in range(ny):
+            y += hy
+            if not func(x, y, z):
                 mask[i, j] = True
+
+
+@njit()
+def _region_mask_xz_slice(mask, func, ox, oy, oz, hx, hy, hz, y):
+    '''
+    mask: numpy array, slice from Image
+    func: region_njitted function
+    '''
+    nx, nz = mask.shape
+    x = ox
+    for i in range(nx):
+        x += hx
+        z = oz
+        for k in range(nz):
+            z += hz
+            if not func(x, y, z):
+                mask[i, k] = True
+
+
+@njit()
+def _region_mask_zy_slice(mask, func, ox, oy, oz, hx, hy, hz, x):
+    '''
+    mask: numpy array, slice from Image
+    func: region_njitted function
+    '''
+    ny, nz = mask.shape
+    y = oy
+    for j in range(ny):
+        y += hy
+        z = oz
+        for k in range(nz):
+            z += hz
+            if not func(x, y, z):
+                mask[j, k] = True
 
 
 class OrthogonalViewer():
@@ -58,16 +89,16 @@ class OrthogonalViewer():
     Parameters
     ----------
 
-        image : drp.core.Array
+        image : VoxelImage
             The image object to be visualized.
 
-        region : drp.regions.Region, optional
+        region : Region, optional
             Region object to mask specific voxels on slices and histogram.
 
-        mask : drp.core.Array, optional
+        mask : VoxelImage, optional
             Boolean voxel image for masking specific voxels.
 
-        segmentation : drp.core.Array, optional
+        segmentation : VoxelImage, optional
             Segmentation array overlay to display labeled regions.
 
         bins : int or sequence of scalars, optional
@@ -184,7 +215,7 @@ class OrthogonalViewer():
         self._mask = mask
 
         if region is not None:
-            _assert.instance('region', region, 'Region', (Region,))
+            _assert.rockverse_instance(region, 'region', ('Region',))
         self._region = region
 
         #Calc histogram -----------------------------------
@@ -325,7 +356,7 @@ class OrthogonalViewer():
         self._slices['xz']['image'] = self._image.collective_getitem((slice(None), ref_voxel[1], slice(None))).copy()
         self._slices['zy']['image'] = self._image.collective_getitem((ref_voxel[0], slice(None), slice(None))).copy()
 
-        #Mask and region
+        #Mask
         self._slices['xy']['mask'] = np.zeros(self._slices['xy']['image'].shape).astype('bool')
         self._slices['xz']['mask'] = np.zeros(self._slices['xz']['image'].shape).astype('bool')
         self._slices['zy']['mask'] = np.zeros(self._slices['zy']['image'].shape).astype('bool')
@@ -340,22 +371,12 @@ class OrthogonalViewer():
                 self._slices['zy']['mask'],
                 self._mask.collective_getitem((ref_voxel[0], slice(None), slice(None))))
 
+        #Region
         if self._region is not None:
-            x = ox + hx*np.arange(nx)
-            y = oy + hy*np.arange(ny)
-            z = oz + hz*np.arange(nz)
-            func = self._region._contains_point
-            X, Y = np.meshgrid(x, y)
-            Z = 0*X + self.ref_point[2]
-            _region_mask_slice_cpu(self._slices['xy']['mask'].T, func, X, Y, Z)
-            #xz
-            X, Z = np.meshgrid(x, z)
-            Y = 0*X + self.ref_point[1]
-            _region_mask_slice_cpu(self._slices['xz']['mask'].T, func, X, Y, Z)
-            #zy
-            Y, Z = np.meshgrid(y, z)
-            X = 0*Z + self.ref_point[0]
-            _region_mask_slice_cpu(self._slices['zy']['mask'].T, func, X, Y, Z)
+            func = self._region.contains_point_njit
+            _region_mask_xy_slice(self._slices['xy']['mask'], func, ox, oy, oz, hx, hy, hz, self.ref_point[2])
+            _region_mask_xz_slice(self._slices['xz']['mask'], func, ox, oy, oz, hx, hy, hz, self.ref_point[1])
+            _region_mask_zy_slice(self._slices['zy']['mask'], func, ox, oy, oz, hx, hy, hz, self.ref_point[0])
 
         for plane in ('xy', 'xz', 'zy'):
             self._slices[plane]['mask'] = np.ma.array(
@@ -689,7 +710,6 @@ class OrthogonalViewer():
             self._build_xzplane()
             self._build_histogram_plane()
             self._set_visibility()
-            self._fig.show()
 
 
     def _update_plots(self, new=False):
@@ -737,7 +757,7 @@ class OrthogonalViewer():
         self._slices['histogram']['rightline'].set_xdata((self._image_dict['vmax'], self._image_dict['vmax']))
 
         self._fig.canvas.draw()
-        self._fig.show()
+
 
     #Methods ------------------------------------------------------------------
 
@@ -853,10 +873,10 @@ class OrthogonalViewer():
 
         Examples
         --------
-            >>> from drp.regions.cylinder import Cylinder
-            >>> viewer = drp.plot.OrthogonalViewer(<your parameters here...>)
-            >>> region = viewer.region                               # Get the current region
+            >>> from rockverse.regions import Cylinder
+            >>> viewer = rockverse.plot.OrthogonalViewer(<your parameters here...>)
             >>> viewer.region = Cylinder(<your parameters here...>)  # Set a new region
+            >>> region = viewer.region                               # Get the current region
             >>> viewer.region = None                                 # Remove the region
         '''
         return self._region
@@ -864,7 +884,7 @@ class OrthogonalViewer():
     @region.setter
     def region(self, v):
         if v is not None:
-            _assert.instance('region', v, 'Region', (Region,))
+            _assert.rockverse_instance(v, 'region', ('Region',))
         self._region = v
         self._histogram.region = v
         self._build_from_scratch()
@@ -877,7 +897,7 @@ class OrthogonalViewer():
 
         Examples
         --------
-            >>> viewer = drp.plot.OrthogonalViewer(<your parameters here...>)
+            >>> viewer = rockverse.plot.OrthogonalViewer(<your parameters here...>)
             >>> mask = viewer.mask      # Get the current mask
             >>> viewer.mask = new_mask  # Set a new mask
             >>> viewer.mask = None      # Remove the mask
@@ -900,7 +920,7 @@ class OrthogonalViewer():
 
         Examples
         --------
-            >>> viewer = drp.plot.OrthogonalViewer(<your parameters here...>)
+            >>> viewer = rockverse.plot.OrthogonalViewer(<your parameters here...>)
             >>> segmentation = viewer.segmentation     # Get the current segmentation
             >>> viewer.segmentation = new_segmentation # Set a new array for segmentation
             >>> viewer.segmentation = None             # Remove the segmentation
@@ -918,7 +938,7 @@ class OrthogonalViewer():
     @property
     def histogram(self):
         '''
-        The :class:`drp.Histogram` object.
+        The :class:`rockverse.Histogram` object.
         '''
         return self._histogram
 
@@ -931,7 +951,7 @@ class OrthogonalViewer():
 
         Examples
         --------
-           >>> viewer = drp.plot.OrthogonalViewer(<your parameters here...>)
+           >>> viewer = rockverse.plot.OrthogonalViewer(<your parameters here...>)
            >>> ref_voxel = viewer.ref_voxel #get the current reference voxel
            >>> viewer.ref_voxel = (8, 33, 9) # Set new reference voxel and update
         '''
@@ -973,7 +993,7 @@ class OrthogonalViewer():
 
         Examples
         --------
-           >>> viewer = drp.plot.OrthogonalViewer(<your parameters here...>)
+           >>> viewer = rockverse.OrthogonalViewer(<your parameters here...>)
            >>> ref_point = viewer.ref_voxel #get the current reference voxel
            >>> viewer.ref_point = (3.33, 14.72, 10) # Set new reference point and update
         """
@@ -1004,7 +1024,7 @@ class OrthogonalViewer():
             rz = 0 if rz < 0 else rz
             rz = nz-1 if rz >= nz else rz
             self._ref_voxel = np.array((rx, ry, rz)).astype(int)
-        self._update_plots()
+        self.refresh()
 
     @property
     def show_xy_plane(self):

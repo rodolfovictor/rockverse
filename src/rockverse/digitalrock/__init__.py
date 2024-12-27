@@ -27,5 +27,4 @@ Key Features:
 
 """
 
-import rockverse.digitalrock.region as region
 from rockverse.digitalrock.orthogonal_slices import OrthogonalViewer

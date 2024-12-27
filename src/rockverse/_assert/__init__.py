@@ -18,7 +18,7 @@ def drpdtype(varname, var):
         collective_raise(TypeError(
             f"{varname} must be passed as Numpy typestring, "
             "composed as follows:"
-            "\n    - The character for byte order (not mandatory for 8-bit numbers):"
+            "\n    - The character for byte order:"
             "\n        - '<' if little endian"
             "\n        - '>' if big endian"
             "\n        - '|' if not applicable (8-bit numbers)"
@@ -48,9 +48,8 @@ def rockverse_instance(var, var_name, var_types):
     vartypes : tuple of strings
         Printable names for the expected variables
     '''
-    if (not isinstance(var, zarr.core.Array)
-        or '_ROCKVERSE_DATATYPE' not in var.attrs
-        or var.attrs['_ROCKVERSE_DATATYPE'] not in var_types):
+    if (not hasattr(var, '_rockverse_datatype')
+        or var._rockverse_datatype not in var_types):
         if len(var_types) == 1:
             collective_raise(TypeError(f"Expected {var_types[0]} for {var_name}."))
         elif len(var_types) == 2:

@@ -6,7 +6,8 @@ API
 .. toctree::
     :maxdepth: 2
 
-    api/digitalrock
+    api/voxel_image
+    api/region
 
 
 Indices and tables

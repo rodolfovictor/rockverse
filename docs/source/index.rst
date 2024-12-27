@@ -47,7 +47,7 @@ Want to stay informed? :ref:`Join our mailing list <rockverse_docs_maillist>`.
   processing through **MPI** (Message Passing Interface). Fully compatible with CPU
   and GPU architectures for efficient large-scale computations.
 
-.. dropdown:: Digital Rock Petrophysics (DRP)
+.. dropdown:: Digital Rock Petrophysics
   :animate: fade-in
 
   Efficiently analyze 3D digital rock images using memory-efficient Digital Rock workflows.

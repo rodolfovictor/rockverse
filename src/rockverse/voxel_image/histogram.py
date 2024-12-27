@@ -16,8 +16,7 @@ import numpy.ma as ma
 import pandas as pd
 import warnings
 from numba import njit
-import rockverse._assert as _assert
-from rockverse.digitalrock.region import Region
+from rockverse import _assert
 from rockverse._utils import rvtqdm
 
 from mpi4py import MPI
@@ -163,7 +162,7 @@ class Histogram():
             if self._mask is not None:
                 _apply_mask_cpu(skip, self._mask[box:bex, boy:bey, boz:bez])
             if self._region is not None:
-                self._region._mask_chunk(skip, ox, oy, oz, hx, hy, hz, box, boy, boz)
+                self._region.mask_chunk_cpu(skip, ox, oy, oz, hx, hy, hz, box, boy, boz)
             block_data = ma.masked_array(block_data, mask=skip)
             minblock = block_data.min()
             if minblock < local_min:
@@ -238,7 +237,7 @@ class Histogram():
             if self._mask is not None:
                 _apply_mask_cpu(skip, self._mask[box:bex, boy:bey, boz:bez])
             if self._region is not None:
-                self._region._mask_chunk(skip, ox, oy, oz, hx, hy, hz, box, boy, boz)
+                self._region.mask_chunk_cpu(skip, ox, oy, oz, hx, hy, hz, box, boy, boz)
             if len(self._phases)>0:
                 block_segm = self._segmentation[box:bex, boy:bey, boz:bez]
                 phases = self._phases

@@ -8,10 +8,6 @@ operations such as element-wise arithmetic and logical operations.
 import numpy as np
 from rockverse._utils import rvtqdm
 from numba import njit, cuda
-#from drp.regions.region import Region
-class Region():
-    pass
-
 import rockverse._assert as _assert
 
 from mpi4py import MPI
@@ -576,7 +572,7 @@ def _array_math(array1,
         _assert.instance('value', value, 'boolean, integer, or float', (bool, int, float))
 
     if region is not None:
-        _assert.instance('region', region, 'Region', (Region,))
+        _assert.rockverse_instance(region, 'region', ('Region',))
 
     array1.check_mask_and_segmentation(mask=mask, segmentation=segmentation)
 
@@ -693,7 +689,7 @@ def _array_math(array1,
                 if array2 is not None:
                     darray2 = cuda.to_device(carray2)
                 if region is not None:
-                    region._mask_chunk_gpu[blockspergrid, threadsperblock](
+                    region.mask_chunk_gpu[blockspergrid, threadsperblock](
                         dskip, ox, oy, oz, hx, hy, hz, box, boy, boz)
                 if mask is not None:
                     dmask = cuda.to_device(cmask)
@@ -710,7 +706,7 @@ def _array_math(array1,
                 carray1 = darray1.copy_to_host()
         else:
             if region is not None:
-                region._mask_chunk(skip, ox, oy, oz, hx, hy, hz, box, boy, boz)
+                region.mask_chunk_cpu(skip, ox, oy, oz, hx, hy, hz, box, boy, boz)
             if mask is not None:
                 _apply_mask_cpu(dskip, dmask)
             if segmentation is not None and phases is not None:

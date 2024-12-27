@@ -6,11 +6,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
-- Digital rock Module
+- Digital rock features
+    - VoxelImage histogram
     - Region module
         - Region class
         - Sphere class
         - Cylinder class
+    - Orthogonal Viewer
 
 ### Changed
 - None
@@ -24,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Initial documentation
 - Gallery/miscellaneous: Using the RockVerse logo
 - Assertion methods
-- Digital rock Module
+- Digital rock features
     - VoxelImage class
         - Creation functions
         - Sphere pack
