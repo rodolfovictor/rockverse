@@ -7,18 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 - Digital rock features
-    - VoxelImage histogram
     - Region module
         - Region class
         - Sphere class
         - Cylinder class
+    - VoxelImage histogram
     - Orthogonal Viewer
 
 ### Changed
 - None
 
 ### Fixed
-- Zarr parameters not being passes to VoxelImage create function.
+- Zarr parameters not being passed to VoxelImage create function.
 
 
 ## [0.1.0]

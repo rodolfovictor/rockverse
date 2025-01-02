@@ -9,6 +9,7 @@ data exploration.
 
 .. todo::
     * Improve handling of step changes in quantile functions when calculating percentiles.
+    * Put countter simply as int
 """
 
 import numpy as np
@@ -48,7 +49,6 @@ def _block_update_histogram(hist, block_data, block_segm, skip, bins, phases):
     nx, ny, nz = block_data.shape
     hist_shape = hist.shape
     num_phases = hist_shape[1] - 1
-    mid = int(len(bins)/2)
     N = len(bins)
     for i in range(nx):
         for j in range(ny):
@@ -63,7 +63,7 @@ def _block_update_histogram(hist, block_data, block_segm, skip, bins, phases):
                             phase = block_segm[i, j, k]
                             for p, ph in enumerate(phases):
                                 if phase == ph:
-                                    hist[ind, p + 1] += 1
+                                    hist[ind-1, p + 1] += 1
                                     break
                         break
 
@@ -114,24 +114,11 @@ class Histogram():
         self._segmentation = segmentation
         self._region = region
         self._input_bins = bins
-        self._count_type = None
         self._min = None
         self._max = None
         self._bins = None
         self._phases = None
         self._hist = None
-
-        #Define count type based on image size
-        nx, ny, nz = self._image.shape
-        N = (np.log(nx)+np.log(ny)+np.log(nz))/np.log(2)
-        if N < 8:
-            self._count_type = 'u1'
-        elif N < 16:
-            self._count_type = 'u2'
-        elif N < 32:
-            self._count_type = 'u4'
-        else:
-            self._count_type = 'u8'
 
         self._get_min_max()
         self._update_bins()
@@ -223,7 +210,7 @@ class Histogram():
 
 
     def _update_histogram(self):
-        hist = np.zeros((len(self._bins)-1, len(self._phases)+1), dtype=self._count_type)
+        hist = np.zeros((len(self._bins)-1, len(self._phases)+1), dtype=int)
         hx, hy, hz = self._image.voxel_length
         ox, oy, oz = self._image.voxel_origin
         for block_id in rvtqdm(range(self._image.nchunks), desc=f'Histogram {self._image.field_name} (counting voxels)', unit='chunk'):
@@ -281,6 +268,13 @@ class Histogram():
         return self._segmentation
 
     @property
+    def phases(self):
+        '''
+        Tuple with segmentation phases.
+        '''
+        return tuple(self._phases)
+
+    @property
     def bins(self):
         """
         The histogram bins.
@@ -293,6 +287,20 @@ class Histogram():
         The centers of the histogram bins.
         """
         return (self._bins[1:].astype(float)+self._bins[:-1].astype(float))/2
+
+    @property
+    def min(self):
+        """
+        The image minimum value.
+        """
+        return self._min
+
+    @property
+    def max(self):
+        """
+        The image maximum value.
+        """
+        return self._max
 
     @property
     def count(self):

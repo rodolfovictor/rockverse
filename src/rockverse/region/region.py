@@ -53,6 +53,9 @@ class Region():
         self.mask_chunk_gpu = cuda.jit(locals().get('_mask_chunk_gpu'))
 
     def _contains_point_source_code(self):
+        '''
+        Dummy function. Will be replaced by the actual region constructor.
+        '''
         string = '''def _is_inside(x, y, z):
         return True
         '''

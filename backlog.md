@@ -1,8 +1,7 @@
 # Backlog
 
-Now placing region
 Solve check mask segmentation region
-region wrong in orthgonal viewer
+Conservar escalas no right click do orthogonal viewer
 
 ## Tasks to be completed
 

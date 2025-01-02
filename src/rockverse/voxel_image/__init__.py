@@ -1045,8 +1045,6 @@ class VoxelImage(zarr.Array):
             If any of the provided parameters are invalid or incompatible with
             the current voxel image.
         """
-        return
-        raise Exception('Not implemented')
         if mask is not None:
             _assert.rockverse_instance(mask, 'mask', ('VoxelImage',))
             _assert.dtype('mask', mask, 'boolean', 'b')
@@ -1476,3 +1474,44 @@ class VoxelImage(zarr.Array):
                 with open(filename+'.ijm', 'w') as fp:
                     fp.write(cmd)
         comm.barrier()
+
+
+
+    def create_mask_from_region(self, region, **kwargs):
+        """
+        :bdg-info:`Parallel`
+        :bdg-info:`CPU`
+        :bdg-info:`GPU`
+
+        Create a mask voxel image.
+
+        Create boolean voxel image with same shape, chunks, voxel_origin,
+        voxel_length, and voxel_unit as the original image, masking voxels
+        outside the region of interest.
+
+        Parameters
+        ----------
+        a : VoxelImage
+            The source voxel image to mimic.
+        **kwargs
+            Additional keyword arguments to be passed to the underlying
+            :ref:`creation function <rockverse_digitalrock_create_function>`.
+            Keyword argument ``dtype`` will be ignored if passed, as the mask
+            has to be of boolean type.
+
+        Returns
+        -------
+        VoxelImage
+            The created ``VoxelImage`` object.
+        """
+        _assert.rockverse_instance(region, 'region', ('Region',))
+        kwargs['dtype'] = '|b1'
+        if 'description' not in kwargs:
+            kwargs['description'] = f'Mask from {str(region)}'
+        if 'field_name' not in kwargs:
+            kwargs['field_name'] = 'Mask'
+        if 'field_unit' not in kwargs:
+            kwargs['field_unit'] = ''
+        v = full_like(self, fill_value=True, **kwargs)
+        v.math(value=False, op='set', region=region)
+        return v

@@ -37,6 +37,7 @@ The VoxelImage class
       ~VoxelImage.get_voxel_coordinates
       ~VoxelImage.get_closest_voxel_index
       ~VoxelImage.check_mask_and_segmentation
+      ~VoxelImage.create_mask_from_region
 
    .. rubric:: Inherited Zarr attributes summary
 
@@ -105,7 +106,7 @@ The VoxelImage class
    .. automethod:: get_voxel_coordinates
    .. automethod:: get_closest_voxel_index
    .. automethod:: check_mask_and_segmentation
-
+   .. automethod:: create_mask_from_region
 
 
 
