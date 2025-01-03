@@ -193,7 +193,7 @@ class Histogram():
         if self._segmentation is None:
             self._phases = ()
             return
-        count = np.zeros(2**(8*self._segmentation.dtype.itemsize), dtype='u1')
+        count = np.zeros(2**(8*self._segmentation.dtype.itemsize), dtype=int)
         for block_id in rvtqdm(range(self._image.nchunks), desc=f'Histogram {self._image.field_name} (reading segmentation)', unit='chunk'):
             if block_id % mpi_nprocs != mpi_rank:
                 continue
