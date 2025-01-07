@@ -7,24 +7,23 @@ orthogonal slices of an image along with its histogram.
     * Get templates from rcParams.
     * scalebar
     * calibrationbar
+    * colors for scalar field
 '''
 
 import numpy as np
 import matplotlib.pyplot as plt
-import rockverse._assert as _assert
-from rockverse.voxel_image.histogram import Histogram
 from matplotlib.backend_bases import MouseButton
 from matplotlib.colors import Normalize, ListedColormap
-import matplotlib.pyplot as plt
-from rockverse import rcparams
-
 from numba import njit
 from mpi4py import MPI
+
+from rockverse import _assert
+from rockverse import rcparams
+from rockverse.voxel_image.histogram import Histogram
 
 comm = MPI.COMM_WORLD
 mpi_rank = comm.Get_rank()
 mpi_nprocs = comm.Get_size()
-
 
 @njit()
 def _region_mask_xy_slice(mask, func, ox, oy, oz, hx, hy, hz, z):
@@ -75,31 +74,6 @@ def _region_mask_zy_slice(mask, func, ox, oy, oz, hx, hy, hz, x):
             z += hz
             if not func(x, y, z):
                 mask[j, k] = True
-
-
-def _build_segmentation_colormap(self, v):
-    if v in ['Pastel1', 'Pastel2', 'Paired', 'Accent', 'Dark2', 'Set1',
-             'Set2', 'Set3', 'tab10', 'tab20', 'tab20b', 'tab20c',
-             'Pastel1_r', 'Pastel2_r', 'Paired_r', 'Accent_r', 'Dark2_r', 'Set1_r',
-             'Set2_r', 'Set3_r', 'tab10_r', 'tab20_r', 'tab20b_r', 'tab20c_r']:
-        map_colors = plt.get_cmap(v).colors
-    else:
-        try:
-            aux = ListedColormap(v)
-            map_colors = aux.colors
-        except Exception:
-            _assert.collective_raise(ValueError('Invalid value for segmentation colors.'))
-    seg_phases = np.array(self.histogram.phases).astype(int)
-    color_phases = {}
-    ind = 0
-    for k in seg_phases:
-        color_phases[str(k)] = map_colors[ind]
-        ind = (ind+1) % len(map_colors)
-    cmap = np.zeros((max(seg_phases)+1, 3))
-    for k in range(max(seg_phases)+1):
-        cmap[k] = color_phases[str(seg_phases[np.argmin(np.abs(seg_phases-k))])]
-    cmapl = [list(cmap[k, :]) for k in range(cmap.shape[0])]
-    return ListedColormap(cmapl)
 
 
 class OrthogonalViewer():
@@ -284,17 +258,21 @@ class OrthogonalViewer():
             _assert.rockverse_instance(region, 'region', ('Region',))
         self._region = region
 
-        #Calc histogram -----------------------------------
         self._histogram = Histogram(image,
                                     bins=bins,
                                     mask=mask,
                                     segmentation=segmentation,
                                     region=region)
 
-        self._segmentation_colors = _build_segmentation_colormap(
-            self, rcparams['orthogonal_viewer'][template]['segmentation']['colors'])
+
+        self._segmentation_colors = None
+        self._segmentation_colormap = None
         if segmentation_colors is not None:
-            self._segmentation_colors = _build_segmentation_colormap(self, segmentation_colors)
+            self._build_segmentation_colormap(segmentation_colors)
+        else:
+            self._build_segmentation_colormap(
+                rcparams['orthogonal_viewer'][template]['segmentation']['colors'])
+
 
         _assert.boolean('show_xy_plane', show_xy_plane)
         self._show_xy_plane = show_xy_plane
@@ -395,7 +373,7 @@ class OrthogonalViewer():
         else:
             self._fig = None
 
-        self._build_from_scratch()
+        self._build_planes()
 
         if mpi_rank == self._mpi_proc:
             self._fig.canvas.mpl_connect('button_release_event', self._on_button_release)
@@ -410,14 +388,16 @@ class OrthogonalViewer():
         if self._delay_update:
             return
         ref_voxel = self._ref_voxel
-        nx, ny, nz = self._image.shape
         hx, hy, hz = self._image.voxel_length
         ox, oy, oz = self._image.voxel_origin
 
         #Image
-        self._slices['xy']['image'] = self._image.collective_getitem((slice(None), slice(None), ref_voxel[2])).copy()
-        self._slices['xz']['image'] = self._image.collective_getitem((slice(None), ref_voxel[1], slice(None))).copy()
-        self._slices['zy']['image'] = self._image.collective_getitem((ref_voxel[0], slice(None), slice(None))).copy()
+        self._slices['xy']['image'] = self._image.collective_getitem(
+            (slice(None), slice(None), ref_voxel[2])).copy()
+        self._slices['xz']['image'] = self._image.collective_getitem(
+            (slice(None), ref_voxel[1], slice(None))).copy()
+        self._slices['zy']['image'] = self._image.collective_getitem(
+            (ref_voxel[0], slice(None), slice(None))).copy()
 
         #Mask
         self._slices['xy']['mask'] = np.zeros(self._slices['xy']['image'].shape).astype('bool')
@@ -447,9 +427,9 @@ class OrthogonalViewer():
                 mask=~self._slices[plane]['mask'])
 
         #Segmentation
-        self._slices['xy']['segmentation'] = None
-        self._slices['xz']['segmentation'] = None
-        self._slices['zy']['segmentation'] = None
+        self._slices['xy']['segmentation'] = np.zeros(self._slices['xy']['image'].shape).astype('int')
+        self._slices['xz']['segmentation'] = np.zeros(self._slices['xz']['image'].shape).astype('int')
+        self._slices['zy']['segmentation'] = np.zeros(self._slices['zy']['image'].shape).astype('int')
         if self._segmentation is not None:
             self._slices['xy']['segmentation'] = self._segmentation.collective_getitem((slice(None), slice(None), ref_voxel[2])).copy()
             self._slices['xz']['segmentation'] = self._segmentation.collective_getitem((slice(None), ref_voxel[1], slice(None))).copy()
@@ -458,25 +438,6 @@ class OrthogonalViewer():
     def _set_grid(self):
         """
         Set up the grid layout for the figure.
-
-        This method determines the layout of the figure based on which planes
-        (xy, xz, zy) and histogram are to be displayed. It calculates the
-        appropriate width and height ratios for the grid based on the image
-        dimensions and voxel sizes.
-
-        The method performs the following operations:
-        1. Calculates the total width and height of the figure.
-        2. Determines the width and height ratios for the grid.
-        3. Clears the current figure.
-        4. Creates a new gridspec for the figure layout.
-
-        The gridspec is created using parameters from self._gridspec_dict,
-        which can be customized by the user.
-
-        This method is typically called internally when the viewer layout
-        needs to be rebuilt, such as when toggling the visibility of planes
-        or the histogram. It does not return anything but updates the internal
-        state of the OrthogonalViewer object, specifically self._gs (gridspec).
         """
         self._delay_update = True
         nx, ny, nz = self._image.shape
@@ -509,26 +470,6 @@ class OrthogonalViewer():
     def _build_xyplane(self):
         """
         Build and configure the XY plane subplot.
-
-        This method creates and sets up the XY plane subplot in the figure.
-        It performs the following operations:
-
-        1. Determines the subplot position based on the current grid layout.
-        2. Creates the subplot if XY plane is to be displayed, otherwise sets it to None.
-        3. Sets the aspect ratio of the subplot to 1 (equal scaling).
-        4. Calculates the extent of the image in physical units.
-        5. Plots the XY slice of the main image using imshow.
-        6. If present, overlays the segmentation on the XY slice.
-        7. If present, overlays the mask on the XY slice.
-        8. Adds vertical and horizontal guide lines at the current reference point.
-        9. Sets the x and y axis labels with appropriate units.
-        10. Configures the plot limits to match the image extent.
-
-
-        This method is typically called internally when initializing the viewer
-        or when the layout needs to be rebuilt. It does not return anything but
-        updates the internal state of the OrthogonalViewer object, specifically
-        the XY plane subplot and related attributes.
         """
         plane = 'xy'
         l, c = self._gs.get_geometry()
@@ -543,26 +484,30 @@ class OrthogonalViewer():
         axi.format_coord = self._format_coord_xy
 
         axi.set_aspect(1)
-        nx, ny, nz = self._image.shape
-        hx, hy, hz = self._image.voxel_length
-        ox, oy, oz = self._image.voxel_origin
+        nx, ny, _ = self._image.shape
+        hx, hy, _ = self._image.voxel_length
+        ox, oy, _ = self._image.voxel_origin
         voxel_unit = self._image.voxel_unit
         extent=(ox, (nx-1)*hx+ox, (ny-1)*hy+oy, oy)
         self._slices[plane]['mpl_im'] = axi.imshow(self._slices[plane]['image'].T,
                                                    origin='upper', extent=extent,
                                                    **self._image_dict)
-        if self._slices[plane]['segmentation'] is not None:
-            self._slices[plane]['mpl_seg'] = axi.imshow(self._slices[plane]['segmentation'].T,
-                                                        origin='upper', extent=extent,
-                                                        alpha=self._segmentation_alpha,
-                                                        vmin=min(self.histogram.phases),
-                                                        vmax=max(self.histogram.phases),
-                                                        cmap=self._segmentation_colors)
+        if self._segmentation is None:
+            vmin, vmax = 0, 1
+        else:
+            vmin = min(self.histogram.phases)
+            vmax = max(self.histogram.phases)
+        self._slices[plane]['mpl_seg'] = axi.imshow(self._slices[plane]['segmentation'].T,
+                                                    origin='upper', extent=extent,
+                                                    alpha=self._segmentation_alpha,
+                                                    vmin=vmin, vmax=vmax,
+                                                    cmap=self._segmentation_colormap)
         if self._slices[plane]['mask'] is not None:
             self._slices[plane]['mpl_mask'] = axi.imshow(self._slices[plane]['mask'].T,
                                                          origin='upper', extent=extent,
                                                          clim=(0, 1),
-                                                         cmap=ListedColormap(['k', self.mask_color]),
+                                                         cmap=ListedColormap(
+                                                             ['k', self._mask_color]),
                                                          alpha=self._mask_alpha)
         ref_point = self.ref_point
         self._slices[plane]['vline'] = axi.axvline(ref_point[0], **self._guide_line_dict)
@@ -576,7 +521,7 @@ class OrthogonalViewer():
 
     def _build_zyplane(self):
         """
-        See documentation for _build_xyplane.
+        Build and configure the ZY plane subplot.
         """
         plane = 'zy'
         l, c = self._gs.get_geometry()
@@ -592,25 +537,29 @@ class OrthogonalViewer():
         axi = self._slices[plane]['ax']
         axi.format_coord = self._format_coord_zy
         axi.set_aspect(1)
-        nx, ny, nz = self._image.shape
-        hx, hy, hz = self._image.voxel_length
-        ox, oy, oz = self._image.voxel_origin
+        _, ny, nz = self._image.shape
+        _, hy, hz = self._image.voxel_length
+        _, oy, oz = self._image.voxel_origin
         voxel_unit = self._image.voxel_unit
         extent = (oz, (nz-1)*hz+oz, (ny-1)*hy+oy, oy)
         self._slices[plane]['mpl_im'] = axi.imshow(self._slices[plane]['image'],
                                                    origin='upper', extent=extent,
                                                    **self._image_dict)
-        if self._slices[plane]['segmentation'] is not None:
-            self._slices[plane]['mpl_seg'] = axi.imshow(self._slices[plane]['segmentation'],
-                                                       origin='upper', extent=extent,
-                                                       alpha=self._segmentation_alpha,
-                                                       vmin=min(self.histogram.phases),
-                                                       vmax=max(self.histogram.phases),
-                                                       cmap=self._segmentation_colors)
+        if self._segmentation is None:
+            vmin, vmax = 0, 1
+        else:
+            vmin = min(self.histogram.phases)
+            vmax = max(self.histogram.phases)
+        self._slices[plane]['mpl_seg'] = axi.imshow(self._slices[plane]['segmentation'],
+                                                    origin='upper', extent=extent,
+                                                    alpha=self._segmentation_alpha,
+                                                    vmin=vmin, vmax=vmax,
+                                                    cmap=self._segmentation_colormap)
         if self._slices[plane]['mask'] is not None:
             self._slices[plane]['mpl_mask'] = axi.imshow(self._slices[plane]['mask'],
                                                          origin='upper', extent=extent,
-                                                         cmap=ListedColormap(['k', self._mask_color]),
+                                                         cmap=ListedColormap(
+                                                             ['k', self._mask_color]),
                                                          alpha=self._mask_alpha)
         ref_point = self.ref_point
         self._slices[plane]['vline'] = axi.axvline(ref_point[2], **self._guide_line_dict)
@@ -624,7 +573,7 @@ class OrthogonalViewer():
 
     def _build_xzplane(self):
         """
-        See documentation for _build_xyplane
+        Build and configure the XZ plane subplot.
         """
         plane = 'xz'
         l, c = self._gs.get_geometry()
@@ -640,25 +589,29 @@ class OrthogonalViewer():
         axi = self._slices[plane]['ax']
         axi.format_coord = self._format_coord_xz
         axi.set_aspect(1)
-        nx, ny, nz = self._image.shape
-        hx, hy, hz = self._image.voxel_length
-        ox, oy, oz = self._image.voxel_origin
+        nx, _, nz = self._image.shape
+        hx, _, hz = self._image.voxel_length
+        ox, _, oz = self._image.voxel_origin
         voxel_unit = self._image.voxel_unit
         extent = (ox, (nx-1)*hx+ox, (nz-1)*hz+oz, oz)
         self._slices[plane]['mpl_im'] = axi.imshow(self._slices[plane]['image'].T,
                                                    origin='upper', extent=extent,
                                                    **self._image_dict)
-        if self._slices[plane]['segmentation'] is not None:
-            self._slices[plane]['mpl_seg'] = axi.imshow(self._slices[plane]['segmentation'].T,
-                                                        origin='upper', extent=extent,
-                                                        alpha=self._segmentation_alpha,
-                                                        vmin=min(self.histogram.phases),
-                                                        vmax=max(self.histogram.phases),
-                                                        cmap=self._segmentation_colors)
+        if self._segmentation is None:
+            vmin, vmax = 0, 1
+        else:
+            vmin = min(self.histogram.phases)
+            vmax = max(self.histogram.phases)
+        self._slices[plane]['mpl_seg'] = axi.imshow(self._slices[plane]['segmentation'].T,
+                                                    origin='upper', extent=extent,
+                                                    alpha=self._segmentation_alpha,
+                                                    vmin=vmin, vmax=vmax,
+                                                    cmap=self._segmentation_colormap)
         if self._slices[plane]['mask'] is not None:
             self._slices[plane]['mpl_mask'] = axi.imshow(self._slices[plane]['mask'].T,
                                                          origin='upper', extent=extent,
-                                                         cmap=ListedColormap(['k', self._mask_color]),
+                                                         cmap=ListedColormap(
+                                                             ['k', self._mask_color]),
                                                          alpha=self._mask_alpha)
         ref_point = self.ref_point
         self._slices[plane]['vline'] = axi.axvline(ref_point[0], **self._guide_line_dict)
@@ -670,7 +623,6 @@ class OrthogonalViewer():
         self._set_visibility()
 
     def _set_visibility(self):
-
         """
         Set the visibility of various plot elements.
         """
@@ -709,6 +661,15 @@ class OrthogonalViewer():
         else:
             self._slices[plane]['ax'] = self._fig.add_subplot(self._gs[0])
         ax = self.ax_histogram
+        self._plot_histogram_full()
+        self._plot_histogram_seg_phases()
+
+    def _plot_histogram_full(self):
+        """
+        Clear the histogram axes and plot the full line.
+        """
+        ax = self.ax_histogram
+        ax.cla()
         ax.grid(True, alpha=0.5)
         x = self.histogram.bin_centers
         self._slices['histogram']['lines']['full'] = ax.plot(
@@ -726,17 +687,24 @@ class OrthogonalViewer():
             self._image_dict['clim'][0], **self._histogram_line_dict['clim'])
         self._slices['histogram']['lines']['cmax'] = ax.axvline(
             self._image_dict['clim'][1], **self._histogram_line_dict['clim'])
-        self._plot_histogram_seg_phases()
 
     def _plot_histogram_seg_phases(self):
+        """
+        Plot the histogram for the segmentation phases.
+        """
         phases = self.histogram.phases
-        cmap = self._slices['xy']['mpl_seg'].get_cmap()
         lines = self._slices['histogram']['lines']
+        to_pop = []
+        for k, v in lines.items():
+            if k not in ['cmin', 'cmax', 'full']:
+                _ = [obj.remove() for obj in v]
+                to_pop.append(k)
+        for k in to_pop:
+            _ = lines.pop(k)
         ax = self.ax_histogram
         if len(phases)>0:
+            cmap = self._slices['xy']['mpl_seg'].get_cmap()
             for k in sorted(phases):
-                if k in lines:
-                   _ = [obj.remove() for obj in lines[k]]
                 lines[k] = ax.plot(self.histogram.bin_centers,
                                    self.histogram.count[k],
                                    color=cmap(Normalize(vmin=min(self.histogram.phases),
@@ -745,8 +713,7 @@ class OrthogonalViewer():
                                     label=f'{k}')
         ax.legend()
 
-
-    def _build_from_scratch(self):
+    def _build_planes(self):
         """
         Call the various building methods to build the image from scratch.
         """
@@ -756,7 +723,7 @@ class OrthogonalViewer():
             self._slices['xy']['plot'] = True
         self._get_slices()
         if mpi_rank == self._mpi_proc:
-            self._set_grid()
+            self._set_grid() #Set up the grid layout.
             self._build_xyplane()
             self._build_zyplane()
             self._build_xzplane()
@@ -764,10 +731,9 @@ class OrthogonalViewer():
             self._set_visibility()
             self._update_plots()
 
-
     def _update_plots(self):
         """
-        Redraw every plane in the figure.
+        Update every plane in the figure.
         """
         if self._delay_update:
             return
@@ -795,15 +761,12 @@ class OrthogonalViewer():
             self._slices['xz']['mpl_seg'].set_data(self._slices['xz']['segmentation'].T)
             for plane in ('xy', 'zy', 'xz'):
                 self._slices[plane]['mpl_seg'].set(alpha=self._segmentation_alpha,
-                                                clim=(min(self.histogram.phases),
-                                                        max(self.histogram.phases)),
-                                                cmap=self._segmentation_colors)
+                                                   clim=(min(self.histogram.phases),
+                                                         max(self.histogram.phases)),
+                                                   cmap=self._segmentation_colormap)
         else:
             for plane in ('xy', 'zy', 'xz'):
-                if self._slices[plane]['mpl_seg'] is not None:
-                    self._slices[plane]['mpl_seg'].remove()
-                    self._slices[plane]['mpl_seg'] = None
-
+                self._slices[plane]['mpl_seg'].set(alpha=0)
 
         self._slices['xy']['vline'].set_xdata([ref_point[0], ref_point[0]])
         self._slices['xy']['vline'].set_visible(True)
@@ -837,12 +800,13 @@ class OrthogonalViewer():
 
         for plane in ('xy', 'zy', 'xz'):
             if self._segmentation is not None:
-                self._slices[plane]['mpl_seg'].set_clim(vmin=min(self._histogram._phases),
-                                                        vmax=max(self._histogram._phases))
+                self._slices[plane]['mpl_seg'].set_clim(vmin=min(self._histogram.phases),
+                                                        vmax=max(self._histogram.phases))
 
-
-        self._slices['histogram']['lines']['cmin'].set_xdata((self._image_dict['clim'][0], self._image_dict['clim'][0]))
-        self._slices['histogram']['lines']['cmax'].set_xdata((self._image_dict['clim'][1], self._image_dict['clim'][1]))
+        self._slices['histogram']['lines']['cmin'].set_xdata(
+            (self._image_dict['clim'][0], self._image_dict['clim'][0]))
+        self._slices['histogram']['lines']['cmax'].set_xdata(
+            (self._image_dict['clim'][1], self._image_dict['clim'][1]))
         self._plot_histogram_seg_phases()
         if mpi_rank == self._mpi_proc:
             self.figure.canvas.draw()
@@ -850,28 +814,19 @@ class OrthogonalViewer():
 
     #Methods ------------------------------------------------------------------
 
-    def default_view(self):
-        """
-        Reset the viewer to its default view settings:
-
-        * Enables display of all three orthogonal planes (XY, XZ, ZY).
-        * Enables display of the histogram.
-        * Enables drawing of guide lines.
-        """
-        self._slices['xy']['plot'] = True
-        self._slices['xz']['plot'] = True
-        self._slices['zy']['plot'] = True
-        self._slices['histogram']['plot'] = True
-        self.show_guide_lines = True #<-- This calls the update method
-
-
     def shrink_to_fit(self):
         """
-        Adjust the figure size by reducing the largest side to match the ideal
-        proportions of the content. It ensures that all planes and the histogram
-        (if shown) fit within the figure without unnecessary white space.
-        This method is useful for optimizing the figure layout, especially
-        after changing which planes or components are displayed.
+        Adjust the figure size to fit the ideal proportions of the content.
+
+        This method reduces the size of the figure by scaling down the largest
+        side to ensure that all axes and components fit neatly within the figure
+        without unnecessary white space. It helps optimize the layout of the
+        visualization, particularly after modifications to the displayed planes
+        or components.
+
+        This method is especially useful when toggling the visibility of
+        different slices or adjusting the figure's contents, ensuring that
+        the presentation remains visually appealing and focused on the data.
         """
         fwidth, fheight = self._fig.get_size_inches()
         if fwidth > fheight:
@@ -883,11 +838,16 @@ class OrthogonalViewer():
 
     def expand_to_fit(self):
         """
-        Adjust the figure size by increasing the smallest side to match the ideal
-        proportions of the content. It ensures that all planes and the histogram
-        (if shown) fit within the figure without unnecessary white space.
-        This method is useful for optimizing the figure layout, especially
-        after changing which planes or components are displayed.
+        Adjust the figure size to ensure that all content fits within the figure.
+
+        This method increases the size of the figure by scaling up the smallest
+        side to match the ideal proportions of the displayed content. It ensures
+        that all axes, components, and visual elements are adequately visible
+        without clipping or unnecessary overlap.
+
+        This method is particularly useful after changing which planes or
+        components are displayed, helping to maintain an optimized layout and
+        providing a more comprehensive view of the data.
         """
         fwidth, fheight = self._fig.get_size_inches()
         if fwidth < fheight:
@@ -895,6 +855,8 @@ class OrthogonalViewer():
         else:
             fheight = fwidth/self._ideal_width*self._ideal_height
         self._fig.set_size_inches(fwidth, fheight)
+
+
 
 
     # Properties --------------------------------------------------------------
@@ -950,7 +912,7 @@ class OrthogonalViewer():
         Examples
         --------
             >>> from rockverse.regions import Cylinder
-            >>> viewer = rockverse.plot.OrthogonalViewer(<your parameters here...>)
+            >>> viewer = rockverse.digitalrock.OrthogonalViewer(<your parameters here...>)
             >>> viewer.region = Cylinder(<your parameters here...>)  # Set a new region
             >>> region = viewer.region                               # Get the current region
             >>> viewer.region = None                                 # Remove the region
@@ -967,8 +929,8 @@ class OrthogonalViewer():
                                     mask=self._mask,
                                     segmentation=self._segmentation,
                                     region=self._region)
+        self._plot_histogram_full()
         self._update_plots()
-
 
     @property
     def mask(self):
@@ -977,7 +939,7 @@ class OrthogonalViewer():
 
         Examples
         --------
-            >>> viewer = rockverse.plot.OrthogonalViewer(<your parameters here...>)
+            >>> viewer = rockverse.digitalrock.OrthogonalViewer(<your parameters here...>)
             >>> mask = viewer.mask      # Get the current mask
             >>> viewer.mask = new_mask  # Set a new mask
             >>> viewer.mask = None      # Remove the mask
@@ -989,7 +951,12 @@ class OrthogonalViewer():
     def mask(self, v):
         self._image.check_mask_and_segmentation(mask=v)
         self._mask = v
-        self._histogram.mask = v
+        self._histogram = Histogram(self._image,
+                                    bins=self._histogram.bins,
+                                    mask=self._mask,
+                                    segmentation=self._segmentation,
+                                    region=self._region)
+        self._plot_histogram_full()
         self._update_plots()
 
 
@@ -1000,7 +967,7 @@ class OrthogonalViewer():
 
         Examples
         --------
-            >>> viewer = rockverse.plot.OrthogonalViewer(<your parameters here...>)
+            >>> viewer = rockverse.digitalrock.OrthogonalViewer(<your parameters here...>)
             >>> segmentation = viewer.segmentation     # Get the current segmentation
             >>> viewer.segmentation = new_segmentation # Set a new array for segmentation
             >>> viewer.segmentation = None             # Remove the segmentation
@@ -1017,7 +984,9 @@ class OrthogonalViewer():
                                     mask=self._mask,
                                     segmentation=self._segmentation,
                                     region=self._region)
+        self._build_segmentation_colormap(self._segmentation_colors)
         self._update_plots()
+        self._plot_histogram_seg_phases()
 
     @property
     def segmentation_colors(self):
@@ -1035,7 +1004,7 @@ class OrthogonalViewer():
 
     @segmentation_colors.setter
     def segmentation_colors(self, v):
-        self._segmentation_colors = _build_segmentation_colormap(self, v)
+        self._build_segmentation_colormap(v)
         self._update_plots()
 
     @property
@@ -1054,7 +1023,7 @@ class OrthogonalViewer():
 
         Examples
         --------
-           >>> viewer = rockverse.plot.OrthogonalViewer(<your parameters here...>)
+           >>> viewer = rockverse.digitalrock.OrthogonalViewer(<your parameters here...>)
            >>> ref_voxel = viewer.ref_voxel #get the current reference voxel
            >>> viewer.ref_voxel = (8, 33, 9) # Set new reference voxel and update
         '''
@@ -1087,7 +1056,7 @@ class OrthogonalViewer():
         """
         Get or set the plot reference point in voxel units.
 
-        Get or set the plot reference point in image position. Image position
+        Get or set the plot reference point in image position. It
         must be an ordered iterable (x, y, z), where ox <= x < ox+hx*nx,
         oy <= y < oy+hy*ny, and oz <= z < oz+hz*nz, with
         ox, oy, oz = image.voxel_origin,
@@ -1131,7 +1100,7 @@ class OrthogonalViewer():
         _assert.instance('show_xy_plane', v, 'boolean', (bool,))
         if self._slices['xy']['plot'] != v:
             self._slices['xy']['plot'] = v
-            self._build_from_scratch()
+            self._build_planes()
 
     @property
     def show_xz_plane(self):
@@ -1145,7 +1114,7 @@ class OrthogonalViewer():
         _assert.instance('show_xz_plane', v, 'boolean', (bool,))
         if self._slices['xz']['plot'] != v:
             self._slices['xz']['plot'] = v
-            self._build_from_scratch()
+            self._build_planes()
 
     @property
     def show_zy_plane(self):
@@ -1159,7 +1128,7 @@ class OrthogonalViewer():
         _assert.instance('show_zy_plane', v, 'boolean', (bool,))
         if self._slices['zy']['plot'] != v:
             self._slices['zy']['plot'] = v
-            self._build_from_scratch()
+            self._build_planes()
 
     @property
     def show_histogram(self):
@@ -1173,7 +1142,7 @@ class OrthogonalViewer():
         _assert.instance('show_histogram', v, 'boolean', (bool,))
         if self._slices['histogram']['plot'] != v:
             self._slices['histogram']['plot'] = v
-            self._build_from_scratch()
+            self._build_planes()
 
     @property
     def show_guide_lines(self):
@@ -1188,6 +1157,7 @@ class OrthogonalViewer():
         if self._show_guide_lines != v:
             self._show_guide_lines = v
             self._update_plots()
+            self._set_visibility()
 
     @property
     def hide_axis(self):
@@ -1570,6 +1540,34 @@ class OrthogonalViewer():
             self.ref_voxel = ref_voxel
 
 
+    def _build_segmentation_colormap(self, v):
+        if v in ['Pastel1', 'Pastel2', 'Paired', 'Accent', 'Dark2', 'Set1',
+                'Set2', 'Set3', 'tab10', 'tab20', 'tab20b', 'tab20c',
+                'Pastel1_r', 'Pastel2_r', 'Paired_r', 'Accent_r', 'Dark2_r', 'Set1_r',
+                'Set2_r', 'Set3_r', 'tab10_r', 'tab20_r', 'tab20b_r', 'tab20c_r']:
+            self._segmentation_colors = plt.get_cmap(v).colors
+        else:
+            try:
+                aux = ListedColormap(v)
+                self._segmentation_colors = aux.colors
+            except Exception:
+                _assert.collective_raise(ValueError('Invalid value for segmentation colors.'))
+        seg_phases = np.array(self.histogram.phases).astype(int)
+        if len(seg_phases) == 0:
+            self._segmentation_colormap = ListedColormap(self._segmentation_colors)
+            return
+        color_phases = {}
+        ind = 0
+        for k in seg_phases:
+            color_phases[str(k)] = self._segmentation_colors[ind]
+            ind = (ind+1) % len(self._segmentation_colors)
+        cmap = np.zeros((max(seg_phases)+1, 3))
+        for k in range(max(seg_phases)+1):
+            cmap[k] = color_phases[str(seg_phases[np.argmin(np.abs(seg_phases-k))])]
+        cmapl = [list(cmap[k, :]) for k in range(cmap.shape[0])]
+        self._segmentation_colormap = ListedColormap(cmapl)
+        return
+
 
 import rockverse as rv
 
@@ -1608,13 +1606,16 @@ segmentation = rv.voxel_image.import_raw(
 
 import matplotlib.pyplot as plt
 plt.close('all')
-self=OrthogonalViewer(image=image, segmentation=segmentation,
-                      region=rv.region.Cylinder(p=(1000,1001,1000), r=1000, v=(0,1,1)))
+self=OrthogonalViewer(image=image)
+#self.region=rv.region.Cylinder(p=(1000,1001,1000), r=1000, v=(1,1,1))
 
-self.mask_alpha=1
-self.mask_color='w'
-self.segmentation_alpha=0.75
-self.segmentation_colors='Set1'
-self.mask_color=[0.25, 0.30, 0.25]
+#
+#self.segmentation=segmentation
+#self.segmentation=None
 
-#plt.colorbar(mappable=self._slices['xy']['mpl_seg'], ax=self._slices['xy']['ax'])
+
+#self.mask_alpha = 1
+#self.mask_color = 'w'
+#self.segmentation_alpha = 0.75
+#self.segmentation_colors='Set1'
+#self.mask_color=[0.25, 0.30, 0.25]
