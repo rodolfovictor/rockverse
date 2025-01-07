@@ -769,31 +769,37 @@ class OrthogonalViewer():
                 self._slices[plane]['mpl_seg'].set(alpha=0)
 
         self._slices['xy']['vline'].set_xdata([ref_point[0], ref_point[0]])
+        self._slices['xy']['vline'].set(**self.guide_line_dict)
         self._slices['xy']['vline'].set_visible(True)
         if not self._slices['zy']['plot']:
             self._slices['xy']['vline'].set_visible(False)
 
         self._slices['xy']['hline'].set_ydata([ref_point[1], ref_point[1]])
+        self._slices['xy']['hline'].set(**self.guide_line_dict)
         self._slices['xy']['hline'].set_visible(True)
         if not self._slices['xz']['plot']:
             self._slices['xy']['hline'].set_visible(False)
 
         self._slices['zy']['vline'].set_xdata([ref_point[2], ref_point[2]])
+        self._slices['zy']['vline'].set(**self.guide_line_dict)
         self._slices['zy']['vline'].set_visible(True)
         if not self._slices['xy']['plot']:
             self._slices['zy']['vline'].set_visible(False)
 
         self._slices['zy']['hline'].set_ydata([ref_point[1], ref_point[1]])
+        self._slices['zy']['hline'].set(**self.guide_line_dict)
         self._slices['zy']['hline'].set_visible(True)
         if not self._slices['xz']['plot']:
             self._slices['zy']['hline'].set_visible(False)
 
         self._slices['xz']['vline'].set_xdata([ref_point[0], ref_point[0]])
+        self._slices['xz']['vline'].set(**self.guide_line_dict)
         self._slices['xz']['vline'].set_visible(True)
         if not self._slices['zy']['plot']:
             self._slices['xz']['vline'].set_visible(False)
 
         self._slices['xz']['hline'].set_ydata([ref_point[2], ref_point[2]])
+        self._slices['xz']['hline'].set(**self.guide_line_dict)
         self._slices['xz']['hline'].set_visible(True)
         if not self._slices['xy']['plot']:
             self._slices['xz']['hline'].set_visible(False)
@@ -900,7 +906,7 @@ class OrthogonalViewer():
     @property
     def image(self):
         '''
-        Get the input image data. Cannot be changed once the object is created.
+        Get the input image data.
         '''
         return self._image
 
@@ -912,7 +918,7 @@ class OrthogonalViewer():
         Examples
         --------
             >>> from rockverse.regions import Cylinder
-            >>> viewer = rockverse.digitalrock.OrthogonalViewer(<your parameters here...>)
+            >>> viewer = rockverse.OrthogonalViewer(<your parameters here...>)
             >>> viewer.region = Cylinder(<your parameters here...>)  # Set a new region
             >>> region = viewer.region                               # Get the current region
             >>> viewer.region = None                                 # Remove the region
@@ -939,10 +945,10 @@ class OrthogonalViewer():
 
         Examples
         --------
-            >>> viewer = rockverse.digitalrock.OrthogonalViewer(<your parameters here...>)
-            >>> mask = viewer.mask      # Get the current mask
-            >>> viewer.mask = new_mask  # Set a new mask
-            >>> viewer.mask = None      # Remove the mask
+            >>> viewer = rockverse.OrthogonalViewer(<your parameters here...>)
+            >>> mask = viewer.mask            # Get the current mask
+            >>> viewer.mask = new_mask_image  # Set a new voxel image as mask
+            >>> viewer.mask = None            # Remove the mask
         """
         return self._mask
 
@@ -967,9 +973,9 @@ class OrthogonalViewer():
 
         Examples
         --------
-            >>> viewer = rockverse.digitalrock.OrthogonalViewer(<your parameters here...>)
-            >>> segmentation = viewer.segmentation     # Get the current segmentation
-            >>> viewer.segmentation = new_segmentation # Set a new array for segmentation
+            >>> viewer = rockverse.OrthogonalViewer(<your parameters here...>)
+            >>> segmentation = viewer.segmentation     # Get the current segmentation image
+            >>> viewer.segmentation = new_segmentation # Set a new image for segmentation
             >>> viewer.segmentation = None             # Remove the segmentation
         """
         return self._segmentation
@@ -991,14 +997,21 @@ class OrthogonalViewer():
     @property
     def segmentation_colors(self):
         '''
-        Get or set the colormap for the segmentation phases.
+        Get or set the color list for the segmentation phases.
 
-        - If a string, it should be the name of a predefined Matplotlib colormap
+        - If a string, it should be the name of a predefined Matplotlib qualitative colormap
           (e.g., 'Set1', 'Pastel1', 'Pastel1_r').
-        - If a list, it should contain colors in a format acceptable by Matplotlib,
-          such as RGB tuples (e.g., (1, 0, 0) for red) or hex codes (e.g., '#FF0000' for red).
+        - If a list, it should contain colors in any format acceptable by Matplotlib,
+          such as RGB tuples (e.g., (1, 0, 0) for red), hex codes (e.g., '#FF0000' for red),
+          or named colors ('gold', 'forestgreen', etc.).
 
-        The colors will be cycled through and assigned to the segmentation phases.
+        The specified colors will be cycled through and assigned to the segmentation phases.
+
+        Example:
+        ```python
+        viewer.segmentation_colors = 'tab10'  # Using a predefined Matplotlib colormap
+        viewer.segmentation_colors = [(1, 0, 0), '#339966', 'gold']  # Using a list with any valid format
+        ```
         '''
         return self._segmentation_colors
 
@@ -1023,7 +1036,7 @@ class OrthogonalViewer():
 
         Examples
         --------
-           >>> viewer = rockverse.digitalrock.OrthogonalViewer(<your parameters here...>)
+           >>> viewer = rockverse.OrthogonalViewer(<your parameters here...>)
            >>> ref_voxel = viewer.ref_voxel #get the current reference voxel
            >>> viewer.ref_voxel = (8, 33, 9) # Set new reference voxel and update
         '''
@@ -1062,7 +1075,7 @@ class OrthogonalViewer():
         ox, oy, oz = image.voxel_origin,
         hx, hy, hz = image.voxel_length, and
         nx, ny, nz = image.shape.
-        If the point (x, y, z) is not a grid point, the closest grid point will
+        If (x, y, z) is not a grid point, the closest grid point will
         be used.
 
         Examples
@@ -1091,7 +1104,18 @@ class OrthogonalViewer():
     @property
     def show_xy_plane(self):
         '''
-        Boolean to enable/disable the xy slice visibility.
+        Boolean flag to enable or disable the visibility of the XY slice.
+
+        When set to True, the XY slice will be displayed in the viewer.
+        When set to False, the XY slice will be hidden. Changing this
+        setting will rebuild the visualization to reflect
+        the current state.
+
+        Examples
+        --------
+            viewer.show_xy_plane          # Get the current state
+            viewer.show_xy_plane = True   # Show the XY slice
+            viewer.show_xy_plane = False  # Hide the XY slice
         '''
         return self._slices['xy']['plot']
 
@@ -1105,7 +1129,18 @@ class OrthogonalViewer():
     @property
     def show_xz_plane(self):
         '''
-        Boolean to enable/disable the xz slice visibility.
+        Boolean flag to enable or disable the visibility of the XZ slice.
+
+        When set to True, the XZ slice will be displayed in the viewer.
+        When set to False, the XZ slice will be hidden. Changing this
+        setting will rebuild the visualization to reflect
+        the current state.
+
+        Examples
+        --------
+            viewer.show_xz_plane          # Get the current state
+            viewer.show_xz_plane = True   # Show the XZ slice
+            viewer.show_xz_plane = False  # Hide the XZ slice
         '''
         return self._slices['xz']['plot']
 
@@ -1119,7 +1154,18 @@ class OrthogonalViewer():
     @property
     def show_zy_plane(self):
         '''
-        Boolean to enable/disable the zy slice visibility.
+        Boolean flag to enable or disable the visibility of the ZY slice.
+
+        When set to True, the ZY slice will be displayed in the viewer.
+        When set to False, the ZY slice will be hidden. Changing this
+        setting will rebuild the visualization to reflect
+        the current state.
+
+        Examples
+        --------
+            viewer.show_zy_plane          # Get the current state
+            viewer.show_zy_plane = True   # Show the ZY slice
+            viewer.show_zy_plane = False  # Hide the ZY slice
         '''
         return self._slices['zy']['plot']
 
@@ -1147,7 +1193,17 @@ class OrthogonalViewer():
     @property
     def show_guide_lines(self):
         '''
-        Boolean to enable/disable the guide lines visibility.
+        Boolean flag to enable or disable the visibility of the histogram plot.
+
+        When set to True, the histogram of the voxel image will be displayed alongside
+        the orthogonal slices. When set to False, the histogram will be hidden.
+        Changing this setting will rebuild the visualization to reflect the current state.
+
+        Examples
+        --------
+            viewer.show_histogram         # Get the current visibility state of the histogram
+            viewer.show_histogram = True  # Show the histogram
+            viewer.show_histogram = False # Hide the histogram
         '''
         return self._show_guide_lines
 
@@ -1162,8 +1218,18 @@ class OrthogonalViewer():
     @property
     def hide_axis(self):
         '''
-        Boolean. If True, do not draw the image axes and labels.
-        Default is False.
+        Boolean flag to control the visibility of image axes and labels.
+
+        When set to True, the axes and labels for the image slices will not be drawn,
+        providing a cleaner visual presentation that focuses solely on the image data.
+        This can be useful in cases where the axes are not needed for interpretation
+        or when a more aesthetic visualization is desired. The default value is False.
+
+        Examples
+        --------
+            viewer.hide_axis         # Get the current visibility state of the axes
+            viewer.hide_axis = True  # Hide the axes and labels
+            viewer.hide_axis = False # Show the axes and labels
         '''
         return self._hide_axis
 
@@ -1177,52 +1243,75 @@ class OrthogonalViewer():
     @property
     def image_dict(self):
         """
-        Dictionary of keyword arguments for customizing the image display.
+        Get the dictionary of keyword arguments for customizing the image display.
 
         This dictionary is passed to Matplotlib's imshow function when
         displaying the image slices. It can be used to control aspects
         such as colormap, alpha (transparency), etc. See the documentation for
-        Matplotlib imshow function. Changing elements directly in this dictionary
-        requires calling the update function for the changes to take effect.
+        Matplotlib imshow function.
 
-        See Also
-        --------
-        update_image_dict : Method to update this dictionary.
-        reset_image_dict : Method to reset this dictionary to default values.
+        **Important:** Do not change elements directly in this dictionary.
+        Call the ``update_image_dict`` method instead to apply any changes.
         """
         return self._image_dict
+
+
+    def update_image_dict(self, **kwargs):
+        """
+        Update the image display settings dictionary and refreshes the display.
+        See the documentation for the image_dict property.
+        Example
+        -------
+            viewer.update_image_dict(cmap='gray', alpha=0.8)  # Update colormap and transparency
+        """
+        self._image_dict.update(**kwargs)
+        self._update_plots()
+
 
     @property
     def statusbar_mode(self):
         """
         Get or set the status bar display mode.
 
-        Parameters
-        ----------
-        mode : {'coordinate', 'index'}
-            The desired status bar mode:
-            - 'coordinate' for physical coordinates.
-            - 'index' for voxel indices.
+        This property determines the information displayed in the status bar
+        when hovering the mouse over the figure in insteractive mode. It can show
+        either the physical coordinates of the cursor position or the voxel indices
+        of the corresponding data point.
+
+        Available modes:
+        - 'coordinate': Displays the physical coordinates (x, y, z) in the current
+          units of the image.
+        - 'index': Displays the voxel indices (i, j, k) corresponding to the cursor
+          position in the voxel grid.
+
+        Changing this setting will update the information shown in the status bar
+        during interactive use.
+
+        Examples
+        --------
+            viewer.statusbar_mode                 # Get the current mode
+            viewer.statusbar_mode = 'coordinate'  # Set status bar to show physical coordinates
+            viewer.statusbar_mode = 'index'       # Set status bar to show voxel indices
         """
         return self._statusbar_mode
+
 
     @statusbar_mode.setter
     def statusbar_mode(self, v):
         _assert.in_group('statusbar_mode', v, ('coordinate', 'voxel'))
         self._statusbar_mode = v
 
-    def update_image_dict(self, **kwargs):
-        """
-        Update the image display settings dictionary and refreshes the display.
-        See the documentation for the image_dict method.
-        """
-        self._image_dict.update(**kwargs)
-        self._update_plots()
-
     @property
     def segmentation_alpha(self):
         """
         Get or set the transparency level for segmentation overlay.
+        The value must be a float between 0.0 and 1.0, where 0.0 is fully
+        transparent (invisible) and 1.0 is fully opaque (completely visible).
+
+        Examples
+        --------
+            viewer.segmentation_alpha = 0.5            # Set the transparency to 50%
+            current_alpha = viewer.segmentation_alpha  # Get the current transparency level
         """
         return self._segmentation_alpha
 
@@ -1234,7 +1323,20 @@ class OrthogonalViewer():
     @property
     def mask_color(self):
         """
-        Get or set the color for mask overlay.  It can be any color format accepted by Matplotlib.
+        Get or set the color for the mask overlay.
+
+        This property defines the color used for the mask overlay displayed on the
+        image slices. The color can be specified in any format accepted by Matplotlib,
+        including named colors (e.g., 'red', 'blue', 'royalblue'), RGB tuples (e.g., (1, 0, 0) for red),
+        or hex codes (e.g., '#00FF00' for green).
+
+        The chosen color will be used to visually indicate masked areas on the image.
+
+        Examples
+        --------
+            viewer.mask_color = 'white'                 # Set the mask color to white
+            viewer.mask_color = (0.25, 0.30, 0.25)      # Set the mask color using an RGB tuple
+            viewer.mask_color = '#008000'               # Set the mask color using a hex code
         """
         return self._mask_color
 
@@ -1247,7 +1349,17 @@ class OrthogonalViewer():
     @property
     def mask_alpha(self):
         """
-        Get or set the transparency level for mask overlay.
+        Get or set the transparency level for the mask overlay.
+
+        This property controls the alpha (transparency) value of the mask overlay
+        displayed on the image slices. The value must be a float between 0.0 and 1.0,
+        where 0.0 is fully transparent (invisible) and 1.0 is fully opaque (completely
+        visible).
+
+        Examples
+        --------
+            viewer.mask_alpha = 0.5   # Set the transparency to 50%
+            current_alpha = viewer.mask_alpha  # Get the current transparency level
         """
         return self._mask_alpha
 
@@ -1259,26 +1371,29 @@ class OrthogonalViewer():
     @property
     def guide_line_dict(self):
         """
-        Dictionary of keyword arguments for customizing the guide lines.
+        Get the dictionary of keyword arguments used for customizing the guide lines.
 
         This dictionary is passed to Matplotlib's axvline and axhline functions
-        when drawing the guide lines. It can be used to control aspects such as
-        color, line style, line width, etc. See the documentation for
-        Matplotlib axvline and axhline functions. Changing elements directly in
-        this dictionary requires calling the update function for the changes to
-        take effect.
+        when drawing the guide lines. See the documentation for
+        Matplotlib axvline and axhline functions.
 
-        See Also
-        --------
-        update_guide_line_dict : Method to update this dictionary.
-        reset_guide_line_dict : Method to reset this dictionary to default values.
+        **Important:** Do not change elements directly in this dictionary.
+        Call the ``update_guide_line_dict`` method instead to apply any changes.
         """
         return self._guide_line_dict
 
     def update_guide_line_dict(self, **kwargs):
         """
-        Update the guide line display settings dictionary and refreshes the display.
-        See the documentation for the guide_line_dict method.
+        Update the guide line display settings dictionary and refresh the display.
+
+        This method allows you to modify the settings in the `guide_line_dict`
+        that control the appearance of the guide lines drawn on the image slices.
+        You can update various parameters by passing the desired keyword arguments.
+
+        Examples
+        --------
+            # Update guide lines to be red, dashed, and with a width of 2
+            viewer.update_guide_line_dict(color='red', linestyle='--', linewidth=2)
         """
         self._guide_line_dict.update(**kwargs)
         self._update_plots()
@@ -1292,44 +1407,37 @@ class OrthogonalViewer():
         figure layout. It can be used to control aspects such as spacing
         between subplots. Width and height ratios are automatically calculated
         from image dimensions. See the documentation for Matplotlib GridSpec.
-        Changing elements directly in this dictionary requires calling the
-        update function for the changes to take effect.
 
-        See Also
-        --------
-        update_gridspec_dict : Method to update this dictionary.
-        reset_gridspec_dict : Method to reset this dictionary to default values.
+        **Important:** Do not change elements directly in this dictionary.
+        Call the ``update_gridspec_dict`` method instead to apply any changes.
         """
         return self._gridspec_dict
 
+
     def update_gridspec_dict(self, **kwargs):
         """
-        Update the gridspec settings dictionary and refreshes the display.
+        Update the gridspec settings dictionary and rebuilds the display.
         See the documentation for the gridspec_dict method.
+
+        Examples
+        --------
+        viewer.update_gridspec_dict(width_ratios=[1, 4])  # Update width ratios
         """
         self._gridspec_dict.update(**kwargs)
-        self._update_plots()
+        self._build_planes()
 
-    def reset_gridspec_dict(self):
-        """
-        Reset the guide gridspec settings to default values and refreshes the display.
-        """
-        self._gridspec_dict = {}
-        self._update_plots()
 
     def _get_ijk_xyz(self, xo, yo, axis):
         hx, hy, hz = self._image.voxel_length
         ox, oy, oz = self._image.voxel_origin
+        i, j, k = self.ref_voxel
         if axis == 'xy':
             i = int(round((xo-ox)/hx))
             j = int(round((yo-oy)/hy))
-            k = self.ref_voxel[2]
         elif axis == 'xz':
             i = int(round((xo-ox)/hx))
-            j = self.ref_voxel[1]
             k = int(round((yo-oz)/hz))
         elif axis == 'zy':
-            i = self.ref_voxel[0]
             j = int(round((yo-oy)/hy))
             k = int(round((xo-oz)/hz))
         x = float(ox+i*hx)
@@ -1551,8 +1659,8 @@ class OrthogonalViewer():
                 converted = [to_rgba(k) for k in v]
                 aux = ListedColormap(converted)
                 self._segmentation_colors = aux.colors
-            except Exception:
-                _assert.collective_raise(ValueError('Invalid value for segmentation colors.'))
+            except Exception as e:
+                _assert.collective_raise(ValueError(f'Invalid value for segmentation colors: {e}'))
         seg_phases = np.array(self.histogram.phases).astype(int)
         if len(seg_phases) == 0:
             self._segmentation_colormap = ListedColormap(self._segmentation_colors)
@@ -1620,3 +1728,4 @@ self=OrthogonalViewer(image=image)
 #self.segmentation_alpha = 0.75
 #self.segmentation_colors='Set1'
 #self.mask_color=[0.25, 0.30, 0.25]
+viewer=self
