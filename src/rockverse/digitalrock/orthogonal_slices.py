@@ -13,7 +13,7 @@ orthogonal slices of an image along with its histogram.
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.backend_bases import MouseButton
-from matplotlib.colors import Normalize, ListedColormap
+from matplotlib.colors import Normalize, ListedColormap, to_rgba
 from numba import njit
 from mpi4py import MPI
 
@@ -1545,10 +1545,11 @@ class OrthogonalViewer():
                 'Set2', 'Set3', 'tab10', 'tab20', 'tab20b', 'tab20c',
                 'Pastel1_r', 'Pastel2_r', 'Paired_r', 'Accent_r', 'Dark2_r', 'Set1_r',
                 'Set2_r', 'Set3_r', 'tab10_r', 'tab20_r', 'tab20b_r', 'tab20c_r']:
-            self._segmentation_colors = plt.get_cmap(v).colors
+            self._segmentation_colors = [to_rgba(k) for k in plt.get_cmap(v).colors]
         else:
             try:
-                aux = ListedColormap(v)
+                converted = [to_rgba(k) for k in v]
+                aux = ListedColormap(converted)
                 self._segmentation_colors = aux.colors
             except Exception:
                 _assert.collective_raise(ValueError('Invalid value for segmentation colors.'))
@@ -1561,7 +1562,7 @@ class OrthogonalViewer():
         for k in seg_phases:
             color_phases[str(k)] = self._segmentation_colors[ind]
             ind = (ind+1) % len(self._segmentation_colors)
-        cmap = np.zeros((max(seg_phases)+1, 3))
+        cmap = np.zeros((max(seg_phases)+1, 4))
         for k in range(max(seg_phases)+1):
             cmap[k] = color_phases[str(seg_phases[np.argmin(np.abs(seg_phases-k))])]
         cmapl = [list(cmap[k, :]) for k in range(cmap.shape[0])]
