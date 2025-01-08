@@ -9,7 +9,7 @@ The Sphere class
 
    .. rubric:: Attributes
 
-   .. autoattribute:: P
+   .. autoattribute:: p
    .. autoattribute:: r
    .. autoattribute:: region
 

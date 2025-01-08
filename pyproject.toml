@@ -29,6 +29,7 @@ classifiers = [
 ]
 
 dependencies = [
+    "ipympl",
     "ipython",
     "ipyparallel",
     "ipywidgets",

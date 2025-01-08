@@ -17,16 +17,12 @@ __all__ = [
     "open",
     "voxel_image",
     "region",
+    "OrthogonalViewer",
 ]
 
-
-
-
-import rockverse.voxel_image as voxel_image
-import rockverse.region as region
-
-import rockverse.digitalrock as digitalrock
-
+from rockverse import voxel_image
+from rockverse import region
+from rockverse.viz import OrthogonalViewer
 
 import zarr
 from rockverse._assert import collective_raise as _collective_raise
@@ -55,7 +51,7 @@ def open(store, **kwargs):
         z = zarr.open(store, **kwargs)
         rv_data_type = z.attrs['_ROCKVERSE_DATATYPE']
     except Exception:
-        collective_raise(ValueError(f"{store} does not contain valid RockVerse data."))
+        _collective_raise(ValueError(f"{store} does not contain valid RockVerse data."))
 
     if rv_data_type == 'VoxelImage':
         return voxel_image.VoxelImage(store=z.store)

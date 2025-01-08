@@ -8,6 +8,7 @@ API
 
     api/voxel_image
     api/region
+    api/viz
 
 
 Indices and tables

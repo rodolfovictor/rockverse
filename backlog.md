@@ -1,7 +1,6 @@
 # Backlog
 
 Solve check mask segmentation region
-Conservar escalas no right click do orthogonal viewer
 
 ## Tasks to be completed
 
@@ -32,8 +31,12 @@ Conservar escalas no right click do orthogonal viewer
 - Implement +, +=, -, -=, etc
 ---
 
-### 11. Check VoxelImage histogram low speed
+### Orthogonal slices:
+- Add scalebar
+- Add calibrationbar
+- Add contour lines to scalar fields
 
-### Lint all before release
+### Add histogram documentation to sphinx
+
 
 > Note: These tasks are subject to change based on project needs and priorities.

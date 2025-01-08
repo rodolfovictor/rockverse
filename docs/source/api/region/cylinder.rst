@@ -9,7 +9,7 @@ The Cylinder class
 
    .. rubric:: Attributes
 
-   .. autoattribute:: P
+   .. autoattribute:: p
    .. autoattribute:: v
    .. autoattribute:: r
    .. autoattribute:: l
