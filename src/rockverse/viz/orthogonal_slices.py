@@ -299,21 +299,6 @@ class OrthogonalViewer():
                 rcparams['orthogonal_viewer'][template]['segmentation']['colors'])
 
 
-        _assert.boolean('show_xy_plane', show_xy_plane)
-        self._show_xy_plane = show_xy_plane
-
-        _assert.boolean('show_xz_plane', show_xz_plane)
-        self._show_xz_plane = show_xz_plane
-
-        _assert.boolean('show_zy_plane', show_zy_plane)
-        self._show_zy_plane = show_zy_plane
-
-        _assert.boolean('show_zy_plane', show_histogram)
-        self._show_histogram = show_histogram
-
-        _assert.boolean('show_guide_lines', show_guide_lines)
-        self._show_guide_lines = show_guide_lines
-
         _assert.boolean('hide_axis', hide_axis)
         self._hide_axis = hide_axis
 
@@ -379,6 +364,9 @@ class OrthogonalViewer():
             'histogram': {'plot': True, 'ax': None, 'lines': {'cmin': None, 'cmax': None}},
             }
 
+        _assert.boolean('show_guide_lines', show_guide_lines)
+        self._show_guide_lines = show_guide_lines
+
         self._delay_update = False
 
         if mpi_rank == self._mpi_proc:
@@ -392,7 +380,20 @@ class OrthogonalViewer():
             self._fig.canvas.mpl_connect('button_press_event', self._on_button_click)
             self._fig.canvas.mpl_connect('button_release_event', self._on_button_release)
             self._fig.canvas.mpl_connect('scroll_event', self._on_scroll)
-            self.shrink_to_fit()
+
+        _assert.boolean('show_xy_plane', show_xy_plane)
+        self.show_xy_plane = show_xy_plane
+
+        _assert.boolean('show_xz_plane', show_xz_plane)
+        self.show_xz_plane = show_xz_plane
+
+        _assert.boolean('show_zy_plane', show_zy_plane)
+        self.show_zy_plane = show_zy_plane
+
+        _assert.boolean('show_histogram', show_histogram)
+        self.show_histogram = show_histogram
+
+        self.shrink_to_fit()
 
     # Builders and updaters ---------------------------------------------------
     def _get_slices(self):
