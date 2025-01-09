@@ -18,11 +18,14 @@ __all__ = [
     "voxel_image",
     "region",
     "OrthogonalViewer",
+    #"dualenergyct",
 ]
 
 from rockverse import voxel_image
 from rockverse import region
 from rockverse.viz import OrthogonalViewer
+#from rockverse import dualenergyct
+
 
 import zarr
 from rockverse._assert import collective_raise as _collective_raise

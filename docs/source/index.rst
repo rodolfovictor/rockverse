@@ -34,7 +34,7 @@ across CPU and GPU parallel computational environments.
 This library is part of an ongoing post-doctoral research project under active
 development. We welcome contributions, bug reports, and feature suggestions.
 Check back regularly for updates, tutorials, and new features.
-Want to stay informed? :ref:`Join our mailing list <rockverse_docs_maillist>`.
+If you want to stay informed, consider :ref:`joining our mailing list <rockverse_docs_maillist>`.
 
 .. rst-class:: h1 text-center font-weight-light my-4
 
@@ -140,6 +140,7 @@ Want to stay informed? :ref:`Join our mailing list <rockverse_docs_maillist>`.
     If you encounter issues or have questions, here are the ways to get support.
 
 .. toctree::
+    :hidden:
     :maxdepth: 1
 
 

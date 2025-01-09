@@ -5,10 +5,9 @@ Digital Rock Petrophysics
 #########################
 
 .. toctree::
-    :maxdepth: 2
 
-    digitalrock/voxel_image
-    digitalrock/sample_data/import_belgian_fieldstone.ipynb
+    digitalrock/voxel_image.ipynb
     digitalrock/sample_data/import_bentheimer_sandstone.ipynb
-    digitalrock/sample_data/import_C04B21_dualenergy.ipynb
     digitalrock/orthogonal_viewer.ipynb
+    digitalrock/sample_data/import_belgian_fieldstone.ipynb
+    digitalrock/sample_data/import_C04B21_dualenergy.ipynb

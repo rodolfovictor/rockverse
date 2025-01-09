@@ -1,7 +1,5 @@
 # Backlog
 
-Solve check mask segmentation region
-
 ## Tasks to be completed
 
 ### 1. Fine-tune threads per block GPU
@@ -9,7 +7,7 @@ Solve check mask segmentation region
 - Investigate the best thread-per-block configuration for varying workloads.
 
 ### 2. Autoset MPI, GPU
-- Implement automatic detection and configuration of MPI (Message Passing Interface), OpenMP, and GPU usage based on system capabilities.
+- Implement automatic detection and configuration of MPI (Message Passing Interface), and GPU usage based on system capabilities.
 - Ensure compatibility with different computing environments.
 
 ### 5. Support for 128-bit data in importing raw data
@@ -21,7 +19,6 @@ Solve check mask segmentation region
 - Include installation instructions and version specifications for each dependency.
 
 ### 8. Develop README.md
-- ???
 
 ### 9. Activate GPU in voxel_image modulus
 - math
@@ -37,6 +34,5 @@ Solve check mask segmentation region
 - Add contour lines to scalar fields
 
 ### Add histogram documentation to sphinx
-
 
 > Note: These tasks are subject to change based on project needs and priorities.
