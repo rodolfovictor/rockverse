@@ -11,8 +11,7 @@ build:
     python: "3.12"
   jobs:
     pre_install:
-      - echo "+++++++++++++++"
-      - apt-get update
+      - pip install conda
 
 
 
