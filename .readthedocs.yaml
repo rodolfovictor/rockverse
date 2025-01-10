@@ -13,9 +13,7 @@ build:
   jobs:
     pre_install:
       - pip install --upgrade pip
-      - conda install openmpi
-      - which gcc
-      - which mpicc
+      - conda install openmpi mpi4py
 
 conda:
   environment: .rtdenvironment.yaml
