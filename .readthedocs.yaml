@@ -12,6 +12,8 @@ build:
   jobs:
     pre_install:
       - echo "+++++++++++++++"
+      - which mpicc
+
 
 # Build documentation in the "docs/" directory with Sphinx
 sphinx:
