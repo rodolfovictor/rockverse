@@ -13,6 +13,10 @@ jobs:
 
     steps:
 
+     - name: Print a message to the terminal
+        run: |
+          echo "This is a message printed to the terminal."
+
       - uses: actions/checkout@v4
 
       - name: Set up Python
