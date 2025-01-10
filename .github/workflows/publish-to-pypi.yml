@@ -13,32 +13,23 @@ jobs:
 
     steps:
 
-      - name: Install MPI
-        run:  |
-          sudo apt-get update && \
-          sudo apt install -y \
-          libmpich-dev \
-          libopenmpi-dev
+      - uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.x"
 
-      - name: Install conda
-        run:  python3 -m pip install conda
-
       - name: Install mpi4py
-        run: conda install mpirun mpi4py
+        run: pip install mpi4py
 
-      - uses: actions/checkout@v4
+      - name: Set up MPI configuration
+        run: |
+          echo "[mpi]" > mpi.cfg
+          echo "mpi = /usr/bin/mpicc" >> mpi.cfg
 
       - name: Install pypa/build
-        run: >-
-          python3 -m
-          pip install
-          build
-          --user
+        run: python3 -m pip install build --user
 
       - name: Build a binary wheel and a source tarball
         run: python3 -m build
