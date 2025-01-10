@@ -12,7 +12,11 @@ build:
   jobs:
     pre_install:
       - echo "+++++++++++++++"
-      - which mpicc
+      - sudo apt-get update
+
+
+
+
 
 
 # Build documentation in the "docs/" directory with Sphinx
