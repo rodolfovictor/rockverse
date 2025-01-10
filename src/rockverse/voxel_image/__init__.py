@@ -402,7 +402,7 @@ def full_like(a, fill_value, **kwargs):
     return full(**kwargs)
 
 
-def copy_from(array, **kwargs):
+def copy_from_array(array, **kwargs):
     """
     :bdg-info:`Parallel`
     :bdg-info:`CPU`
@@ -816,6 +816,17 @@ class VoxelImage(zarr.Array):
     def voxel_unit(self, v):
         _assert.instance('voxel_unit', v, 'string', (str,))
         self.attrs['voxel_unit'] = v
+
+    @property
+    def meta_data_as_dict(self):
+        """
+        Return voxel image meta data as a dictionary.
+        """
+        meta = dict()
+        for k in ('description', 'field_name', 'field_unit',
+                  'voxel_origin', 'voxel_unit', 'voxel_length'):
+            meta[k] = self.attrs[k]
+        return meta
 
     @property
     def dimensions(self):

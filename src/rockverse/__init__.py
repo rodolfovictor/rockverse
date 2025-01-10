@@ -1,4 +1,4 @@
-__version__ = "0.2.0d"
+__version__ = "0.3.0d"
 
 from rockverse._utils.logo import make_logo
 
@@ -18,13 +18,13 @@ __all__ = [
     "voxel_image",
     "region",
     "OrthogonalViewer",
-    #"dualenergyct",
+    "dualenergyct",
 ]
 
 from rockverse import voxel_image
 from rockverse import region
 from rockverse.viz import OrthogonalViewer
-#from rockverse import dualenergyct
+from rockverse import dualenergyct
 
 
 import zarr
@@ -58,5 +58,8 @@ def open(store, **kwargs):
 
     if rv_data_type == 'VoxelImage':
         return voxel_image.VoxelImage(store=z.store)
+
+    if rv_data_type == 'DualEnergyCTGroup':
+        return dualenergyct.DualEnergyCTGroup(store=z.store)
 
     _collective_raise(ValueError(f"{store} does not contain valid RockVerse data."))

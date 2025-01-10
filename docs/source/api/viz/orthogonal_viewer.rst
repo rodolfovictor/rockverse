@@ -53,6 +53,7 @@ The OrthogonalViewer class
       ~OrthogonalViewer.segmentation_alpha
       ~OrthogonalViewer.mask_color
       ~OrthogonalViewer.mask_alpha
+      ~OrthogonalViewer.histogram_bins
       ~OrthogonalViewer.histogram_line_dict
       ~OrthogonalViewer.update_histogram_line_dict
       ~OrthogonalViewer.histogram_lines
@@ -93,6 +94,7 @@ The OrthogonalViewer class
    .. autoattribute:: segmentation_alpha
    .. autoattribute:: mask_color
    .. autoattribute:: mask_alpha
+   .. autoattribute:: histogram_bins
    .. autoattribute:: histogram_line_dict
    .. automethod:: update_histogram_line_dict
    .. autoattribute:: histogram_lines
