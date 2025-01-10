@@ -15,7 +15,7 @@ jobs:
       - name: Install MPI development packages
         run: |
           sudo apt-get update
-          sudo apt-get install -y libmpich-dev
+          sudo apt install libmpich-dev
 
   build:
     name: Build distribution 📦
