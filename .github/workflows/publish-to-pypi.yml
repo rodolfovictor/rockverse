@@ -21,11 +21,9 @@ jobs:
           python-version: "3.x"
 
       - name: Install MPI
-        run:  |
-          sudo apt-get update && \
-          sudo apt install -y \
-          libmpich-dev \
-          libopenmpi-dev
+        run: |
+          sudo apt-get update
+          sudo apt install -y libmpich-dev libopenmpi-dev
           echo "+++++++++++++++"
           echo "+++++++++++++++"
           which mpicc
