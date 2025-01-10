@@ -26,7 +26,7 @@ jobs:
           python-version: "3.x"
 
       - name: Install conda
-        run: pip install conda
+        run:  python3 -m pip install conda
 
       - name: Install mpi4py
         run: conda install mpirun mpi4py
