@@ -1,5 +1,5 @@
 from datetime import datetime
-from tqdm import tqdm
+from tqdm.notebook import tqdm
 
 from mpi4py import MPI
 
@@ -82,3 +82,10 @@ def expand_ellipsis(self, index):
         result.append(slice(None))
 
     return tuple(result)
+
+
+def collective_print(msg, print_time=True):
+    datestr = datetimenow() + ' ' if print_time else ''
+    if mpi_rank == 0:
+        print(f"{datestr}{msg}", flush=True)
+    comm.barrier()

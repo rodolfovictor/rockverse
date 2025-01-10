@@ -29,6 +29,7 @@ The VoxelImage class
       ~VoxelImage.oz
       ~VoxelImage.voxel_origin
       ~VoxelImage.bounding_box
+      ~VoxelImage.meta_data_as_dict
 
    .. rubric:: Basic methods summary
 
@@ -98,6 +99,7 @@ The VoxelImage class
    .. autoattribute:: oz
    .. autoattribute:: voxel_origin
    .. autoattribute:: bounding_box
+   .. autoattribute:: meta_data_as_dict
 
 
    .. rubric:: Basic methods documentation

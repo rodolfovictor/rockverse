@@ -369,14 +369,15 @@ class OrthogonalViewer():
 
         self._delay_update = False
 
-        if mpi_rank == self._mpi_proc:
-            self._fig = plt.figure(**self._figure_dict)
-        else:
-            self._fig = None
+        self._fig = plt.figure(**self._figure_dict)
+
+
+
+
 
         self._build_planes()
 
-        if mpi_rank == self._mpi_proc:
+        if mpi_rank == self._mpi_proc or True:
             self._fig.canvas.mpl_connect('button_press_event', self._on_button_click)
             self._fig.canvas.mpl_connect('button_release_event', self._on_button_release)
             self._fig.canvas.mpl_connect('scroll_event', self._on_scroll)
@@ -765,7 +766,7 @@ class OrthogonalViewer():
         if not any(self._slices[plane]['plot'] for plane in ('xy', 'xz', 'zy', 'histogram')):
             self._slices['xy']['plot'] = True
         self._get_slices()
-        if mpi_rank == self._mpi_proc:
+        if mpi_rank == self._mpi_proc or True:
             self._set_grid() #Set up the grid layout.
             self._build_xyplane()
             self._build_zyplane()
@@ -863,7 +864,7 @@ class OrthogonalViewer():
         self._slices['histogram']['lines']['full'].set(**self._histogram_line_dict['full'])
 
         self._plot_histogram_seg_phases()
-        if mpi_rank == self._mpi_proc:
+        if mpi_rank == self._mpi_proc or True:
             self.figure.canvas.draw()
 
 
@@ -883,12 +884,13 @@ class OrthogonalViewer():
         different slices or adjusting the figure's contents, ensuring that
         the presentation remains visually appealing and focused on the data.
         """
-        fwidth, fheight = self._fig.get_size_inches()
-        if fwidth/self._ideal_width > fheight/self._ideal_height:
-            fwidth = fheight/self._ideal_height*self._ideal_width
-        else:
-            fheight = fwidth/self._ideal_width*self._ideal_height
-        self._fig.set_size_inches(fwidth, fheight)
+        if mpi_rank == self._mpi_proc or True:
+            fwidth, fheight = self._fig.get_size_inches()
+            if fwidth/self._ideal_width > fheight/self._ideal_height:
+                fwidth = fheight/self._ideal_height*self._ideal_width
+            else:
+                fheight = fwidth/self._ideal_width*self._ideal_height
+            self._fig.set_size_inches(fwidth, fheight)
 
 
     def expand_to_fit(self):
@@ -904,12 +906,13 @@ class OrthogonalViewer():
         components are displayed, helping to maintain an optimized layout and
         providing a more comprehensive view of the data.
         """
-        fwidth, fheight = self._fig.get_size_inches()
-        if fwidth/self._ideal_width < fheight/self._ideal_height:
-            fwidth = fheight/self._ideal_height*self._ideal_width
-        else:
-            fheight = fwidth/self._ideal_width*self._ideal_height
-        self._fig.set_size_inches(fwidth, fheight)
+        if mpi_rank == self._mpi_proc or True:
+            fwidth, fheight = self._fig.get_size_inches()
+            if fwidth/self._ideal_width < fheight/self._ideal_height:
+                fwidth = fheight/self._ideal_height*self._ideal_width
+            else:
+                fheight = fwidth/self._ideal_width*self._ideal_height
+            self._fig.set_size_inches(fwidth, fheight)
 
 
 
@@ -958,6 +961,24 @@ class OrthogonalViewer():
         The input image data.
         '''
         return self._image
+
+
+    @property
+    def histogram_bins(self):
+        """
+        Get or set the histogram bins.
+        """
+        return self._histogram.bins
+
+    @histogram_bins.setter
+    def histogram_bins(self, v):
+        self._histogram = Histogram(self._image,
+                                    bins=v,
+                                    mask=self._mask,
+                                    segmentation=self._segmentation,
+                                    region=self._region)
+        self._plot_histogram_full()
+        self._update_plots()
 
     @property
     def region(self):

@@ -32,6 +32,8 @@
 - Add scalebar
 - Add calibrationbar
 - Add contour lines to scalar fields
+- Add "over black", "over white" options for segmentation colors
+- Histogram legend with segmentation name instead of phase number
 
 ### Add histogram documentation to sphinx
 

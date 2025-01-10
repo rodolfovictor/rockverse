@@ -9,6 +9,7 @@ API
     api/voxel_image
     api/region
     api/viz
+    api/dualenergyct
 
 
 Indices and tables
