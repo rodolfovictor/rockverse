@@ -12,19 +12,6 @@ build:
   jobs:
     pre_install:
       - echo "+++++++++++++++"
-      - sudo apt-get update
-      - sudo apt install -y libmpich-dev libopenmpi-dev
-      - echo "+++++++++++++++"
-      - echo "+++++++++++++++"
-      - which mpicc
-      - echo "+++++++++++++++"
-      - echo "+++++++++++++++"
-      - # Install mpi4py and other dependencies directly via pip
-      - pip install mpi4py
-
-
-
-
 
 # Build documentation in the "docs/" directory with Sphinx
 sphinx:
