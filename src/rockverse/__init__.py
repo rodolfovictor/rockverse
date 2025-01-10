@@ -26,6 +26,10 @@ from rockverse import region
 from rockverse.viz import OrthogonalViewer
 from rockverse import dualenergyct
 
+from mpi4py import MPI
+comm = MPI.COMM_WORLD
+mpi_rank = comm.Get_rank()
+mpi_nprocs = comm.Get_size()
 
 import zarr
 from rockverse._assert import collective_raise as _collective_raise
@@ -50,11 +54,20 @@ def open(store, **kwargs):
     ValueError
         If the store does not contain valid RockVerse data or an unsupported data type.
     """
-    try:
-        z = zarr.open(store, **kwargs)
-        rv_data_type = z.attrs['_ROCKVERSE_DATATYPE']
-    except Exception:
+    status = 'OK'
+    if mpi_rank == 0:
+        try:
+            z = zarr.open(store, **kwargs)
+            rv_data_type = z.attrs['_ROCKVERSE_DATATYPE']
+        except Exception as e:
+            status = str(e)
+            pass
+    status = comm.bcast(status, root=0)
+    if status != 'OK':
         _collective_raise(ValueError(f"{store} does not contain valid RockVerse data."))
+
+    z = zarr.open(store, **kwargs)
+    rv_data_type = z.attrs['_ROCKVERSE_DATATYPE']
 
     if rv_data_type == 'VoxelImage':
         return voxel_image.VoxelImage(store=z.store)

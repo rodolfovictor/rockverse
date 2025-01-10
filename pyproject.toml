@@ -43,6 +43,7 @@ dependencies = [
     "pandas",
     "pip",
     "pydata-sphinx-theme",
+    "scipy=1.13.1",
     "sphinx",
     "sphinx-copybutton",
     "sphinx-design",

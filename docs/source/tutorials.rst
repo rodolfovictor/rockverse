@@ -15,7 +15,7 @@ Tutorials
             - :doc:`Exploring the orthogonal viewer <tutorials/digitalrock/orthogonal_viewer>`
         - Monte Carlo Dual Energy CT processing
             - :doc:`Importing sample raw data - Carbonate dual energy <tutorials/digitalrock/sample_data/import_C04B21_dualenergy>`
-            - :doc:`Importing sample raw data - Carbonate dual energy <tutorials/digitalrock/dual_energy/C04B21>`
+            - :doc:`Importing sample raw data - Carbonate dual energy <tutorials/digitalrock/dual_energy/C04B21_Pre>`
 
         - Importing sample raw data
             - :doc:`Importing sample raw data - Belgian Fieldstone <tutorials/digitalrock/sample_data/import_belgian_fieldstone>`
