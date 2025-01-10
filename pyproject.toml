@@ -49,7 +49,7 @@ dependencies = [
     "sphinx-design",
     "sphinx_gallery",
     "tqdm",
-    "zarr>=2.18",
+    "zarr",
 ]
 
 

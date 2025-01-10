@@ -32,7 +32,6 @@ import copy
 import numpy as np
 import pandas as pd
 import zarr
-from zarr.errors import GroupNotFoundError
 from datetime import datetime
 from rockverse._utils import rvtqdm
 
@@ -494,7 +493,7 @@ class DualEnergyCTGroup():
         if mpi_rank == 0:
             try:
                 z = zarr.hierarchy.open_group(store, 'r')
-            except GroupNotFoundError:
+            except Exception:
                 kwargs['overwrite'] = True
             if 'overwrite' in kwargs and kwargs['overwrite']:
                 kwargs['cache_attrs'] = False
