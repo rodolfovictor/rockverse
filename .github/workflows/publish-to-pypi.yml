@@ -20,15 +20,18 @@ jobs:
           libmpich-dev \
           libopenmpi-dev
 
-      - uses: actions/checkout@v4
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.x"
 
-      - name: Install mpi4py (binary wheel)
-        run: pip install mpi4py --prefer-binary
+      - name: Install conda
+        run: pip install conda
+
+      - name: Install mpi4py
+        run: conda install mpirun mpi4py
+
+      - uses: actions/checkout@v4
 
       - name: Install pypa/build
         run: >-
