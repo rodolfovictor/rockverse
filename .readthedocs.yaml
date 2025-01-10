@@ -13,6 +13,7 @@ build:
     pre_install:
       - pip install --upgrade pip
       - pip install conda
+      - which gcc
 
 
 
@@ -28,5 +29,5 @@ sphinx:
 # See https://docs.readthedocs.io/en/stable/guides/reproducible-builds.html
 python:
   install:
-    - method: miniconda
+    - method: pip
       path: .
