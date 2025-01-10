@@ -22,6 +22,7 @@ jobs:
 
       - name: Install MPI
         run: |
+          echo "+++++++++++++++"
           sudo apt-get update
           sudo apt install -y libmpich-dev libopenmpi-dev
           echo "+++++++++++++++"
@@ -31,6 +32,7 @@ jobs:
           echo "+++++++++++++++"
 
       - name: Install mpi4py
+        needs: Install MPI
         run: pip install mpi4py
 
       - name: Set up MPI configuration
