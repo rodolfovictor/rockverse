@@ -8,7 +8,7 @@ For details about the methods used in this module, please see reference:
     1. Original research paper: http://dx.doi.org/10.1002/2017JB014408
 
 Classes:
-    - :class:`rockverse.dualenergyct.Group`: Main class for managing DECT processing,
+    - :class:`rockverse.dualenergyct.DualEnergyCTGroup`: Main class for managing DECT processing,
       including data import, calibration, and Monte Carlo simulations.
     - :class:`PeriodicTable`: Manages periodic table information, allowing for the retrieval
       and modification of atomic numbers and masses.

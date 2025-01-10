@@ -19,5 +19,5 @@ environment across multiple CPU cores and GPUs.
 .. autofunction:: ones_like
 .. autofunction:: full_like
 .. autofunction:: sphere_pack
-.. autofunction:: copy_from
+.. autofunction:: copy_from_array
 .. autofunction:: import_raw
