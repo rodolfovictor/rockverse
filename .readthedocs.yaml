@@ -9,10 +9,11 @@ build:
   os: ubuntu-22.04
   tools:
     python: "3.12"
+    conda: "4.6.14"
   jobs:
     pre_install:
       - pip install --upgrade pip
-      - pip install openmpi
+      - conda install openmpi
       - which gcc
       - which mpicc
 
@@ -30,5 +31,5 @@ sphinx:
 # See https://docs.readthedocs.io/en/stable/guides/reproducible-builds.html
 python:
   install:
-    - method: miniconda
+    - method: pip
       path: .
