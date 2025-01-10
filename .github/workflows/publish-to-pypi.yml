@@ -20,6 +20,18 @@ jobs:
         with:
           python-version: "3.x"
 
+      - name: Install MPI
+        run:  |
+          sudo apt-get update && \
+          sudo apt install -y \
+          libmpich-dev \
+          libopenmpi-dev
+          echo "+++++++++++++++"
+          echo "+++++++++++++++"
+          which mpicc
+          echo "+++++++++++++++"
+          echo "+++++++++++++++"
+
       - name: Install mpi4py
         run: pip install mpi4py
 
