@@ -27,6 +27,9 @@ jobs:
         with:
           python-version: "3.x"
 
+      - name: Install mpi4py (binary wheel)
+        run: pip install mpi4py --prefer-binary
+
       - name: Install pypa/build
         run: >-
           python3 -m
