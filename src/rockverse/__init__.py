@@ -1,4 +1,4 @@
-__version__ = "0.2.0d"
+__version__ = "0.2.1"
 
 from rockverse._utils.logo import make_logo
 
