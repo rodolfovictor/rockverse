@@ -11,8 +11,10 @@ build:
     python: "3.12"
   jobs:
     pre_install:
+      - pip install --upgrade pip
       - pip install openmpi
       - which gcc
+      - which mpicc
 
 
 
