@@ -48,7 +48,7 @@ def open(store, **kwargs):
     Returns:
     --------
     object
-        An instance of the corresponding RockVerse data class (e.g., `VoxelImage`).
+        An instance of the corresponding RockVerse data class.
 
     Raises:
     -------
