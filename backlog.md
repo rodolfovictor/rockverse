@@ -37,4 +37,10 @@
 
 ### Add histogram documentation to sphinx
 
+
+### Update to zarr 3
+
+### tqdm
+- Check printing to stdout instead of stderr
+
 > Note: These tasks are subject to change based on project needs and priorities.

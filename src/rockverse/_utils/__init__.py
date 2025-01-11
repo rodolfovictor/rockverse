@@ -1,5 +1,5 @@
 from datetime import datetime
-from tqdm.notebook import tqdm
+from tqdm import tqdm
 
 from mpi4py import MPI
 

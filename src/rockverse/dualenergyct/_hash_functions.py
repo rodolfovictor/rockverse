@@ -27,19 +27,22 @@ def hash_array(array, name, hash_buffer_size):
     Returns:
     str: The hexadecimal digest of the MD5 hash.
     """
-    buffer = hash_buffer_size
-    md5 = hashlib.md5()
-    if array is not None:
-        bar = rvtqdm(total=array.shape[0], position=mpi_rank, desc=f'Hashing {name}',
-                       unit='line', disable=False)
-        for line in range(0, array.shape[0], buffer):
-            block = array[line:min(line+buffer, array.shape[0]), :, :]
-            for l in range(block.shape[0]):
-                md5.update(block[l, :, :])
-            bar.update(block.shape[0])
-        bar.close()
-    return md5.hexdigest()
+    if array is None:
+        return ''
 
+    buffer = hash_buffer_size
+    local_md5 = ['']*array.nchunks
+    for block_id in rvtqdm(range(array.nchunks), desc=f'Hashing {name}', unit='chunk'):
+        box, bex, boy, bey, boz, bez = array.chunk_slice_indices(block_id)
+        if block_id % mpi_nprocs == mpi_rank:
+            block = array[box:bex, boy:bey, boz:bez]
+            local_md5[block_id] = hashlib.md5(block).hexdigest()
+    comm.barrier()
+    global_md5 = hashlib.md5()
+    for block_id in range(array.nchunks):
+        block_hexdigest = comm.bcast(local_md5[block_id], root=(block_id % mpi_nprocs))
+        global_md5.update(block_hexdigest.encode('ascii'))
+    return global_md5.hexdigest()
 
 
 def hash_input_data(group):
@@ -56,11 +59,9 @@ def hash_input_data(group):
     hashes = ['']*4
     for k, array in enumerate((group.lowECT, group.highECT, group.mask,
                                group.segmentation)):
-        if k % mpi_nprocs == mpi_rank:
-            if array is not None:
-                hashes[k] = hash_array(array,
-                                       array.field_name,
-                                       hash_buffer_size) # Initialise
+        hashes[k] = hash_array(array,
+                               array.field_name,
+                               hash_buffer_size) # Initialise
     comm.barrier()
     for k in range(4):
         hexdigest = comm.bcast(hashes[k], root=k%mpi_nprocs)

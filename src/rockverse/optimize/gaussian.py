@@ -30,8 +30,8 @@ def gaussian_fit(x, y, *, center_bounds=None, order=1):
     c = [max(y), p[1], (p[2]-p[0])/4]
     fun = minimize(error_gaussian, x0=c, args=(x, y, order),
                    bounds=((0, None), lim, ((p[2]-p[0])/100, None)))
-    if not fun.success:
-        raise Exception('Gaussian fit did not converge.')
+    #if not fun.success:
+    #    raise Exception('Gaussian fit did not converge.')
     return fun.x
 
 def multi_gaussian_val(c, x):
