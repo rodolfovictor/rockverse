@@ -9,9 +9,10 @@ Voxel Images
 
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    voxel_image/class
    voxel_image/creation
    voxel_image/math
+   voxel_image/histogram
    voxel_image/save

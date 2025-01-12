@@ -1493,7 +1493,6 @@ class VoxelImage(zarr.Array):
         :bdg-info:`Parallel`
         :bdg-info:`CPU`
         :bdg-info:`GPU`
-
         Create a mask voxel image.
 
         Create boolean voxel image with same shape, chunks, voxel_origin,

@@ -6,13 +6,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
-- Monte Carlo Dual Energy CT
 
 ### Changed
-- None
 
 ### Fixed
-- None
+
+## [3.3.3] - 2025-01-11
+
+### Fixed
+- Pinning zarr and Matplotlib versions
+- Minor bugs in voxel image orthogonal viewer
+
+## [0.3.0] - 2025-01-10
+### Added
+- Monte Carlo Dual Energy CT
+
 
 ## [0.2.0] - 2025-01-09
 ### Added
@@ -51,4 +59,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.0.1] - 2024-09-15
 ### Added
-- Initial release with just the library logo.
+- Initial test release with just the library logo.
