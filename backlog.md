@@ -1,14 +1,12 @@
 # Backlog
 
+Dual energy freezing with GPU
+
 ## Tasks to be completed
 
 - Fine-tune threads per block GPU
     - Adjust GPU thread configurations for optimized performance in parallel computing tasks.
     - Investigate the best thread-per-block configuration for varying workloads.
-
-- Autoset MPI, GPU
-    - Implement automatic detection and configuration of MPI (Message Passing Interface), and GPU usage based on system capabilities.
-    - Ensure compatibility with different computing environments.
 
 - Support for 128-bit data in importing raw data
     - Extend the raw data import functionality to support 128-bit data types.

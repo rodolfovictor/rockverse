@@ -20,12 +20,9 @@ Classes:
 
 .. todo:
     - Get processing parameters from rcparams
-    - Deprecate use_gpu
     - Print gaussian coeficients by material name
     - Enforce directory store
-
 """
-
 
 import os
 import copy
@@ -34,6 +31,7 @@ import pandas as pd
 import zarr
 from datetime import datetime
 from rockverse._utils import rvtqdm
+from rockverse.config import config
 
 from mpi4py import MPI
 comm = MPI.COMM_WORLD
@@ -1458,11 +1456,10 @@ class DualEnergyCTGroup():
 
 
 
-    def _draw_coefficients(self, use_gpu):
+    def _draw_coefficients(self):
         """
         Generate the calibration coefficient sets for low and high energy.
         """
-        GPU = cuda.is_available() and use_gpu
         # Processing parameters
         maximum, tol = self.maximum_iterations, self.tol
         coefs = self.calibration_gaussian_coefficients
@@ -1511,9 +1508,9 @@ class DualEnergyCTGroup():
         matrixh = matrixh[ind, :].copy()
         argsl = np.array([m0l, s0l, m1l, s1l, m2l, s2l, m3l, s3l, rho1, rho2, rho3, maxA, maxB, maxn, tol], dtype='f8')
         argsh = np.array([m0h, s0h, m1h, s1h, m2h, s2h, m3h, s3h, rho1, rho2, rho3, maxA, maxB, maxn, tol], dtype='f8')
-        if GPU:
-            device_index = mpi_rank % len(cuda.gpus)
-            with cuda.gpus[device_index]:
+        device_index = config.rank_select_gpu()
+        if device_index is not None:
+            with config._gpus[device_index]:
                 dmatrixl = cuda.to_device(matrixl)
                 dmatrixh = cuda.to_device(matrixh)
                 dZ1v = cuda.to_device(Z1v)
@@ -1579,19 +1576,12 @@ class DualEnergyCTGroup():
 
 
 
-    def _calc_rho_Z(self, use_gpu):
+    def _calc_rho_Z(self):
         """
         Calculate electron density (rho) and effective atomic number (Z) distributions
         using Monte Carlo simulations for each voxel in the CT images. This is an internal
         method and should not be called directly by users.
-
-        Parameters
-        ----------
-        use_gpu : bool
-            If True, use GPU acceleration for computations when available.
         """
-
-        GPU = cuda.is_available() and use_gpu
         matrixl = None
         matrixh = None
         if mpi_rank == 0:
@@ -1613,9 +1603,9 @@ class DualEnergyCTGroup():
         rho3, _ = self.calibration_material3._rhohat_Zn_values()
         nchunks = self.lowECT.nchunks
 
-        if GPU:
-            device_index = mpi_rank % len(cuda.gpus)
-            with cuda.gpus[device_index]:
+        device_index = config.rank_select_gpu()
+        if device_index is not None:
+            with config._gpus[device_index]:
                 darray_rho = cuda.to_device(np.zeros(required_iterations, dtype='f8'))
                 darray_Z = cuda.to_device(np.zeros(required_iterations, dtype='f8'))
                 darray_error = cuda.to_device(np.zeros(required_iterations, dtype='f8'))
@@ -1704,9 +1694,8 @@ class DualEnergyCTGroup():
                         CTl = np.float64(lowECT[i, j, k])
                         CTh = np.float64(highECT[i, j, k])
 
-                        if GPU:
-                            device_index = mpi_rank % len(cuda.gpus)
-                            with cuda.gpus[device_index]:
+                        if device_index is not None:
+                            with config._gpus[device_index]:
                                 _reset_arrays_gpu[blockspergrid, threadsperblock](darray_rho, darray_Z, darray_error)
                                 rng_states = create_xoroshiro128p_states(threadsperblock*blockspergrid, seed=mpi_rank+int(datetime.now().timestamp()*1000))
                                 _calc_rhoZ_arrays_gpu[blockspergrid, threadsperblock](
@@ -1835,7 +1824,7 @@ class DualEnergyCTGroup():
 
 
 
-    def preprocess(self, restart=False, use_gpu=True):
+    def preprocess(self, restart=False):
         """
         Perform preprocessing steps for Dual Energy Computed Tomography analysis:
 
@@ -1852,8 +1841,6 @@ class DualEnergyCTGroup():
         restart : bool, optional
             If True, force recalculation of all preprocessing steps, ignoring
             existing results. Default is False.
-        use_gpu : bool, optional
-            If True (default), use GPU acceleration for computations when available.
         """
 
         # Check and hash Input data
@@ -1905,7 +1892,7 @@ class DualEnergyCTGroup():
                          bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}]')
             current = 0
             for _ in range(30):
-                self._draw_coefficients(use_gpu)
+                self._draw_coefficients()
                 new = self._purge_coefficients()
                 bar.update(sum(new)-current)
                 current = sum(new)
@@ -1923,7 +1910,7 @@ class DualEnergyCTGroup():
 
 
 
-    def run(self, restart=False, use_gpu=False):
+    def run(self, restart=False):
         """
         Run the DECT analysis on the data in this group.
 
@@ -1939,11 +1926,8 @@ class DualEnergyCTGroup():
         restart : bool, optional
             If True, force recalculation of all steps, ignoring existing results.
             Default is False.
-        use_gpu : bool, optional
-            If True, use GPU acceleration for computations when available.
-            Default is True.
         """
-        self.preprocess(restart=restart, use_gpu=use_gpu)
+        self.preprocess(restart=restart)
 
         # Check Monte Carlo results
         groups = ('rho_min', 'rho_p25', 'rho_p50', 'rho_p75', 'rho_max',
@@ -1986,7 +1970,7 @@ class DualEnergyCTGroup():
                     self.zgroup[gr].attrs['md5sum'] = hexdigest
         comm.barrier()
 
-        self._calc_rho_Z(use_gpu)
+        self._calc_rho_Z()
 
 
 

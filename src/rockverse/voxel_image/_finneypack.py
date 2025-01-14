@@ -4114,7 +4114,7 @@ def _fill_finney_pack(array,
                     spheres = SPHERES[ind, :]
                     device_index = config.rank_select_gpu()
                     if device_index is not None:
-                        with cuda.gpus[device_index]:
+                        with config._gpus[device_index]:
                             d_block = cuda.to_device(block)
                             d_spheres = cuda.to_device(spheres)
                             blockspergrid = (int(np.ceil(bnx/threadsperblock[0])),
