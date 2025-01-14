@@ -1,66 +1,154 @@
-
 from mpi4py import MPI
 from numba import cuda
-from numba import config as numba_config
 from rockverse import _assert
 
-class Config(dict):
+class Config():
+    """
+    Configuration class for managing runtime MPI and GPU settings.
+
+    This class encapsulates the configuration parameters related to
+    MPI (Message Passing Interface) and GPU (Graphics Processing Unit)
+    availability. It provides properties to access the current MPI rank,
+    total number of processes, processor name, available GPUs, and selected GPUs.
+    """
 
     def __init__(self):
 
-        self['MPI'] = {
-            'mpi_comm': MPI.COMM_WORLD,
-            'mpi_rank': MPI.COMM_WORLD.Get_rank(),
-            'mpi_nprocs': MPI.COMM_WORLD.Get_size(),
-            'processor_name': MPI.Get_processor_name()
-            }
+        self._mpi_comm = MPI.COMM_WORLD
+        self._mpi_rank = MPI.COMM_WORLD.Get_rank()
+        self._mpi_nprocs = MPI.COMM_WORLD.Get_size()
+        self._processor_name = MPI.Get_processor_name()
 
         if not cuda.is_available():
-            self['GPU'] = None
+            self._gpus = None
+            self._selected_gpus = None
         else:
-            self['GPU'] = {'available_devices': {}}
-            for g, gpu in enumerate(cuda.gpus):
-                self['GPU']['available_devices'][g] = gpu.name.decode()
-
-        self['collective_getitem'] = False
+            self._gpus = cuda.gpus
+            self._selected_gpus = list(range(len(self._gpus)))
 
     @property
     def mpi_rank(self):
-        return self['MPI']['mpi_rank']
+        """
+        Returns the rank of the calling process in the MPI communicator.
+        """
+        return self._mpi_rank
 
     @property
     def mpi_nprocs(self):
-        return self['MPI']['mpi_nprocs']
+        """
+        Returns the total number of processes in the MPI communicator.
+        """
+        return self._mpi_nprocs
 
     @property
     def processor_name(self):
-        return self['MPI']['processor_name']
+        """
+        Returns the name of the processor running MPI.
+        """
+        return self._processor_name
 
     @property
     def mpi_comm(self):
-        return self['MPI']['mpi_comm']
+        """
+        Returns the MPI communicator object.
+        """
+        return self._mpi_comm
 
     @property
-    def collective_getitem(self):
-        return self['collective_getitem']
+    def available_gpus(self):
+        """
+        Returns the list of all GPUs available to the processor in ``processor_name``.
+        """
+        return self._gpus
 
-    @collective_getitem.setter
-    def collective_getitem(self, v):
-        if v not in (True, False):
-            _assert.collective_raise(ValueError("Expected boolean for collective_getitem."))
-        self['collective_getitem'] = v
+    @property
+    def selected_gpus(self):
+        """Get or set the list of selected GPU indices.
 
-    def exec_mode(self):
-        if self['MPI']['mpi_nprocs'] > 1:
-            run_mode = 'MPI'
+        These indices set the devices that are allowed to be used by
+        RockVerse during runtime.
+
+        You can set this list at runtime by providing a list of integers in
+        range('total number of available GPUs').
+
+        Examples
+        --------
+            >>> # Get the currently selected GPU indices
+            >>> current_selected = config.selected_gpus
+
+            >>> # Set the selected GPUs to the first and second GPUs available
+            >>> config.selected_gpus = [0, 1]
+
+            >>> # Attempting to set selected GPUs to an invalid index will raise an error
+            >>> try:
+            >>>     config.selected_gpus = [0, 5]  # Assuming only 3 GPUs are available
+            >>> except RuntimeError as e:
+            >>>    print(e)  # Output: GPU device indices must be less than 3.
+
+            >>> # Setting selected GPUs to an empty list means no GPU will be used
+            >>> config.selected_gpus = []
+        """
+        return self._selected_gpus
+
+    @selected_gpus.setter
+    def selected_gpus(self, v):
+        _assert.iterable.any_iterable_non_negative_integers('device selection', v)
+        if any(k not in range(len(self._gpus)) for k in v):
+            _assert.collective_raise(RuntimeError(
+                f'GPU device indices must be less than {len(self._gpus)}.'))
+        self._selected_gpus = sorted(v)
+
+    def print_available_gpus(self):
+        """Prints the list of available GPUs.
+
+        Mimics the output of the `nvidia-smi -L` terminal command.
+        If no GPUs are available, a message indicating this is printed.
+        """
+        if self._gpus is None:
+            print("GPUs not available.")
         else:
-            run_mode = 'OMP'
+            for g, gpu in enumerate(self._gpus):
+                print(f'GPU {g}: {gpu.name.decode()} (UUID: {gpu._device.uuid})')
 
-        if self['GPU'] is None or len(self['GPU']['available_devices']) == 0:
-            device_mode = 'CPU'
+    def print_selected_gpus(self):
+        """
+        Prints the list of user-selected GPUs.
+
+        Mimics the output of the `nvidia-smi -L` terminal command.
+        If no GPUs are available, a message indicating this is printed.
+        """
+        if self._gpus is None:
+            print("GPUs not available.")
         else:
-            device_mode = 'GPU'
+            for g, gpu in enumerate(self._gpus):
+                if g in self._selected_gpus:
+                    print(f'GPU {g}: {gpu.name.decode()} (UUID: {gpu._device.uuid})')
 
-        return run_mode, device_mode
+    def rank_select_gpu(self):
+        """
+        Selects the GPU to be used by the current MPI process at runtime.
+        The selection is based on the user-select GPUs.
+
+        Returns:
+            The index of the selected GPU, or None if no GPUs are available.
+        """
+        if self._gpus is None:
+            return None
+        ind = self._mpi_rank % len(self._selected_gpus)
+        gpu_ind = self._selected_gpus[ind]
+        return gpu_ind
+
+    def print_rank_selected_gpu(self):
+        """
+        Prints the GPU selected for use by the current MPI process.
+
+        Mimics the output of the `nvidia-smi -L` terminal command.
+        If no GPUs are available, a message indicating this is printed.
+        """
+        if self._gpus is None:
+            print("GPU not available.")
+        gpu_ind = self.rank_select_gpu()
+        gpu = self._gpus[gpu_ind]
+        print(f'GPU {gpu_ind}: {gpu.name.decode()} (UUID: {gpu._device.uuid})')
 
 config = Config()

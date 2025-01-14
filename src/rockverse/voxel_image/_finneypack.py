@@ -4081,7 +4081,7 @@ def _fill_finney_pack(array,
                       fill_value,
                       hx, hy, hz, ox, oy, oz):
 
-    GPU = False
+    GPU = True
     threadsperblock = (4, 4, 2)
 
     chunks = array.chunks

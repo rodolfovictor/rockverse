@@ -32,9 +32,12 @@
     - Add "over black", "over white" options for segmentation colors
     - Histogram legend with segmentation name instead of phase number
 
-- Add histogram documentation to sphinx
+- Histogram
+    - Add histogram documentation to sphinx
+    - Change to fast algorithm if equal size bins
 
-- Update to zarr 3
+- Zarr
+    - Update to zarr 3
 
 - tqdm
     - Check printing to stdout instead of stderr
