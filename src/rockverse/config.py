@@ -20,8 +20,8 @@ class Config():
         self._processor_name = MPI.Get_processor_name()
 
         if not cuda.is_available():
-            self._gpus = None
-            self._selected_gpus = None
+            self._gpus = []
+            self._selected_gpus = []
         else:
             self._gpus = cuda.gpus
             self._selected_gpus = list(range(len(self._gpus)))
@@ -79,6 +79,12 @@ class Config():
             >>> # Set the selected GPUs to the first and second GPUs available
             >>> config.selected_gpus = [0, 1]
 
+            >>> # You can use any iterable
+            >>> config.selected_gpus = (0, 1, 2)
+            >>> config.selected_gpus = {0, 1, 2}
+            >>> config.selected_gpus = range(2)
+
+
             >>> # Attempting to set selected GPUs to an invalid index will raise an error
             >>> try:
             >>>     config.selected_gpus = [0, 5]  # Assuming only 3 GPUs are available
@@ -104,7 +110,7 @@ class Config():
         Mimics the output of the `nvidia-smi -L` terminal command.
         If no GPUs are available, a message indicating this is printed.
         """
-        if self._gpus is None:
+        if not self._gpus:
             print("GPUs not available.")
         else:
             for g, gpu in enumerate(self._gpus):
@@ -117,7 +123,7 @@ class Config():
         Mimics the output of the `nvidia-smi -L` terminal command.
         If no GPUs are available, a message indicating this is printed.
         """
-        if self._gpus is None:
+        if not self._gpus:
             print("GPUs not available.")
         else:
             for g, gpu in enumerate(self._gpus):
@@ -132,7 +138,7 @@ class Config():
         Returns:
             The index of the selected GPU, or None if no GPUs are available.
         """
-        if self._gpus is None:
+        if not self._selected_gpus:
             return None
         ind = self._mpi_rank % len(self._selected_gpus)
         gpu_ind = self._selected_gpus[ind]
@@ -145,7 +151,7 @@ class Config():
         Mimics the output of the `nvidia-smi -L` terminal command.
         If no GPUs are available, a message indicating this is printed.
         """
-        if self._gpus is None:
+        if not self._gpus:
             print("GPU not available.")
         gpu_ind = self.rank_select_gpu()
         gpu = self._gpus[gpu_ind]

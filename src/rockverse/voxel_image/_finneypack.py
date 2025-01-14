@@ -1,6 +1,7 @@
 import zarr
 import numpy as np
 from rockverse._utils import rvtqdm
+from rockverse.config import config
 from numba import njit, cuda
 from mpi4py import MPI
 comm = MPI.COMM_WORLD
@@ -4081,7 +4082,6 @@ def _fill_finney_pack(array,
                       fill_value,
                       hx, hy, hz, ox, oy, oz):
 
-    GPU = True
     threadsperblock = (4, 4, 2)
 
     chunks = array.chunks
@@ -4112,8 +4112,8 @@ def _fill_finney_pack(array,
                     ind = np.logical_and(ind, SPHERES[:, 3] <= (bez*hz+oz)+sphere_radius)
                     ind = np.argwhere(ind).flatten()
                     spheres = SPHERES[ind, :]
-                    if GPU:
-                        device_index = mpi_rank % len(cuda.gpus)
+                    device_index = config.rank_select_gpu()
+                    if device_index is not None:
                         with cuda.gpus[device_index]:
                             d_block = cuda.to_device(block)
                             d_spheres = cuda.to_device(spheres)
