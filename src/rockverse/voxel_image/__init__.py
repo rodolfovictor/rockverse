@@ -73,7 +73,6 @@ def create(shape,
 
     :bdg-info:`Parallel`
     :bdg-info:`CPU`
-    :bdg-info:`GPU`
 
     Create empty voxel image.
 
@@ -178,7 +177,6 @@ def empty(shape, dtype, **kwargs):
     """
     :bdg-info:`Parallel`
     :bdg-info:`CPU`
-    :bdg-info:`GPU`
     Create an empty voxel image with the given shape.
     The array will be initialized without any specific values.
 
@@ -207,7 +205,6 @@ def zeros(shape, dtype, **kwargs):
     """
     :bdg-info:`Parallel`
     :bdg-info:`CPU`
-    :bdg-info:`GPU`
     Create a voxel image filled with zeros.
 
     Parameters
@@ -235,7 +232,6 @@ def ones(shape, dtype, **kwargs):
     """
     :bdg-info:`Parallel`
     :bdg-info:`CPU`
-    :bdg-info:`GPU`
     Create a voxel image filled with ones.
 
     Parameters
@@ -262,7 +258,6 @@ def full(shape, dtype, fill_value, **kwargs):
     """
     :bdg-info:`Parallel`
     :bdg-info:`CPU`
-    :bdg-info:`GPU`
     Create a voxel image filled with a specified value.
 
     Parameters
@@ -301,7 +296,6 @@ def empty_like(a, **kwargs):
     """
     :bdg-info:`Parallel`
     :bdg-info:`CPU`
-    :bdg-info:`GPU`
     Create empty voxel image with same shape, chunks, voxel_origin,
     voxel_length, and voxel_unit as the given image.
 
@@ -326,7 +320,6 @@ def zeros_like(a, **kwargs):
     """
     :bdg-info:`Parallel`
     :bdg-info:`CPU`
-    :bdg-info:`GPU`
     Create voxel image filled with zeros with same shape, chunks, voxel_origin,
     voxel_length, and voxel_unit as the given image.
 
@@ -352,7 +345,6 @@ def ones_like(a, **kwargs):
     """
     :bdg-info:`Parallel`
     :bdg-info:`CPU`
-    :bdg-info:`GPU`
     Create voxel image filled with ones with same shape, chunks, voxel_origin,
     voxel_length, and voxel_unit as the given image.
 
@@ -377,7 +369,6 @@ def full_like(a, fill_value, **kwargs):
     """
     :bdg-info:`Parallel`
     :bdg-info:`CPU`
-    :bdg-info:`GPU`
     Create voxel image filled with a specified value with same shape, chunks,
     voxel_origin, voxel_length, and voxel_unit as the given image.
 

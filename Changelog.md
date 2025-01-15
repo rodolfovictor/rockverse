@@ -8,12 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - GPU general runtime config class
 - GPU enabled for sphere pack generator
+- GPU enabled for parallel voxel image math
 
 ### Changed
 
 ### Fixed
 
-## [3.3.3] - 2025-01-11
+## [0.3.3] - 2025-01-11
 
 ### Fixed
 - Pinning zarr and Matplotlib versions

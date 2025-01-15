@@ -9,6 +9,7 @@ import numpy as np
 from rockverse._utils import rvtqdm
 from numba import njit, cuda
 import rockverse._assert as _assert
+from rockverse.config import config
 
 from mpi4py import MPI
 comm = MPI.COMM_WORLD
@@ -594,13 +595,13 @@ def _array_math(array1,
     ox, oy, oz = array1.voxel_origin
     hx, hy, hz = array1.voxel_length
 
-    GPU = cuda.is_available() and False
-    device_index = None
+
+    device_index = config.rank_select_gpu()
+    use_gpu = False if device_index is None else True
     if phases is not None:
         cphases = np.array([k for k in phases], dtype='u8')
-        if GPU:
-            device_index = mpi_rank % len(cuda.gpus)
-            with cuda.gpus[device_index]:
+        if use_gpu:
+            with config._gpus[device_index]:
                 dphases = cuda.to_device(cphases)
 
     desc, OP = '<none>', None
@@ -609,29 +610,29 @@ def _array_math(array1,
     if array2 is not None and value is None:
         OPType = 'array-array'
         if op == 'copy':
-            desc, OP = 'Copy', _copy_array_gpu if GPU else _copy_array_cpu
+            desc, OP = 'Copy', _copy_array_gpu if use_gpu else _copy_array_cpu
         elif op == 'add':
-            desc, OP = 'Add', _add_array_gpu if GPU else _add_array_cpu
+            desc, OP = 'Add', _add_array_gpu if use_gpu else _add_array_cpu
         elif op == 'subtract':
-            desc, OP = 'Subtract', _subtract_array_gpu if GPU else _subtract_array_cpu
+            desc, OP = 'Subtract', _subtract_array_gpu if use_gpu else _subtract_array_cpu
         elif op == 'multiply':
-            desc, OP = 'Multiply', _multiply_array_gpu if GPU else _multiply_array_cpu
+            desc, OP = 'Multiply', _multiply_array_gpu if use_gpu else _multiply_array_cpu
         elif op == 'divide':
-            desc, OP = 'Divide', _divide_array_gpu if GPU else _divide_array_cpu
+            desc, OP = 'Divide', _divide_array_gpu if use_gpu else _divide_array_cpu
         elif op == 'logical and':
-            desc, OP = 'Logical and', _logical_and_array_gpu if GPU else _logical_and_array_cpu
+            desc, OP = 'Logical and', _logical_and_array_gpu if use_gpu else _logical_and_array_cpu
         elif op == 'logical or':
-            desc, OP = 'Logical or', _logical_or_array_gpu if GPU else _logical_or_array_cpu
+            desc, OP = 'Logical or', _logical_or_array_gpu if use_gpu else _logical_or_array_cpu
         elif op == 'logical xor':
-            desc, OP = 'Logical xor', _logical_xor_array_gpu if GPU else _logical_xor_array_cpu
+            desc, OP = 'Logical xor', _logical_xor_array_gpu if use_gpu else _logical_xor_array_cpu
         elif op == 'min':
-            desc, OP = 'Minimium', _min_array_gpu if GPU else _min_array_cpu
+            desc, OP = 'Minimium', _min_array_gpu if use_gpu else _min_array_cpu
         elif op == 'max':
-            desc, OP = 'Maximum', _max_array_gpu if GPU else _max_array_cpu
+            desc, OP = 'Maximum', _max_array_gpu if use_gpu else _max_array_cpu
         elif op == 'average':
-            desc, OP = 'Average', _avg_array_gpu if GPU else _avg_array_cpu
+            desc, OP = 'Average', _avg_array_gpu if use_gpu else _avg_array_cpu
         elif op == 'absolute difference':
-            desc, OP = 'Absolute difference', _absdiff_array_gpu if GPU else _absdiff_array_cpu
+            desc, OP = 'Absolute difference', _absdiff_array_gpu if use_gpu else _absdiff_array_cpu
         else:
             _assert.collective_raise(ValueError(f"Invalid operation '{op}'"))
 
@@ -639,25 +640,25 @@ def _array_math(array1,
     elif array2 is None and value is not None:
         OPType = 'array-constant'
         if op == 'set':
-            desc, OP = 'Set', _set_value_gpu if GPU else _set_value_cpu
+            desc, OP = 'Set', _set_value_gpu if use_gpu else _set_value_cpu
         elif op == 'add':
-            desc, OP = 'Add', _add_value_gpu if GPU else _add_value_cpu
+            desc, OP = 'Add', _add_value_gpu if use_gpu else _add_value_cpu
         elif op == 'subtract':
-            desc, OP = 'Subtract', _subtract_value_gpu if GPU else _subtract_value_cpu
+            desc, OP = 'Subtract', _subtract_value_gpu if use_gpu else _subtract_value_cpu
         elif op == 'multiply':
-            desc, OP = 'Multiply', _multiply_value_gpu if GPU else _multiply_value_cpu
+            desc, OP = 'Multiply', _multiply_value_gpu if use_gpu else _multiply_value_cpu
         elif op == 'divide':
-            desc, OP = 'Divide', _divide_value_gpu if GPU else _divide_value_cpu
+            desc, OP = 'Divide', _divide_value_gpu if use_gpu else _divide_value_cpu
         elif op == 'logical and':
-            desc, OP = 'Logical and', _and_value_gpu if GPU else _and_value_cpu
+            desc, OP = 'Logical and', _and_value_gpu if use_gpu else _and_value_cpu
         elif op == 'logical or':
-            desc, OP = 'Logical or', _or_value_gpu if GPU else _or_value_cpu
+            desc, OP = 'Logical or', _or_value_gpu if use_gpu else _or_value_cpu
         elif op == 'logical xor':
-            desc, OP = 'Logical xor', _xor_value_gpu if GPU else _xor_value_cpu
+            desc, OP = 'Logical xor', _xor_value_gpu if use_gpu else _xor_value_cpu
         elif op == 'min':
-            desc, OP = 'Min', _min_value_gpu if GPU else _min_value_cpu
+            desc, OP = 'Min', _min_value_gpu if use_gpu else _min_value_cpu
         elif op == 'max':
-            desc, OP = 'Max', _max_value_gpu if GPU else _max_value_cpu
+            desc, OP = 'Max', _max_value_gpu if use_gpu else _max_value_cpu
         else:
             _assert.collective_raise(ValueError(f"Invalid operation '{op}'"))
 
@@ -681,9 +682,9 @@ def _array_math(array1,
         if segmentation is not None:
             csegmentation = segmentation[box:bex, boy:bey, boz:bez].astype('u8')
 
-        if GPU:
+        if use_gpu:
             threadsperblock, blockspergrid = _define_grid(carray1.shape)
-            with cuda.gpus[device_index]:
+            with config._gpus[device_index]:
                 darray1 = cuda.to_device(carray1)
                 dskip = cuda.to_device(skip)
                 if array2 is not None:

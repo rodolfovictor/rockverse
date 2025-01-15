@@ -14,14 +14,10 @@ Dual energy freezing with GPU
 
 - Add documentation for dependencies
     - Create a section in the documentation listing all project dependencies.
-    - Include installation instructions and version specifications for each dependency.
-
-- Activate GPU in voxel_image modulus
-    - math
-    - sphere pack
 
 - VoxelImage operators
-    - Implement +, +=, -, -=, etc
+    - Implement other in place operators -=, *=, etc
+    - Guarantee segmentation and masks with different chunk size when store is not in local file system.
 
 - Orthogonal slices:
     - Add scalebar
@@ -39,5 +35,9 @@ Dual energy freezing with GPU
 
 - tqdm
     - Check printing to stdout instead of stderr
+
+- Dual Energy
+    - Implement run(block_id) to check inversion by running only on one chunk.
+    - Bug accumulating results on second run
 
 > Note: These tasks are subject to change based on project needs and priorities.
