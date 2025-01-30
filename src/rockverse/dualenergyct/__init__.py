@@ -40,7 +40,7 @@ mpi_nprocs = comm.Get_size()
 
 from rockverse.voxel_image import (
     VoxelImage,
-    copy_from_array,
+    from_array,
     full_like)
 
 from rockverse.voxel_image.histogram import Histogram
@@ -1238,7 +1238,7 @@ class DualEnergyCTGroup():
 
         kwargs.update(**image.meta_data_as_dict)
         kwargs['store'] = os.path.join(self.zgroup.store.path, path)
-        z = copy_from_array(image, **kwargs)
+        z = from_array(image, **kwargs)
 
 
     def _check_input_data(self, status):

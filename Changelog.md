@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GPU enabled for parallel voxel image math
 
 ### Changed
+- VoxelImage ``copy_from_array`` method changed to ``from_array``.
 
 ### Fixed
 

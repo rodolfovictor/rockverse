@@ -21,22 +21,6 @@ specialists through high-level functions.
 
 """
 
-
-__all__ = [
-    'VoxelImage',
-    'create',
-    'empty',
-    'zeros',
-    'ones',
-    'full',
-    'empty_like',
-    'zeros_like',
-    'ones_like',
-    'full_like',
-    'sphere_pack',
-    'import_raw'
-]
-
 #from rockverse.voxel_image.histogram import Histogram
 
 import json
@@ -393,7 +377,7 @@ def full_like(a, fill_value, **kwargs):
     return full(**kwargs)
 
 
-def copy_from_array(array, **kwargs):
+def from_array(array, **kwargs):
     """
     :bdg-info:`Parallel`
     :bdg-info:`CPU`

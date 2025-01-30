@@ -1,6 +1,5 @@
-<img src="docs/source/_static/RockVerse_logo_model3_for_white_background_facecolor_transparent_False.png"><br>
+<img src="https://github.com/rodolfovictor/rockverse/blob/main/docs/source/_static/RockVerse_logo_model3_for_white_background_facecolor_transparent_False.png"><br>
 
---------------------------------------
 
 RockVerse: Python tools for Computational Petrophysics
 ======================================================

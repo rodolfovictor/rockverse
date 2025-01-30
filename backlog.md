@@ -1,7 +1,5 @@
 # Backlog
 
-Dual energy freezing with GPU
-
 ## Tasks to be completed
 
 - Fine-tune threads per block GPU
@@ -23,15 +21,15 @@ Dual energy freezing with GPU
     - Add scalebar
     - Add calibrationbar
     - Add contour lines to scalar fields
+    - Add chunk limit lines
     - Add "over black", "over white" options for segmentation colors
     - Histogram legend with segmentation name instead of phase number
+    - Enforce 3D images
+    - Generalize allowed colormaps
 
 - Histogram
     - Add histogram documentation to sphinx
     - Change to fast algorithm if equal size bins
-
-- Zarr
-    - Update to zarr 3
 
 - tqdm
     - Check printing to stdout instead of stderr
@@ -39,5 +37,9 @@ Dual energy freezing with GPU
 - Dual Energy
     - Implement run(block_id) to check inversion by running only on one chunk.
     - Bug accumulating results on second run
+    - Bug freezing with GPU
+
+- Zarr
+    - Update to zarr 3
 
 > Note: These tasks are subject to change based on project needs and priorities.
