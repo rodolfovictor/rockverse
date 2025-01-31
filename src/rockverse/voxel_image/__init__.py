@@ -935,14 +935,14 @@ class VoxelImage(zarr.Array):
             works on its assigned portion efficiently.
         """
         if mpi_nprocs == 1 or isinstance(self.store, zarr.storage.DirectoryStore):
-            return self[*selection]
-        array = 0*self[*selection]
+            return self[tuple(selection)]
+        array = 0*self[tuple(selection)]
         for block_id in range(self.nchunks):
             box, bex, boy, bey, boz, bez = self.chunk_slice_indices(block_id)
             temp = zarr.zeros_like(self)
             temp[box:bex, boy:bey, boz:bez] = comm.bcast(
                 self[box:bex, boy:bey, boz:bez], root=(block_id%mpi_nprocs))
-            array += temp[*selection]
+            array += temp[tuple(selection)]
         return array
 
 

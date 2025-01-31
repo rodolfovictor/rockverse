@@ -19,7 +19,7 @@ description = "Python tools for Computational Petrophysics"
 
 readme = "README.md"
 
-requires-python = ">=3.10,<3.13"
+requires-python = ">=3.7,<3.13"
 
 classifiers = [
     "Programming Language :: Python :: 3",
