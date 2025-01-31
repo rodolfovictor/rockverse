@@ -19,7 +19,7 @@ description = "Python tools for Computational Petrophysics"
 
 readme = "README.md"
 
-requires-python = ">=3.7,<3.13"
+requires-python = ">=3.11,<3.13"
 
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -47,11 +47,10 @@ dependencies = [
     "sphinx",
     "sphinx-copybutton",
     "sphinx-design",
-    "sphinx_gallery",
+    "sphinx-gallery",
     "tqdm",
     "zarr<3",
 ]
-
 
 keywords = ["petrophysics", "well", "log", "well log", "digital rock"]
 

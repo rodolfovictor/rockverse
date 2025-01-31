@@ -12,6 +12,7 @@ Prerequisites
 - **Python** 3.7 or later
 - Basic familiarity with command-line operations
 - Basic familiarity with virtual environments (Conda or pip)
+- If using ``pip``, a working MPI implementation with headers and a C compiler.
 
 Installing
 ----------
@@ -26,7 +27,10 @@ If you're unfamiliar with virtual environments, refer to:
 In this guide, the virtual environment is named ``rockverse-env``.
 
 .. note::
-   Choose either **Conda** or **pip** for the installation process. Using **pip** requires a working MPI implementation with headers and a C compiler. Ensure ``mpicc`` and ``mpiexec`` or ``mpirun`` point to the desired MPI installation. If MPI is unavailable, **Conda** is recommended.
+   Choose either **Conda** or **pip** for the installation process.
+   Using **pip** requires a working MPI implementation with headers and a C compiler.
+   Ensure ``mpicc`` and ``mpiexec`` or ``mpirun`` point to the desired MPI installation.
+   If MPI or a C compiler is unavailable, **Conda** is recommended.
 
 1. Create a Virtual Environment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -68,10 +72,31 @@ In this guide, the virtual environment is named ``rockverse-env``.
          python -m venv rockverse-env
          source ./rockverse-env/bin/activate
 
-2. Configure MPI
+2. Install Scipy
 ~~~~~~~~~~~~~~~~
 
-If you lack a system MPI installation, use one of the MPI implementations available on **conda-forge**. This step requires a Conda environment.
+Test if you have a C compiler properly installed. Try to install Scipy in the environment.
+
+.. tab-set::
+
+   .. tab-item:: Conda
+
+      .. code-block:: sh
+
+         conda install -c conda-forge "scipy<=1.13.1"
+
+   .. tab-item:: Pip
+
+      .. code-block:: sh
+
+         pip install "scipy<=1.13.1"
+
+If you get errors using ``pip``, you must install a C compiler or use Conda for the installation process.
+
+3. Configure MPI
+~~~~~~~~~~~~~~~~
+
+If you lack a system MPI installation, use one of the MPI implementations available on **conda-forge**. This step requires the Conda environment.
 
 .. tab-set::
 
@@ -146,7 +171,7 @@ Test your MPI installation:
          mpiexec -n 5 python -m mpi4py.bench helloworld
 
 You should get an output similar to this
-('localhost' will be the hostname in your machine):
+('localhost' will be replaced by the hostname in your machine):
 
 .. code-block:: sh
 
@@ -156,10 +181,10 @@ You should get an output similar to this
     Hello, World! I am process 3 of 5 on localhost.
     Hello, World! I am process 4 of 5 on localhost.
 
-3. Install RockVerse
+4. Install RockVerse
 ~~~~~~~~~~~~~~~~~~~~
 
-Install RockVerse and its dependencies (this might take a while...)
+Install RockVerse and its dependencies
 
 .. tab-set::
 
@@ -190,7 +215,7 @@ Install RockVerse and its dependencies (this might take a while...)
          pip install -e .
 
 
-4. (Optional) Configure Numba access to GPUs
+5. (Optional) Configure Numba access to GPUs
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 RockVerse supports accelerated computations on CUDA-enabled GPUs using Numba. Multiple GPUs
@@ -211,7 +236,7 @@ To enable GPU support, ensure that:
 
       .. code-block:: sh
 
-         conda install -c conda-forge cuda-nvcc cuda-nvrtc
+         conda install -c conda-forge cuda-nvcc cuda-nvrtc "cuda-version>=12.0"
 
    .. tab-item:: Conda (CUDA 11)
 
@@ -219,7 +244,7 @@ To enable GPU support, ensure that:
 
       .. code-block:: sh
 
-         conda install -c conda-forge cudatoolkit
+         conda install -c conda-forge cudatoolkit "cuda-version>=11.2,<12.0"
 
    .. tab-item:: Pip
 
@@ -278,7 +303,7 @@ Updating RockVerse
 
       .. code-block:: sh
 
-         cd /path/to/local/installation
+         cd /path/to/local/rockverse/git/repository
          git pull
 
 Troubleshooting
