@@ -1,6 +1,7 @@
 from mpi4py import MPI
 from numba import cuda
 from rockverse import _assert
+from rockverse.errors import collective_raise
 
 class Config():
     """
@@ -100,7 +101,7 @@ class Config():
     def selected_gpus(self, v):
         _assert.iterable.any_iterable_non_negative_integers('device selection', v)
         if any(k not in range(len(self._gpus)) for k in v):
-            _assert.collective_raise(RuntimeError(
+            collective_raise(RuntimeError(
                 f'GPU device indices must be less than {len(self._gpus)}.'))
         self._selected_gpus = sorted(v)
 

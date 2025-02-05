@@ -1,5 +1,46 @@
-__version__ = "0.3.8"
+import sys
 
+__version__ = "1.0.0d"
+
+#----------------------------------------------------------------------
+# Make sure the main depencies are present with the supported versions.
+#----------------------------------------------------------------------
+def _extract_version(mod, n=2):
+    return tuple(map(int, mod.__version__.split('.')[:n]))
+
+#Python --------------------------
+PYVERSION = sys.version_info[:2]
+if PYVERSION < (3, 11) or PYVERSION >= (3, 13):
+    msg = ("RockVerse needs Python version >=3.11 and <3.13. Got Python "
+            f"{PYVERSION[0]}.{PYVERSION[1]}.")
+    raise ImportError(msg)
+
+#Zarr ----------------------------
+import zarr
+zarr_version = _extract_version(zarr)
+if zarr_version < (3, 0) or zarr_version >= (4, 0):
+    msg = ("RockVerse needs Zarr version >=3.0 and >4.0. Got Zarr "
+           f"{zarr.__version__}.")
+    raise ImportError(msg)
+
+import scipy
+scipy_version = _extract_version(scipy, n=3)
+if scipy_version > (1, 13, 1):
+    msg = ("RockVerse requires SciPy version <=1.13.1. Got SciPy "
+           f"{scipy.__version__}.")
+    raise ImportError(msg)
+
+import matplotlib
+matplotlib_version = _extract_version(matplotlib)
+if matplotlib_version >= (3, 10):
+    msg = ("RockVerse requires Matplotlib version <3.10. Got Matplotlib "
+           f"{matplotlib.__version__}.")
+    raise ImportError(msg)
+
+
+#----------------------------------------------------------------------
+# Now build RockVerse
+#----------------------------------------------------------------------
 from rockverse._utils.logo import make_logo
 
 # Expose RcParams as a library-wide instance
@@ -7,6 +48,8 @@ from rockverse.rc import rcparams
 
 # Expose Config as a library-wide instance
 from rockverse.config import config
+comm = config.mpi_comm
+mpi_rank = config.mpi_rank
 
 # Define the public API
 __all__ = [
@@ -25,14 +68,8 @@ from rockverse import voxel_image
 from rockverse import region
 from rockverse.viz import OrthogonalViewer
 from rockverse import dualenergyct
+from rockverse.errors import collective_raise as _collective_raise
 
-from mpi4py import MPI
-comm = MPI.COMM_WORLD
-mpi_rank = comm.Get_rank()
-mpi_nprocs = comm.Get_size()
-
-import zarr
-from rockverse._assert import collective_raise as _collective_raise
 def open(store, **kwargs):
     """
     Opens a RockVerse data store and returns the appropriate object.

@@ -1,12 +1,9 @@
-import zarr
 import numpy as np
 from rockverse._utils import rvtqdm
-from rockverse.config import config
 from numba import njit, cuda
-from mpi4py import MPI
-comm = MPI.COMM_WORLD
-mpi_rank = comm.Get_rank()
-mpi_nprocs = comm.Get_size()
+from rockverse.config import config
+mpi_rank = config.mpi_rank
+mpi_nprocs = config.mpi_nprocs
 
 #Domain: [-20:20, -20:20, -20:20], radius=1
 SPHERES = np.array([
@@ -4035,7 +4032,7 @@ SPHERES = np.array([
 
 
 @njit()
-def process_block_cpu(block, box, boy, boz, ox, oy, oz, hx, hy, hz, sphere_radius, fill_value, spheres):
+def _process_block_cpu(block, box, boy, boz, ox, oy, oz, hx, hy, hz, sphere_radius, fill_value, spheres):
     nx, ny, nz = block.shape
     for a, xs, ys, zs in spheres:
         imin = int(np.floor(max( 0, (xs-sphere_radius-ox)/hx-box)))
@@ -4059,7 +4056,7 @@ def process_block_cpu(block, box, boy, boz, ox, oy, oz, hx, hy, hz, sphere_radiu
 
 
 @cuda.jit()
-def process_block_gpu(block, box, boy, boz, ox, oy, oz, hx, hy, hz, radius, fill_value, spheres):
+def _process_block_gpu(block, box, boy, boz, ox, oy, oz, hx, hy, hz, radius, fill_value, spheres):
     nx, ny, nz = block.shape
     i, j, k = cuda.grid(3)
     if i<0 or i>=nx or j<0 or j>=ny or k<0 or k>=nz:
@@ -4077,16 +4074,15 @@ def process_block_gpu(block, box, boy, boz, ox, oy, oz, hx, hy, hz, radius, fill
             return
 
 
-def _fill_finney_pack(array,
-                      sphere_radius,
-                      fill_value,
-                      hx, hy, hz, ox, oy, oz):
+def fill_finney_pack(array,
+                     sphere_radius,
+                     fill_value,
+                     hx, hy, hz, ox, oy, oz):
 
     threadsperblock = (4, 4, 2)
 
     chunks = array.chunks
-    shape = array.shape
-    Nblocks = np.ceil(np.array(shape)/np.array(chunks)).astype(int)
+    Nblocks = array.cdata_shape
     pbar = rvtqdm(total=np.prod(Nblocks),
                   desc='Generating sphere pack',
                   unit='chunk')
@@ -4120,10 +4116,10 @@ def _fill_finney_pack(array,
                             blockspergrid = (int(np.ceil(bnx/threadsperblock[0])),
                                              int(np.ceil(bny/threadsperblock[1])),
                                              int(np.ceil(bnz/threadsperblock[2])))
-                            process_block_gpu[blockspergrid, threadsperblock](d_block, box, boy, boz, ox, oy, oz, hx, hy, hz, sphere_radius, fill_value, d_spheres)
+                            _process_block_gpu[blockspergrid, threadsperblock](d_block, box, boy, boz, ox, oy, oz, hx, hy, hz, sphere_radius, fill_value, d_spheres)
                             block = d_block.copy_to_host()
                     else:
-                        process_block_cpu(block, box, boy, boz, ox, oy, oz, hx, hy, hz, sphere_radius, fill_value, spheres)
+                        _process_block_cpu(block, box, boy, boz, ox, oy, oz, hx, hy, hz, sphere_radius, fill_value, spheres)
                     array.blocks[bi, bj, bk] = block.copy()
                 pbar.update(1)
     pbar.close()

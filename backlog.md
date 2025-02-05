@@ -1,5 +1,20 @@
 # Backlog
 
+NOW MIGRATING TO ZARR 3
+   - Finished reviewing VoxelImage functions
+   - Ensure VoxelImage voxel order C
+   - Pin VoxelImage 3D
+   - Assert VoxelImage Numeric or boolean
+   - Write a collective __setitem__
+      - COLLECTIVE SET SEND DATA TO MPI PROCESSOS
+      - COLLECTIVE SET ONLY AFTER FIXIN ALL ORITINAL SETITEM TO FAST VOXELIMAGE._ARRAY[...]=...
+    - SPEED UP VOXELIMAGE SAVE WHEN NOT RECHUNKING
+
+CHECK GENERAL ROCKVERSE OPEN NOW IN ZARR 3
+
+MIGRATE DUAL ENERGY TO ZARR 3
+
+
 ## Tasks to be completed
 
 - Fine-tune threads per block GPU
@@ -13,7 +28,7 @@
 - Add documentation for dependencies
     - Create a section in the documentation listing all project dependencies.
 
-- VoxelImage operators
+- VoxelImage
     - Implement other in place operators -=, *=, etc
     - Guarantee segmentation and masks with different chunk size when store is not in local file system.
 
@@ -26,6 +41,10 @@
     - Histogram legend with segmentation name instead of phase number
     - Enforce 3D images
     - Generalize allowed colormaps
+    - Allow ref_voxel as center of referenced block (chunk)
+    - Choose which phases to be shown in histogram
+    - Check and raise ValueError if complex dtype
+
 
 - Histogram
     - Add histogram documentation to sphinx
@@ -41,5 +60,7 @@
 
 - Zarr
     - Update to zarr 3
+    - Test block indexing for 'F' or 'C'
+    - put dimension_names in voxel image
 
 > Note: These tasks are subject to change based on project needs and priorities.

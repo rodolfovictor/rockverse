@@ -8,10 +8,10 @@ Note:
 
 import hashlib
 import numpy as np
-from mpi4py import MPI
-comm = MPI.COMM_WORLD
-mpi_rank = comm.Get_rank()
-mpi_nprocs = comm.Get_size()
+from rockverse.config import config
+comm = config.mpi_comm
+mpi_rank = config.mpi_rank
+mpi_nprocs = config.mpi_nprocs
 
 from rockverse._utils import rvtqdm
 

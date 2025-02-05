@@ -17,13 +17,15 @@ import numpy.ma as ma
 import pandas as pd
 import warnings
 from numba import njit
+from mpi4py import MPI
 from rockverse import _assert
+from rockverse.errors import collective_raise
 from rockverse._utils import rvtqdm
 
-from mpi4py import MPI
-comm = MPI.COMM_WORLD
-mpi_rank = comm.Get_rank()
-mpi_nprocs = comm.Get_size()
+from rockverse.config import config
+comm = config.mpi_comm
+mpi_rank = config.mpi_rank
+mpi_nprocs = config.mpi_nprocs
 
 @njit()
 def _apply_mask_cpu(skip, mask):
@@ -397,6 +399,6 @@ class Histogram():
              and all(0<=k<=100 for k in q)
              )
              ):
-            _assert.collective_raise(ValueError(
+            collective_raise(ValueError(
                 'q must be a number of a iterable of numbers between 0 and 100.'))
         return np.interp(np.array(q)/100, x, y)

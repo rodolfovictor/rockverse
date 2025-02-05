@@ -1,8 +1,10 @@
 import zarr
-from rockverse._assert.utils import collective_raise
+from rockverse.errors import collective_raise
 import rockverse._assert.condition
 import rockverse._assert.iterable
 
+#assert cannot call config in rockverse
+#Call directly MPI
 from mpi4py import MPI
 comm = MPI.COMM_WORLD
 mpi_rank = comm.Get_rank()
@@ -35,8 +37,8 @@ def drpdtype(varname, var):
             "\nExamples:"
             "\n    - dtype='|b1': boolean"
             "\n    - dtype='|u1': 8-bit unsigned integer"
-            "\n    - dtype='<i2': 16-bit signed integer, little endian"
-            "\n    - dtype='>f4': 32-bit floating point, big endian"
+            "\n    - dtype='<i2': little endian 16-bit signed integer"
+            "\n    - dtype='>f4': big endian 32-bit floating point"
             ))
 
 def rockverse_instance(var, var_name, var_types):
@@ -137,9 +139,9 @@ def zarr_array(varname, var):
         if n not in var.attrs:
             collective_raise(KeyError(f"'{n}' not found in zarr array attributes"))
 
-def zarr_directorystore(varname, var):
-    if mpi_nprocs > 1 and not isinstance(var, (str, zarr.storage.DirectoryStore)):
-        collective_raise(ValueError(f"Invalid {varname}. Zarr store must be a directory."))
+def zarr_localstore(varname, var):
+    if mpi_nprocs > 1 and not isinstance(var, (str, zarr.storage.LocalStore)):
+        collective_raise(ValueError(f"Invalid {varname}. Zarr store must be a local store."))
 
 def zarr_or_none_iterable(varname, var):
     if not (hasattr(var, '__iter__')

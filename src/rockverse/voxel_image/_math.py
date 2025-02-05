@@ -9,12 +9,13 @@ import numpy as np
 from rockverse._utils import rvtqdm
 from numba import njit, cuda
 import rockverse._assert as _assert
+import rockverse.errors as collective_raise
 from rockverse.config import config
 
-from mpi4py import MPI
-comm = MPI.COMM_WORLD
-mpi_rank = comm.Get_rank()
-mpi_nprocs = comm.Get_size()
+from rockverse.config import config
+comm = config.mpi_comm
+mpi_rank = config.mpi_rank
+mpi_nprocs = config.mpi_nprocs
 
 
 def _define_grid(chunk_size):
@@ -595,7 +596,6 @@ def _array_math(array1,
     ox, oy, oz = array1.voxel_origin
     hx, hy, hz = array1.voxel_length
 
-
     device_index = config.rank_select_gpu()
     use_gpu = False if device_index is None else True
     if phases is not None:
@@ -634,7 +634,7 @@ def _array_math(array1,
         elif op == 'absolute difference':
             desc, OP = 'Absolute difference', _absdiff_array_gpu if use_gpu else _absdiff_array_cpu
         else:
-            _assert.collective_raise(ValueError(f"Invalid operation '{op}'"))
+            collective_raise(ValueError(f"Invalid operation '{op}'"))
 
     #array-constant operations
     elif array2 is None and value is not None:
@@ -660,7 +660,7 @@ def _array_math(array1,
         elif op == 'max':
             desc, OP = 'Max', _max_value_gpu if use_gpu else _max_value_cpu
         else:
-            _assert.collective_raise(ValueError(f"Invalid operation '{op}'"))
+            collective_raise(ValueError(f"Invalid operation '{op}'"))
 
     else:
         raise ValueError('array2 and value cannot be None at the same time.')
@@ -673,14 +673,14 @@ def _array_math(array1,
         if block_id % mpi_nprocs != mpi_rank:
             continue
         box, bex, boy, bey, boz, bez = array1.chunk_slice_indices(block_id)
-        carray1 = array1[box:bex, boy:bey, boz:bez].copy()
+        carray1 = array1._array[box:bex, boy:bey, boz:bez].copy()
         skip = np.zeros_like(carray1, dtype='|b1') #voxels that won't be processed
         if array2 is not None:
-            carray2 = array2[box:bex, boy:bey, boz:bez].astype(dtype)
+            carray2 = array2._array[box:bex, boy:bey, boz:bez].astype(dtype)
         if mask is not None:
-            cmask = mask[box:bex, boy:bey, boz:bez].copy()
+            cmask = mask._array[box:bex, boy:bey, boz:bez].copy()
         if segmentation is not None:
-            csegmentation = segmentation[box:bex, boy:bey, boz:bez].astype('u8')
+            csegmentation = segmentation._array[box:bex, boy:bey, boz:bez].astype('u8')
 
         if use_gpu:
             threadsperblock, blockspergrid = _define_grid(carray1.shape)
@@ -718,5 +718,5 @@ def _array_math(array1,
             else:
                 OP(carray1, value, skip)
 
-        array1[box:bex, boy:bey, boz:bez] = carray1.copy()
+        array1._array[box:bex, boy:bey, boz:bez] = carray1.copy()
     comm.barrier()

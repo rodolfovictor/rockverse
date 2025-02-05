@@ -15,15 +15,16 @@ import matplotlib.pyplot as plt
 from matplotlib.backend_bases import MouseButton
 from matplotlib.colors import Normalize, ListedColormap, to_rgba
 from numba import njit
-from mpi4py import MPI
 
 from rockverse import _assert
+from rockverse.errors import collective_raise
 from rockverse import rcparams
 from rockverse.voxel_image.histogram import Histogram
 
-comm = MPI.COMM_WORLD
-mpi_rank = comm.Get_rank()
-mpi_nprocs = comm.Get_size()
+from rockverse.config import config
+comm = config.mpi_comm
+mpi_rank = config.mpi_rank
+mpi_nprocs = config.mpi_nprocs
 
 @njit()
 def _region_mask_xy_slice(mask, func, ox, oy, oz, hx, hy, hz, z):
@@ -493,7 +494,7 @@ class OrthogonalViewer():
                 width_ratios[0] = max(width_ratios[0], nz*hz)
                 height_ratios.append(nz*hz)
         else:
-            _assert.collective_raise(Exception('What is happening?!'))
+            collective_raise(Exception('What is happening?!'))
 
         self._ideal_width = np.sum(width_ratios)
         self._ideal_height = np.sum(height_ratios)
@@ -1837,7 +1838,7 @@ class OrthogonalViewer():
                 aux = ListedColormap(converted)
                 self._segmentation_colors = aux.colors
             except Exception as e:
-                _assert.collective_raise(ValueError(f'Invalid value for segmentation colors: {e}'))
+                collective_raise(ValueError(f'Invalid value for segmentation colors: {e}'))
         seg_phases = np.array(self.histogram.phases).astype(int)
         if len(seg_phases) == 0:
             self._segmentation_colormap = ListedColormap(self._segmentation_colors)

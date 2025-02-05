@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - 2025-02-??
+### Added
+- Version checks for main dependencies at module import time.
+
+### Changed
+- RockVerse data migrated to Zarr 3.0.
+- VoxelImage class is not directly inheritance of Zarr array anymore.
+  Zarr array attributes and methods in VoxelImage class are now only
+  accessible through class attribute ``VoxelImage.array``.
+  Old python scripts will crash if not changed.
+- VoxelImage.collective_getitem is deprecated and was removed.
+  ``VoxelImage.__getitem__`` now is always collective. For non-collective
+  getitem, get from ``VoxelImage.array`` instead.
+
+### Fixed
+- ???
+
 ## [0.3.5] - 2025-01-30
 ### Added
 - GPU general runtime config class
@@ -12,8 +29,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - VoxelImage ``copy_from_array`` method changed to ``from_array``.
-
-### Fixed
 
 ## [0.3.3] - 2025-01-11
 

@@ -1,12 +1,11 @@
 from datetime import datetime
 from tqdm import tqdm
+import numpy as np
 
-from mpi4py import MPI
-
-
-comm = MPI.COMM_WORLD
-mpi_rank = comm.Get_rank()
-mpi_nprocs = comm.Get_size()
+from rockverse.config import config
+comm = config.mpi_comm
+mpi_rank = config.mpi_rank
+mpi_nprocs = config.mpi_nprocs
 
 def datetimenow():
     return datetime.now().strftime("[%Y-%m-%d %H:%M:%S]")
@@ -89,3 +88,25 @@ def collective_print(msg, print_time=True):
     if mpi_rank == 0:
         print(f"{datestr}{msg}", flush=True)
     comm.barrier()
+
+
+def auto_chunk_3d(shape, n):
+
+    cdata_shape = np.zeros((n**3, 4), dtype='int64')
+    ind = 0
+    for i in range(1, n+1):
+        for j in range(1, n+1):
+            for k in range(1, n+1):
+                cdata_shape[ind, :] = [i, j, k, i*j*k]
+                ind += 1
+    cdata_shape =  cdata_shape[cdata_shape[:, 3]==n, :]
+
+    for i in range(cdata_shape.shape[0]):
+        cdata_shape[i, 3] = (abs(cdata_shape[i, 0]-cdata_shape[i, 1])
+                             +abs(cdata_shape[i, 0]-cdata_shape[i, 2])
+                             +abs(cdata_shape[i, 1]-cdata_shape[i, 2]))
+    ind = np.argmin(cdata_shape[:, 3])
+
+    chunks = tuple(int(i) for i in np.ceil(np.array(shape).astype(float)/cdata_shape[ind, :3].astype(float)))
+
+    return chunks

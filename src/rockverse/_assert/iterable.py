@@ -1,5 +1,5 @@
 import numpy as np
-from rockverse._assert.utils import collective_raise
+from rockverse.errors import collective_raise
 
 #%% Iterables
 # def any_iterable(varname, var):

@@ -1,5 +1,6 @@
 from rockverse.region.region import Region
 import rockverse._assert as _assert
+import rockverse.errors as collective_raise
 
 class Cylinder(Region):
 
@@ -36,7 +37,7 @@ class Cylinder(Region):
         _assert.iterable.ordered_numbers('v', v)
         _assert.iterable.length('v', v, 3)
         if (v[0]**2 + v[1]**2 + v[2]**2) == 0.0:
-            _assert.collective_raise(ValueError(f'Invalid direction vector v={v}'))
+            collective_raise(ValueError(f'Invalid direction vector v={v}'))
 
         self._v = tuple(v)
 
@@ -90,7 +91,7 @@ class Cylinder(Region):
 
     def _contains_point_source_code(self):
         if (self.v[0]**2 + self.v[1]**2 + self.v[2]**2) == 0.0:
-            _assert.collective_raise(ValueError(f'Cylinder cannot use v={self.v}'))
+            collective_raise(ValueError(f'Cylinder cannot use v={self.v}'))
 
         string = f'''def _is_inside(x, y, z):
         #vector from ref_point to calc_point

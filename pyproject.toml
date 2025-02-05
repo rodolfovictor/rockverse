@@ -49,7 +49,7 @@ dependencies = [
     "sphinx-design",
     "sphinx-gallery",
     "tqdm",
-    "zarr<3",
+    "zarr>=3,<4",
 ]
 
 keywords = ["petrophysics", "well", "log", "well log", "digital rock"]

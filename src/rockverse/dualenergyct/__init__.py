@@ -30,13 +30,14 @@ import numpy as np
 import pandas as pd
 import zarr
 from datetime import datetime
+from mpi4py import MPI
 from rockverse._utils import rvtqdm
 from rockverse.config import config
 
-from mpi4py import MPI
-comm = MPI.COMM_WORLD
-mpi_rank = comm.Get_rank()
-mpi_nprocs = comm.Get_size()
+from rockverse.config import config
+comm = config.mpi_comm
+mpi_rank = config.mpi_rank
+mpi_nprocs = config.mpi_nprocs
 
 from rockverse.voxel_image import (
     VoxelImage,
@@ -46,6 +47,7 @@ from rockverse.voxel_image import (
 from rockverse.voxel_image.histogram import Histogram
 from rockverse.optimize import gaussian_fit
 from rockverse import _assert
+from rockverse.errors import collective_raise
 from rockverse._utils import collective_print
 from rockverse.dualenergyct._periodic_table import ATOMIC_NUMBER_AND_MASS_DICT
 from rockverse.dualenergyct._gpu_functions import (
@@ -186,7 +188,7 @@ class PeriodicTable():
         else:
             element, prop = key.split('/')
         if error or prop not in ('Z', 'M'):
-            _assert.collective_raise(KeyError(
+            collective_raise(KeyError(
                 "Key must be in format '<element>/Z' for atomic number or "
                 "'<element>/M' for atomic mass."))
         return element, prop
@@ -200,7 +202,7 @@ class PeriodicTable():
         element, prop = self._split_key(key)
         ZM_table = self._get_full_table()
         if element not in ZM_table:
-            _assert.collective_raise(KeyError(f"Element {element} not found in database."))
+            collective_raise(KeyError(f"Element {element} not found in database."))
         return ZM_table[element][prop]
 
 
@@ -214,12 +216,12 @@ class PeriodicTable():
         """
         element, prop = self._split_key(key)
         if prop == 'Z' and (not isinstance(value, int) or value<=0):
-            _assert.collective_raise(ValueError('Atomic number Z expects positive integer value.'))
+            collective_raise(ValueError('Atomic number Z expects positive integer value.'))
         if prop == 'M' and (not isinstance(value, (int, float)) or value<=0):
-            _assert.collective_raise(ValueError('Atomic mass M expects positive numeric value.'))
+            collective_raise(ValueError('Atomic mass M expects positive numeric value.'))
         ZM_table = self._get_full_table()
         if element not in ZM_table:
-            _assert.collective_raise(KeyError(
+            collective_raise(KeyError(
                 "New elements must be added using the add_element method."))
         ZM_table[element][prop] = value
         if mpi_rank == 0:
@@ -255,11 +257,11 @@ class PeriodicTable():
         244.345
         """
         if not isinstance(name, str):
-            _assert.collective_raise(ValueError('Element name expects string.'))
+            collective_raise(ValueError('Element name expects string.'))
         if not isinstance(Z, int):
-            _assert.collective_raise(ValueError('Atomic number Z expects integer value.'))
+            collective_raise(ValueError('Atomic number Z expects integer value.'))
         if not isinstance(M, (int, float)):
-            _assert.collective_raise(ValueError('Atomic mass M expects numeric value.'))
+            collective_raise(ValueError('Atomic mass M expects numeric value.'))
         ZM_table = self._get_full_table()
         ZM_table[name] = {'Z': Z, 'M': M}
         if mpi_rank == 0:
@@ -364,7 +366,7 @@ class CalibrationMaterial():
             sattrs = self.zgroup.attrs['calibration_materials'][self.index]
         sattrs = comm.bcast(sattrs, root=0)
         if key not in sattrs:
-            _assert.collective_raise(KeyError(f'{key} (new keys are not allowed).'))
+            collective_raise(KeyError(f'{key} (new keys are not allowed).'))
         if key == 'description':
             _assert.instance('description', value, 'string', (str,))
         if key == 'bulk_density':
@@ -437,10 +439,10 @@ class CalibrationMaterial():
         composition = self['composition']
         missing = [k for k in composition.keys() if k not in atomic_number_and_mass]
         if len(missing) == 1:
-            _assert.collective_raise(Exception(
+            collective_raise(Exception(
                 f"Element {missing[0]} not found in database."))
         elif len(missing) > 1:
-            _assert.collective_raise(Exception(
+            collective_raise(Exception(
                 f"Elements ({', '.join(missing)}) not found in element database."))
 
         # Z, M, quantity
@@ -1166,7 +1168,7 @@ class DualEnergyCTGroup():
             to create the mask array.
         """
         if self.lowECT is None:
-            _assert.collective_raise(ValueError("lowECT must be set before creating mask."))
+            collective_raise(ValueError("lowECT must be set before creating mask."))
         kwargs['overwrite'] = overwrite
         kwargs['fill_value'] = fill_value
         kwargs['store'] = os.path.join(self.zgroup.store.path, 'mask')
@@ -1205,7 +1207,7 @@ class DualEnergyCTGroup():
             to create the segmentation array.
         """
         if self.lowECT is None:
-            _assert.collective_raise(ValueError("lowECT must be set before creating segmentation."))
+            collective_raise(ValueError("lowECT must be set before creating segmentation."))
         kwargs['overwrite'] = overwrite
         kwargs['fill_value'] = fill_value
         kwargs['store'] = os.path.join(self.zgroup.store.path, 'segmentation')
@@ -1213,7 +1215,7 @@ class DualEnergyCTGroup():
         kwargs['field_name'] = field_name
         kwargs['description'] = description
         if np.dtype(kwargs['dtype']).kind != 'u':
-            _assert.collective_raise(ValueError(
+            collective_raise(ValueError(
                 "segmentation array dtype must be unsigned integer."))
         _ = full_like(self.lowECT, **kwargs)
 
@@ -1232,9 +1234,9 @@ class DualEnergyCTGroup():
         _assert.rockverse_instance(image, 'image', ('VoxelImage',))
         _assert.in_group('path', path, ('lowECT', 'highECT', 'mask', 'segmentation'))
         if path == 'mask' and image.dtype.kind != 'b':
-            _assert.collective_raise(ValueError("mask array dtype must be boolean."))
+            collective_raise(ValueError("mask array dtype must be boolean."))
         if path == 'segmentation' and array.dtype.kind != 'u':
-            _assert.collective_raise(ValueError("segmentation array dtype must be unsigned integer."))
+            collective_raise(ValueError("segmentation array dtype must be unsigned integer."))
 
         kwargs.update(**image.meta_data_as_dict)
         kwargs['store'] = os.path.join(self.zgroup.store.path, path)
@@ -1335,7 +1337,7 @@ class DualEnergyCTGroup():
             msg = msg + "    - mask dtype must be boolean.\n"
 
         if msg:
-            _assert.collective_raise(Exception('Invalid input arrays:\n'+msg))
+            collective_raise(Exception('Invalid input arrays:\n'+msg))
 
         return True
 
@@ -1440,7 +1442,7 @@ class DualEnergyCTGroup():
                     coefs[i, 2+3*j] = c[2]
                 except Exception as e:
                     e.add_note(f'On calibration material {i}, {label}')
-                    _assert.collective_raise(e)
+                    collective_raise(e)
         coefs = comm.bcast(coefs, root=0)
         if mpi_rank == 0:
             acoefs = self.zgroup.array(name='CalibrationGaussianCoefficients',
@@ -1778,7 +1780,7 @@ class DualEnergyCTGroup():
             If True (default), print detailed status information.
         """
         def raise_not_complete(status):
-            _assert.collective_raise(ValueError(str(
+            collective_raise(ValueError(str(
                 'Group is not ready:\n- ' + '\n- '.join(status))))
 
         status = _STATUS.copy()
@@ -1846,7 +1848,7 @@ class DualEnergyCTGroup():
         # Check and hash Input data
         status = _STATUS.copy()
         if not(self._check_input_data(status)):
-            _assert.collective_raise(ValueError(str(
+            collective_raise(ValueError(str(
                 'Missing input data:\n- '
                 + '\n- '.join(status[:8]))))
         hash_input_data(self)
@@ -1872,7 +1874,7 @@ class DualEnergyCTGroup():
         if (not restart
             and need_coefficient_matrices(self)
             and any(k in self.zgroup for k in ('matrixl', 'matrixh'))):
-            _assert.collective_raise(Exception(
+            collective_raise(Exception(
                 'Calibration coefficient matrices are outdated. '
                 'Run with restart=True to restart the simulations from scratch.'))
 
@@ -1946,11 +1948,11 @@ class DualEnergyCTGroup():
                         msg = msg + f"\n - {gr} array failed checksum."
             msg = comm.bcast(msg, root=0)
             if msg:
-                _assert.collective_raise(Exception('\n'.join((
+                collective_raise(Exception('\n'.join((
                     "Output arrays' hashes do not match:"+msg,
                     "Run with restart=True to restart the simulations from scratch."))))
         elif any(exist):
-            _assert.collective_raise(Exception('Missing some output arrays. Run with restart=True to restart the simulations from scratch.'))
+            collective_raise(Exception('Missing some output arrays. Run with restart=True to restart the simulations from scratch.'))
         else:
             create = True
 
