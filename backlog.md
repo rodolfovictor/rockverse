@@ -1,25 +1,24 @@
 # Backlog
 
+PUT DATA IN VOXELIMAGE CREATE
+
 NOW MIGRATING TO ZARR 3
-   - Finished reviewing VoxelImage functions
-   - Ensure VoxelImage voxel order C
    - Pin VoxelImage 3D
    - Assert VoxelImage Numeric or boolean
-   - Write a collective __setitem__
-      - COLLECTIVE SET SEND DATA TO MPI PROCESSOS
-      - COLLECTIVE SET ONLY AFTER FIXIN ALL ORITINAL SETITEM TO FAST VOXELIMAGE._ARRAY[...]=...
-    - SPEED UP VOXELIMAGE SAVE WHEN NOT RECHUNKING
-
-CHECK GENERAL ROCKVERSE OPEN NOW IN ZARR 3
+   - SPEED UP VOXELIMAGE SAVE WHEN NOT RECHUNKING
 
 MIGRATE DUAL ENERGY TO ZARR 3
 
+DEVELOP GENERAL HISTOGRAM
+
+DEVELOP CONFIG whith methods like dual energy standard materials
 
 ## Tasks to be completed
 
 - Fine-tune threads per block GPU
     - Adjust GPU thread configurations for optimized performance in parallel computing tasks.
     - Investigate the best thread-per-block configuration for varying workloads.
+    - Check for NumbaPerformanceWarning
 
 - Support for 128-bit data in importing raw data
     - Extend the raw data import functionality to support 128-bit data types.

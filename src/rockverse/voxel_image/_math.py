@@ -672,15 +672,18 @@ def _array_math(array1,
     for block_id in rvtqdm(range(array1.nchunks), desc=desc, unit='chunk'):
         if block_id % mpi_nprocs != mpi_rank:
             continue
-        box, bex, boy, bey, boz, bez = array1.chunk_slice_indices(block_id)
-        carray1 = array1._array[box:bex, boy:bey, boz:bez].copy()
+        chunk_slices = array1.chunk_slice_indices(block_id)
+        box = chunk_slices[0].start
+        boy = chunk_slices[1].start
+        boz = chunk_slices[2].start
+        carray1 = array1._array[chunk_slices].copy()
         skip = np.zeros_like(carray1, dtype='|b1') #voxels that won't be processed
         if array2 is not None:
-            carray2 = array2._array[box:bex, boy:bey, boz:bez].astype(dtype)
+            carray2 = array2._array[chunk_slices].astype(dtype)
         if mask is not None:
-            cmask = mask._array[box:bex, boy:bey, boz:bez].copy()
+            cmask = mask._array[chunk_slices].copy()
         if segmentation is not None:
-            csegmentation = segmentation._array[box:bex, boy:bey, boz:bez].astype('u8')
+            csegmentation = segmentation._array[chunk_slices].astype('u8')
 
         if use_gpu:
             threadsperblock, blockspergrid = _define_grid(carray1.shape)
@@ -718,5 +721,5 @@ def _array_math(array1,
             else:
                 OP(carray1, value, skip)
 
-        array1._array[box:bex, boy:bey, boz:bez] = carray1.copy()
+        array1._array[chunk_slices] = carray1.copy()
     comm.barrier()

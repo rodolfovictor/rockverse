@@ -103,13 +103,14 @@ def open(store, **kwargs):
     if status != 'OK':
         _collective_raise(ValueError(f"{store} does not contain valid RockVerse data."))
 
-    z = zarr.open(store, **kwargs)
+    with zarr.config.set({'array.order': 'C'}):
+        z = zarr.open(store, **kwargs)
     rv_data_type = z.attrs['_ROCKVERSE_DATATYPE']
 
     if rv_data_type == 'VoxelImage':
-        return voxel_image.VoxelImage(store=z.store)
+        return voxel_image.VoxelImage(z)
 
     if rv_data_type == 'DualEnergyCTGroup':
-        return dualenergyct.DualEnergyCTGroup(store=z.store)
+        return dualenergyct.DualEnergyCTGroup(z)
 
     _collective_raise(ValueError(f"{store} does not contain valid RockVerse data."))

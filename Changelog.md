@@ -14,9 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Zarr array attributes and methods in VoxelImage class are now only
   accessible through class attribute ``VoxelImage.array``.
   Old python scripts will crash if not changed.
-- VoxelImage.collective_getitem is deprecated and was removed.
-  ``VoxelImage.__getitem__`` now is always collective. For non-collective
+- ``VoxelImage.collective_getitem`` is deprecated and was removed.
+  ``VoxelImage.__getitem__`` now is always MPI collective. For non-collective
   getitem, get from ``VoxelImage.array`` instead.
+- ``VoxelImage.__setitem__`` implemented and is always MPI collective. For non-collective
+  setitem, set ``VoxelImage.array`` instead.
 
 ### Fixed
 - ???

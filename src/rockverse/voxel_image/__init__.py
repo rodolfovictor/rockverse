@@ -21,22 +21,15 @@ specialists through high-level functions.
 
 """
 
-#from rockverse.voxel_image.histogram import Histogram
-
 import json
-
 import zarr
 from zarr.errors import ContainsArrayError
-
 import numpy as np
-
 from rockverse import _assert
 from rockverse.errors import collective_raise
 from rockverse.voxel_image._math import _array_math
 from rockverse.voxel_image._finneypack import fill_finney_pack
-from rockverse._utils import rvtqdm, auto_chunk_3d, expand_ellipsis
-
-
+from rockverse._utils import rvtqdm, auto_chunk_3d
 from rockverse.config import config
 comm = config.mpi_comm
 mpi_rank = config.mpi_rank
@@ -71,18 +64,16 @@ def create(shape,
         or boolean. Ex: ``dtype=int``, ``dtype='u2'``, ``dtype='f4', ``dtype=complex'.
     chunks : iterable of ints | int | 'nprocs' | None, optional
         If iterable of integers, define the chunk shape. If integer, chunks will
-        be as close as possible to cubic shapes, such that the number of chunks
-        matches this input number. If 'nprocs', the number of chunks will match
+        be as close as possible to cubic shapes, and the number of chunks will
+        match this input number. If 'nprocs', the number of chunks will match
         the number of MPI processes. If None, False, empty tuple or any other
         object that makes ``not chunks`` True, chunk shape will be set to the
         array shape, i.e., single chunk for the whole array.
         Default is 'nprocs'.
-        .. note:
-            Note that integer options for chunks different from ZARR!!!!!!!!!!
     store :  str | zarr.storage.StoreLike | None, optional
         A string with the file path in the local file disk,
         or any valid `Zarr store <https://zarr.readthedocs.io/en/stable/user-guide/storage.html>`_,
-        or ``None`` to use Memory store. Default is False.
+        or ``None`` to use Memory store. Default is None.
     overwrite : bool, optional
         If True, delete all pre-existing data in the store at the specified path
         before creating the new image. Default value is False.
@@ -103,7 +94,7 @@ def create(shape,
         Image voxel length unit.
     **kwargs
         Additional keyword arguments to be passed to the underlying
-        `Zarr.create_array <https://zarr.readthedocs.io/en/stable/api/zarr/index.html#zarr.create_array>`_ function.
+        `Zarr.create_array https://zarr.readthedocs.io/en/stable/api/zarr/index.html#zarr.create_array>`_ function.
 
     Returns
     -------
@@ -140,7 +131,6 @@ def create(shape,
     kwargs['store'] = store
     kwargs['overwrite'] = overwrite
     kwargs['store'] = store
-    kwargs['order'] = 'C'
     kwargs['zarr_format'] = 3
     kwargs['attributes'] = {
         '_ROCKVERSE_DATATYPE': 'VoxelImage',
@@ -157,7 +147,8 @@ def create(shape,
         msg = ''
         if mpi_rank == 0:
             try:
-                z = zarr.create_array(**kwargs)
+                with zarr.config.set({'array.order': 'C'}):
+                    z = zarr.create_array(**kwargs)
             except Exception as e:
                 msg = f"{e.__class__}: {e}"
                 pass
@@ -165,9 +156,11 @@ def create(shape,
         if msg:
             collective_raise(Exception(msg))
         comm.barrier()
-        z = zarr.open(store=store, mode='r+')
+        with zarr.config.set({'array.order': 'C'}):
+            z = zarr.open(store=store, mode='r+')
     else:
-        z = zarr.create_array(**kwargs)
+        with zarr.config.set({'array.order': 'C'}):
+            z = zarr.create_array(**kwargs)
     comm.barrier()
     return VoxelImage(z)
 
@@ -430,8 +423,8 @@ def from_array(array, **kwargs):
     desc = 'Copying array'
     for block_id in rvtqdm(range(z.nchunks), desc=desc, unit='chunk'):
         if block_id % mpi_nprocs == mpi_rank:
-            box, bex, boy, bey, boz, bez = z.chunk_slice_indices(block_id)
-            z._array[box:bex, boy:bey, boz:bez] = array[box:bex, boy:bey, boz:bez]
+            chunk_indices = z.chunk_slice_indices(block_id)
+            z._array[chunk_indices] = array[chunk_indices]
     comm.barrier()
     return z
 
@@ -675,8 +668,8 @@ def import_raw(rawfile,
         desc = f"({kwargs['field_name']}) {desc}"
     for block_id in rvtqdm(range(z.nchunks), desc=desc, unit='chunk'):
         if block_id % mpi_nprocs == mpi_rank:
-            box, bex, boy, bey, boz, bez = z.chunk_slice_indices(block_id)
-            z._array[box:bex, boy:bey, boz:bez] = data[box:bex, boy:bey, boz:bez]
+            chunk_indices = z.chunk_slice_indices(block_id)
+            z._array[chunk_indices] = data[chunk_indices]
     comm.barrier()
     return z
 
@@ -703,23 +696,37 @@ class VoxelImage():
     def __init__(self, z):
         self._array = z
 
+
+    def __repr__(self):
+        return f"<VoxelImage shape={self.shape} dtype={self.dtype} store={self._array.store}>"
+
+
     def __getitem__(self, selection):
         #Time consuming: need to loop over all blocks to guarantee fancy indexing
         array = self._array[selection]*0
         for block_id in range(self.nchunks):
             root = block_id % mpi_nprocs
-            box, bex, boy, bey, boz, bez = self.chunk_slice_indices(block_id)
+            chunk_indices = self.chunk_slice_indices(block_id)
             temp = zarr.zeros_like(self, dtype=self._array.dtype, store=None)
             if mpi_rank == root:
-                block = self._array[box:bex, boy:bey, boz:bez]
+                block = self._array[chunk_indices]
             else:
-                block = temp[box:bex, boy:bey, boz:bez]
-            temp[box:bex, boy:bey, boz:bez] = comm.bcast(block, root=root)
+                block = temp[chunk_indices]
+            temp[chunk_indices] = comm.bcast(block, root=root)
             array += temp[selection]
         return array
 
-    def __repr__(self):
-        return f"<VoxelImage shape={self.shape} dtype={self.dtype} store={self._array.store}>"
+
+    def __setitem__(self, selection, array):
+        print('ENTER')
+        temp = zarr.create_array(store=None, shape=self.shape, dtype=self.dtype)
+        for block_id in range(self.nchunks):
+            if block_id % mpi_nprocs == mpi_rank:
+                chunk_indices = self.chunk_slice_indices(block_id)
+                temp[chunk_indices] = self._array[chunk_indices].copy()
+                temp[selection] = array
+                self._array[chunk_indices] = temp[chunk_indices].copy()
+
 
     @property
     def shape(self):
@@ -944,7 +951,7 @@ class VoxelImage():
                     self.oz + (self.nz-1)*self.hz))
 
 
-    def chunk_slice_indices(self, chunk_id):
+    def chunk_slice_indices(self, chunk_id, return_indices=False):
         """
         Calculate the slice indices for a given Zarr chunk.
 
@@ -960,9 +967,11 @@ class VoxelImage():
         Returns
         -------
         tuple
-            A tuple containing six integers: (box, bex, boy, bey, boz, bez).
-            These represent the start and end indices for the block in the
-            x, y, and z directions, respectively.
+            If ``return_indices`` is True, a tuple containing six integers:
+            (box, bex, boy, bey, boz, bez). These represent the start and end
+            indices for the block in the x, y, and z directions, respectively.
+            If ``return_indices`` is False, a tuple containing the three slices:
+            (slice(box, bex), slice(boy, bey), slice(boz, bez)).
         """
         if chunk_id >= self.nchunks:
             raise ValueError(f'chunk_id={chunk_id}: array has only {self.nchunks} chunks.')
@@ -978,7 +987,9 @@ class VoxelImage():
         boz = bk*self.chunks[2]
         bez = min(boz+self.chunks[2], self.shape[2])
 
-        return box, bex, boy, bey, boz, bez
+        if return_indices:
+            return box, bex, boy, bey, boz, bez
+        return (slice(box, bex), slice(boy, bey), slice(boz, bez))
 
 
     def get_voxel_coordinates(self, i, j, k):
@@ -1295,7 +1306,7 @@ class VoxelImage():
             for blj in range(Nblocks[1]):
                 for blk in range(Nblocks[2]):
                     sender_id = bli + blj*Nblocks[0] + blk*Nblocks[0]*Nblocks[1]
-                    box, bex, boy, bey, boz, bez = self.chunk_slice_indices(sender_id)
+                    box, bex, boy, bey, boz, bez = self.chunk_slice_indices(sender_id, return_indices=True)
                     tag = 0
                     for i in [-1, 0, 1]:
                         if not (0 <= (bli+i) < Nblocks[0]):
@@ -1351,9 +1362,9 @@ class VoxelImage():
         v = empty_like(self, store=store, **kwargs)
         for block_id in rvtqdm(range(v.nchunks), desc='Saving', unit='chunk'):
             if block_id % mpi_nprocs == mpi_rank:
-                box, bex, boy, bey, boz, bez = v.chunk_slice_indices(block_id)
+                chunk_indices = v.chunk_slice_indices(block_id)
                 if mpi_rank == 0:
-                    v._array[box:bex, boy:bey, boz:bez] = self[box:bex, boy:bey, boz:bez]
+                    v._array[chunk_indices] = self[chunk_indices]
 
 
     def export_raw(self, filename, dtype=None, order='F', byteorder='=',
@@ -1464,8 +1475,8 @@ class VoxelImage():
                          shape=self.shape, order=order)
         for chunk_id in rvtqdm(range(self.nchunks), desc='Exporting raw file', unit='chunk'):
             if chunk_id % mpi_nprocs == mpi_rank:
-                box, bex, boy, bey, boz, bez = self.chunk_slice_indices(chunk_id)
-                file[box:bex, boy:bey, boz:bez] = self._array[box:bex, boy:bey, boz:bez]
+                chunk_indices = self.chunk_slice_indices(chunk_id)
+                file[chunk_indices] = self._array[chunk_indices]
         comm.barrier()
         file.flush()
         comm.barrier()

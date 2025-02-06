@@ -34,7 +34,7 @@ The VoxelImage class
    .. rubric:: Basic methods summary
 
    .. autosummary::
-      ~VoxelImage.chunk_slice_indices
+      ~VoxelImage.chunk_slice
       ~VoxelImage.get_voxel_coordinates
       ~VoxelImage.get_closest_voxel_index
       ~VoxelImage.check_mask_and_segmentation

@@ -33,9 +33,9 @@ def hash_array(array, name, hash_buffer_size):
     buffer = hash_buffer_size
     local_md5 = ['']*array.nchunks
     for block_id in rvtqdm(range(array.nchunks), desc=f'Hashing {name}', unit='chunk'):
-        box, bex, boy, bey, boz, bez = array.chunk_slice_indices(block_id)
+        chunk_slices = array.chunk_slice_indices(block_id)
         if block_id % mpi_nprocs == mpi_rank:
-            block = array[box:bex, boy:bey, boz:bez]
+            block = array[chunk_slices]
             local_md5[block_id] = hashlib.md5(block).hexdigest()
     comm.barrier()
     global_md5 = hashlib.md5()

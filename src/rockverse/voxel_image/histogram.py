@@ -145,7 +145,7 @@ class Histogram():
         for block_id in rvtqdm(range(self._image.nchunks), desc=f'Histogram {self._image.field_name} (min/max)', unit='chunk'):
             if block_id % mpi_nprocs != mpi_rank:
                 continue
-            box, bex, boy, bey, boz, bez = self._image.chunk_slice_indices(block_id)
+            box, bex, boy, bey, boz, bez = self._image.chunk_slice_indices(block_id, return_indices=True)
             block_data = self._image[box:bex, boy:bey, boz:bez]
             skip = np.zeros((bex-box, bey-boy, bez-boz), dtype='bool')
             if self._mask is not None:
