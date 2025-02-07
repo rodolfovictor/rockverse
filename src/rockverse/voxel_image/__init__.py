@@ -3,8 +3,8 @@ Overview
 --------
 
 This module defines the basic class for RockVerse Digital Rock Petrophysics,
-the VoxelImage class, intended to contain voxelized images and scalar fields in
-general. The VoxelImage class builds upon
+the VoxelImage class, intended to contain 3D voxelized images and scalar fields
+in general. The VoxelImage class builds upon
 `Zarr arrays <https://zarr.readthedocs.io/en/stable/user-guide/arrays.html>`_
 by adding attributes and methods specifically designed for digital rock
 petrophysics in a high-performance, parallel computing environment.
@@ -101,17 +101,30 @@ def create(shape,
     VoxelImage
         The created ``VoxelImage`` object.
     """
+    # Check for valid shape ---------------------
     _assert.iterable.ordered_integers_positive('shape', shape)
+    _assert.iterable.length('shape', shape, 3)
+
+    # Check for valid dtype ---------------------
+    _assert.condition('dtype', dtype)
+
+    # Check for valid voxel_length --------------
     if voxel_length is not None:
         _voxel_length = voxel_length
     else:
         _voxel_length = [1 for k in shape]
     _assert.iterable.ordered_numbers_positive('voxel_length', _voxel_length)
+    _assert.iterable.length('voxel_length', _voxel_length, 3)
+
+    # Check for valid voxel_origin --------------
     if voxel_origin is not None:
         _voxel_origin = voxel_origin
     else:
         _voxel_origin = [0 for k in shape]
+    _assert.iterable.ordered_numbers_positive('voxel_origin', _voxel_origin)
+    _assert.iterable.length('voxel_origin', _voxel_origin, 3)
 
+    # Check for valid chunks --------------------
     if not chunks:
         _chunks = shape
     elif chunks == 'nprocs':
@@ -120,9 +133,13 @@ def create(shape,
         _chunks = auto_chunk_3d(shape, chunks)
     else:
         _chunks = chunks
+    _assert.iterable.ordered_numbers_positive('chunks', _chunks)
+    _assert.iterable.length('chunks', _chunks, 3)
 
-    _assert.iterable.ordered_numbers('voxel_origin', _voxel_origin)
+    # Check for valid overwrite -----------------
     _assert.instance('overwrite', overwrite, 'boolean', (bool,))
+
+    # Check for valid voxel_unit ----------------
     _assert.instance('voxel_unit', voxel_unit, 'string', (str,))
 
     kwargs['shape'] = shape
@@ -1333,16 +1350,16 @@ class VoxelImage():
                                     self._array[slicex, slicey, slicez] = data.copy()
 
 
-    def save(self, store, **kwargs):
+    def copy(self, store, **kwargs):
         """
         :bdg-info:`Parallel`
         :bdg-info:`CPU`
 
-        Save a copy of the voxel image to the local file system.
+        Save a copy of the voxel image to a new store.
 
         This method supports re-chunking by passing ``chunks`` in ``**kwargs``.
-        This is a pottentially slow method. While data access is parallel, data
-        writing is serial to ensure correct rechunking.
+        This is a pottentially slow method as rechunking requires collective
+        getitem and setitem.
 
         Parameters
         ----------
@@ -1355,16 +1372,14 @@ class VoxelImage():
 
         Returns
         -------
-        None
-            The function does not return any objects; it writes a copy to the file system.
+        VoxelImage
+            The created copy.
         """
         _assert.zarr_localstore('store', store)
         v = empty_like(self, store=store, **kwargs)
-        for block_id in rvtqdm(range(v.nchunks), desc='Saving', unit='chunk'):
-            if block_id % mpi_nprocs == mpi_rank:
-                chunk_indices = v.chunk_slice_indices(block_id)
-                if mpi_rank == 0:
-                    v._array[chunk_indices] = self[chunk_indices]
+        for block_id in rvtqdm(range(v.nchunks), desc='Copying', unit='chunk'):
+            chunk_indices = v.chunk_slice_indices(block_id)
+            v[chunk_indices] = self[chunk_indices].copy()
 
 
     def export_raw(self, filename, dtype=None, order='F', byteorder='=',

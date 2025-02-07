@@ -7,18 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] - 2025-02-??
 ### Added
 - Version checks for main dependencies at module import time.
+- VoxelImage class
+  - Now can handle complex floating-point
+  - ``VoxelImage.__setitem__`` implemented and is always MPI collective.
 
 ### Changed
-- RockVerse data migrated to Zarr 3.0.
-- VoxelImage class is not directly inheritance of Zarr array anymore.
-  Zarr array attributes and methods in VoxelImage class are now only
-  accessible through class attribute ``VoxelImage.array``.
-  Old python scripts will crash if not changed.
-- ``VoxelImage.collective_getitem`` is deprecated and was removed.
-  ``VoxelImage.__getitem__`` now is always MPI collective. For non-collective
-  getitem, get from ``VoxelImage.array`` instead.
-- ``VoxelImage.__setitem__`` implemented and is always MPI collective. For non-collective
-  setitem, set ``VoxelImage.array`` instead.
+- **Major change**: RockVerse data migrated to Zarr 3.0.
+- VoxelImage class
+  - Not directly inheritance of Zarr array anymore.
+    Zarr array attributes and methods in VoxelImage class are now only
+    accessible through class attribute ``VoxelImage.array``.
+    Old python scripts will crash if not changed.
+  - ``VoxelImage.collective_getitem`` is deprecated and was removed.
+    ``VoxelImage.__getitem__`` now is always MPI collective. For non-collective
+    getitem, get from ``VoxelImage.array`` instead.
+    For non-collective setitem, set ``VoxelImage.array`` instead.
+  - ``VoxelImage.save`` is now ``VoxelImage.copy`` and can save a re-chunked
+    copy to any Zarr store.
+  - Restricted to 3D arrays for performance.
 
 ### Fixed
 - ???
@@ -35,7 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.3.3] - 2025-01-11
 
 ### Fixed
-- Pinning zarr and Matplotlib versions
+- Pinning Zarr and Matplotlib versions
 - Minor bugs in voxel image orthogonal viewer
 
 ## [0.3.0] - 2025-01-10
@@ -53,8 +59,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - VoxelImage histogram
     - Orthogonal Viewer
 
-### Changed
-- None
 
 ### Fixed
 - Zarr parameters not being passed to VoxelImage create function.
@@ -75,8 +79,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Proportions in logo horizontal mode.
 
-### Fixed
-- None
 
 ## [0.0.1] - 2024-09-15
 ### Added

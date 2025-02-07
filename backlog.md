@@ -1,17 +1,19 @@
 # Backlog
 
 PUT DATA IN VOXELIMAGE CREATE
+DEPRECATE from_array
 
 NOW MIGRATING TO ZARR 3
-   - Pin VoxelImage 3D
-   - Assert VoxelImage Numeric or boolean
    - SPEED UP VOXELIMAGE SAVE WHEN NOT RECHUNKING
-
-MIGRATE DUAL ENERGY TO ZARR 3
+   - MIGRATE DUAL ENERGY TO ZARR 3
 
 DEVELOP GENERAL HISTOGRAM
 
 DEVELOP CONFIG whith methods like dual energy standard materials
+
+DEPRECATE ASSERT drpdtype
+
+VOXELIMAGE EXPORT RAW COMPLEX IN REAL AND IMAGINARY
 
 ## Tasks to be completed
 
