@@ -496,7 +496,6 @@ class DualEnergyCTGroup():
             except Exception:
                 kwargs['overwrite'] = True
             if 'overwrite' in kwargs and kwargs['overwrite']:
-                kwargs['cache_attrs'] = False
                 z = zarr.group(store=store, **kwargs)
                 z.attrs['_ROCKVERSE_DATATYPE'] = 'DualEnergyCTGroup'
                 z.attrs['tol'] = 1e-12
@@ -546,7 +545,6 @@ class DualEnergyCTGroup():
         comm.barrier()
         self.zgroup = zarr.open_group(store,
                                       mode='r+',
-                                      cache_attrs=False,
                                       )
         self._calibration_material0 = CalibrationMaterial(self.zgroup, '0')
         self._calibration_material1 = CalibrationMaterial(self.zgroup, '1')
@@ -568,8 +566,8 @@ class DualEnergyCTGroup():
         Returns ``None`` if not set. Can only be changed through the
         :ref:`array creation methods <dect_array_creation>`.
         """
-        if zarr.storage.contains_array(self.zgroup.store, '/lowECT'):
-            return VoxelImage(store=self.zgroup.store, path='/lowECT')
+        if 'lowECT' in self.zgroup:
+            return VoxelImage(self.zgroup['lowECT'])
         return None
 
     @property
@@ -579,8 +577,8 @@ class DualEnergyCTGroup():
         Returns ``None`` if not set. Can only be changed through the
         :ref:`array creation methods <dect_array_creation>`.
         """
-        if zarr.storage.contains_array(self.zgroup.store, '/highECT'):
-            return VoxelImage(store=self.zgroup.store, path='/highECT')
+        if 'highECT' in self.zgroup:
+            return VoxelImage(self.zgroup['highECT'])
         return None
 
     @property
@@ -591,9 +589,10 @@ class DualEnergyCTGroup():
         Can only be changed through the
         :ref:`array creation methods <dect_array_creation>`.
         """
-        if zarr.storage.contains_array(self.zgroup.store, '/mask'):
-            return VoxelImage(store=self.zgroup.store, path='/mask')
+        if 'mask' in self.zgroup:
+            return VoxelImage(self.zgroup['mask'])
         return None
+
 
     @property
     def segmentation(self):
@@ -603,8 +602,8 @@ class DualEnergyCTGroup():
         histograms. Can only be changed through the
         :ref:`array creation methods <dect_array_creation>`.
         """
-        if zarr.storage.contains_array(self.zgroup.store, '/segmentation'):
-            return VoxelImage(store=self.zgroup.store, path='/segmentation')
+        if 'segmentation' in self.zgroup:
+            return VoxelImage(self.zgroup['segmentation'])
         return None
 
     @property
@@ -614,8 +613,8 @@ class DualEnergyCTGroup():
         Minimum value is taken as the lower boxplot whisker boundary
         from the Monte Carlo inversion.
         """
-        if zarr.storage.contains_array(self.zgroup.store, '/rho_min'):
-            return VoxelImage(store=self.zgroup.store, path='/rho_min')
+        if 'rho_min' in self.zgroup:
+            return VoxelImage(self.zgroup['rho_min'])
         return None
 
     @property
@@ -625,8 +624,8 @@ class DualEnergyCTGroup():
         values per voxel (Q1 or 25th percentile) from the Monte Carlo
         inversion.
         """
-        if zarr.storage.contains_array(self.zgroup.store, '/rho_p25'):
-            return VoxelImage(store=self.zgroup.store, path='/rho_p25')
+        if 'rho_p25' in self.zgroup:
+            return VoxelImage(self.zgroup['rho_p25'])
         return None
 
     @property
@@ -636,8 +635,8 @@ class DualEnergyCTGroup():
         per voxel (Q2 or 50th percentile) from the Monte Carlo
         inversion.
         """
-        if zarr.storage.contains_array(self.zgroup.store, '/rho_p50'):
-            return VoxelImage(store=self.zgroup.store, path='/rho_p50')
+        if 'rho_p50' in self.zgroup:
+            return VoxelImage(self.zgroup['rho_p50'])
         return None
 
     @property
@@ -647,8 +646,8 @@ class DualEnergyCTGroup():
         values per voxel (Q3 or 75th percentile) from the Monte Carlo
         inversion.
         """
-        if zarr.storage.contains_array(self.zgroup.store, '/rho_p75'):
-            return VoxelImage(store=self.zgroup.store, path='/rho_p75')
+        if 'rho_p75' in self.zgroup:
+            return VoxelImage(self.zgroup['rho_p75'])
         return None
 
     @property
@@ -658,8 +657,8 @@ class DualEnergyCTGroup():
         Maximum value is taken as the upper boxplot whisker boundary
         from the Monte Carlo inversion.
         """
-        if zarr.storage.contains_array(self.zgroup.store, '/rho_max'):
-            return VoxelImage(store=self.zgroup.store, path='/rho_max')
+        if 'rho_max' in self.zgroup:
+            return VoxelImage(self.zgroup['rho_max'])
         return None
 
     @property
@@ -669,8 +668,8 @@ class DualEnergyCTGroup():
         Minimum value is taken as the lower boxplot whisker boundary
         from the Monte Carlo inversion.
         """
-        if zarr.storage.contains_array(self.zgroup.store, '/Z_min'):
-            return VoxelImage(store=self.zgroup.store, path='/Z_min')
+        if 'Z_min' in self.zgroup:
+            return VoxelImage(self.zgroup['Z_min'])
         return None
 
     @property
@@ -680,8 +679,8 @@ class DualEnergyCTGroup():
         number values per voxel (Q1 or 25th percentile) from the Monte
         Carlo inversion.
         """
-        if zarr.storage.contains_array(self.zgroup.store, '/Z_p25'):
-            return VoxelImage(store=self.zgroup.store, path='/Z_p25')
+        if 'Z_p25' in self.zgroup:
+            return VoxelImage(self.zgroup['Z_p25'])
         return None
 
     @property
@@ -691,8 +690,8 @@ class DualEnergyCTGroup():
         number per voxel (Q2 or 50th percentile) from the Monte Carlo
         inversion.
         """
-        if zarr.storage.contains_array(self.zgroup.store, '/Z_p50'):
-            return VoxelImage(store=self.zgroup.store, path='/Z_p50')
+        if 'Z_p50' in self.zgroup:
+            return VoxelImage(self.zgroup['Z_p50'])
         return None
 
     @property
@@ -702,8 +701,8 @@ class DualEnergyCTGroup():
         number values per voxel (Q3 or 75th percentile) from the Monte
         Carlo inversion.
         """
-        if zarr.storage.contains_array(self.zgroup.store, '/Z_p75'):
-            return VoxelImage(store=self.zgroup.store, path='/Z_p75')
+        if 'Z_p75' in self.zgroup:
+            return VoxelImage(self.zgroup['Z_p75'])
         return None
 
     @property
@@ -713,8 +712,8 @@ class DualEnergyCTGroup():
         Maximum value is taken as the upper boxplot whisker boundary
         from the Monte Carlo inversion.
         """
-        if zarr.storage.contains_array(self.zgroup.store, '/Z_max'):
-            return VoxelImage(store=self.zgroup.store, path='/Z_max')
+        if 'Z_max' in self.zgroup:
+            return VoxelImage(self.zgroup['Z_max'])
         return None
 
     @property
@@ -722,10 +721,9 @@ class DualEnergyCTGroup():
         """
         Voxel image with the number of valid Monte Carlo results for each voxel.
         """
-        if zarr.storage.contains_array(self.zgroup.store, '/valid'):
-            return VoxelImage(store=self.zgroup.store, path='/valid')
+        if 'valid' in self.zgroup:
+            return VoxelImage(self.zgroup['valid'])
         return None
-
 
     # Calibration materials and periodic table ----------------------
 
@@ -1220,7 +1218,7 @@ class DualEnergyCTGroup():
         _ = full_like(self.lowECT, **kwargs)
 
 
-    def copy_image(self, image, path, **kwargs):
+    def copy_image(self, image, name, **kwargs):
         """
         Copy an existing voxel image into the DECT group.
 
@@ -1228,19 +1226,20 @@ class DualEnergyCTGroup():
         ----------
         image : VoxelImage
             The original voxel image to be copied.
-        path : {'lowECT', 'highECT', 'mask', 'segmentation'}
+        name : {'lowECT', 'highECT', 'mask', 'segmentation'}
             The path within the DECT group where the array will be stored.
         """
         _assert.rockverse_instance(image, 'image', ('VoxelImage',))
-        _assert.in_group('path', path, ('lowECT', 'highECT', 'mask', 'segmentation'))
-        if path == 'mask' and image.dtype.kind != 'b':
+        _assert.in_group('path', name, ('lowECT', 'highECT', 'mask', 'segmentation'))
+        if name == 'mask' and image.dtype.kind != 'b':
             collective_raise(ValueError("mask array dtype must be boolean."))
-        if path == 'segmentation' and array.dtype.kind != 'u':
+        if name == 'segmentation' and image.dtype.kind != 'u':
             collective_raise(ValueError("segmentation array dtype must be unsigned integer."))
 
         kwargs.update(**image.meta_data_as_dict)
-        kwargs['store'] = os.path.join(self.zgroup.store.path, path)
-        z = from_array(image, **kwargs)
+        kwargs['store'] = self.zgroup.store
+        kwargs['name'] = name
+        _ = image.copy(**kwargs)
 
 
     def _check_input_data(self, status):

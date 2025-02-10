@@ -1,7 +1,7 @@
 from datetime import datetime
 from tqdm import tqdm
 import numpy as np
-
+from rockverse.errors import collective_raise
 from rockverse.config import config
 comm = config.mpi_comm
 mpi_rank = config.mpi_rank
@@ -31,33 +31,7 @@ def copy_docstring(func_to_copy_from):
     return decorator
 
 
-def resolve_index(self, index):
-    """
-    Resolve index by expanding ellipses and converting boolean masks.
-    """
-    if not isinstance(index, tuple):
-        index = (index,)  # Ensure the index is always a tuple
-
-    # Step 1: Expand ellipsis (...) into slices
-    index = expand_ellipsis(self, index)
-
-    # Step 2: Convert boolean masks into integer indices
-    resolved_index = []
-    for _, idx in enumerate(index):
-        if isinstance(idx, (np.ndarray, list)) and np.issubdtype(np.array(idx).dtype, np.bool_):
-            # Ensure shape compatibility
-            if np.array(idx).shape != self.shape:
-                raise IndexError(f"Boolean index shape {idx.shape} does not match array shape {self.shape}")
-            # Convert boolean mask to integer indices
-            boolean_indices = np.nonzero(idx)
-            resolved_index.extend(boolean_indices[i] for i in range(len(boolean_indices)))
-        else:
-            resolved_index.append(idx)
-
-    return tuple(resolved_index)
-
-
-def expand_ellipsis(self, index):
+def expand_ellipsis(array_like, index):
     """
     Replace Ellipsis (...) in the index with the correct number of slices.
     """
@@ -67,7 +41,7 @@ def expand_ellipsis(self, index):
     if ellipsis_count > 1:
         raise IndexError("An index can only have a single ellipsis ('...').")
 
-    ndim = self.ndim  # Total dimensions of the array
+    ndim = array_like.ndim  # Total dimensions of the array
     for item in index:
         if item is Ellipsis:
             # Calculate how many slices are needed to fill the ellipsis
@@ -81,6 +55,53 @@ def expand_ellipsis(self, index):
         result.append(slice(None))
 
     return tuple(result)
+
+
+def resolve_index(array_like, index):
+    """
+    Resolve index by expanding ellipses and converting boolean masks.
+    """
+    if not isinstance(index, tuple):
+        index = (index,)  # Ensure the index is always a tuple
+
+    # Step 1: Expand ellipsis (...) into slices
+    index = expand_ellipsis(array_like, index)
+
+    # Step 2: Convert boolean masks into integer indices
+    resolved_index = []
+    for _, idx in enumerate(index):
+        if isinstance(idx, (np.ndarray, list)) and np.issubdtype(np.array(idx).dtype, np.bool_):
+            # Ensure shape compatibility
+            if np.array(idx).shape != array_like.shape:
+                raise IndexError(f"Boolean index shape {idx.shape} does not match array shape {array_like.shape}")
+            # Convert boolean mask to integer indices
+            boolean_indices = np.nonzero(idx)
+            resolved_index.extend(boolean_indices[i] for i in range(len(boolean_indices)))
+        else:
+            resolved_index.append(idx)
+
+    return tuple(resolved_index)
+
+
+def index_bounding_box(array_like, index):
+    resolved_index = resolve_index(array_like, index)
+    bbox = []
+    shape = array_like.shape
+    for i, sl in enumerate(resolved_index):
+        if np.dtype(type(sl)).kind in 'ui':
+            bbox.append((sl, sl+1))
+        elif isinstance(sl, slice):
+            if sl.step is not None and sl.step <= 0:
+                collective_raise(IndexError('Slice step must be positive.'))
+            aux = range(sl.start if sl.start is not None else 0,
+                        sl.stop if sl.stop is not None else shape[i],
+                        sl.step if sl.step is not None else 1)
+            bbox.append((min(aux), max(aux)+1))
+        elif isinstance(sl, (list, tuple)):
+            bbox.append((min(sl), max(sl)+1))
+        else:
+            collective_raise(IndexError('Invalid index.'))
+    return bbox
 
 
 def collective_print(msg, print_time=True):

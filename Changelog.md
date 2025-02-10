@@ -24,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     For non-collective setitem, set ``VoxelImage.array`` instead.
   - ``VoxelImage.save`` is now ``VoxelImage.copy`` and can save a re-chunked
     copy to any Zarr store.
-  - Restricted to 3D arrays for performance.
+  - Restricted to 3D arrays for performance. Other ``ndims`` comming soon.
 
 ### Fixed
 - ???

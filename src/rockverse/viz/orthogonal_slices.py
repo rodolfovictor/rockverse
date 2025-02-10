@@ -223,9 +223,6 @@ class OrthogonalViewer():
             The default layout is '2x2'. This parameter allows for flexible visualization
             of the slices and histogram based on user preferences or specific analysis needs.
 
-        mpi_proc : int, optional
-            MPI process rank responsible for figure rendering. Default is 0.
-
     Returns
     -------
         OrthogonalViewer
@@ -258,16 +255,12 @@ class OrthogonalViewer():
                  gridspec_dict=None,
                  template='X-ray CT',
                  statusbar_mode = 'coordinate',
-                 layout='2x2',
-                 mpi_proc=0):
+                 layout='2x2'):
 
         _assert.in_group('template', template, ('X-ray CT', 'scalar field'))
 
         _assert.in_group('layout', layout, ('2x2', 'vertical', 'horizontal'))
         self._layout = layout
-
-        _assert.instance('mpi_proc', mpi_proc, 'string', (int,))
-        self._mpi_proc = mpi_proc
 
         _assert.in_group('statusbar_mode', statusbar_mode, ('coordinate', 'voxel'))
         self._statusbar_mode = statusbar_mode
@@ -289,7 +282,6 @@ class OrthogonalViewer():
                                     mask=mask,
                                     segmentation=segmentation,
                                     region=region)
-
 
         self._segmentation_colors = None
         self._segmentation_colormap = None
@@ -369,19 +361,11 @@ class OrthogonalViewer():
         self._show_guide_lines = show_guide_lines
 
         self._delay_update = False
-
         self._fig = plt.figure(**self._figure_dict)
-
-
-
-
-
         self._build_planes()
-
-        if mpi_rank == self._mpi_proc or True:
-            self._fig.canvas.mpl_connect('button_press_event', self._on_button_click)
-            self._fig.canvas.mpl_connect('button_release_event', self._on_button_release)
-            self._fig.canvas.mpl_connect('scroll_event', self._on_scroll)
+        self._fig.canvas.mpl_connect('button_press_event', self._on_button_click)
+        self._fig.canvas.mpl_connect('button_release_event', self._on_button_release)
+        self._fig.canvas.mpl_connect('scroll_event', self._on_scroll)
 
         _assert.boolean('show_xy_plane', show_xy_plane)
         self.show_xy_plane = show_xy_plane
@@ -409,12 +393,9 @@ class OrthogonalViewer():
         ox, oy, oz = self._image.voxel_origin
 
         #Image
-        self._slices['xy']['image'] = self._image.collective_getitem(
-            (slice(None), slice(None), ref_voxel[2])).copy()
-        self._slices['xz']['image'] = self._image.collective_getitem(
-            (slice(None), ref_voxel[1], slice(None))).copy()
-        self._slices['zy']['image'] = self._image.collective_getitem(
-            (ref_voxel[0], slice(None), slice(None))).copy()
+        self._slices['xy']['image'] = self._image[:, :, ref_voxel[2]].copy()
+        self._slices['xz']['image'] = self._image[:, ref_voxel[1], :].copy()
+        self._slices['zy']['image'] = self._image[ref_voxel[0], :, :].copy()
 
         #Mask
         self._slices['xy']['mask'] = np.zeros(self._slices['xy']['image'].shape).astype('bool')
@@ -422,14 +403,11 @@ class OrthogonalViewer():
         self._slices['zy']['mask'] = np.zeros(self._slices['zy']['image'].shape).astype('bool')
         if self._mask is not None:
             self._slices['xy']['mask'] = np.logical_or(
-                self._slices['xy']['mask'],
-                self._mask.collective_getitem((slice(None), slice(None), ref_voxel[2])))
+                self._slices['xy']['mask'], self._mask[:, :, ref_voxel[2]])
             self._slices['xz']['mask'] = np.logical_or(
-                self._slices['xz']['mask'],
-                self._mask.collective_getitem((slice(None), ref_voxel[1], slice(None))))
+                self._slices['xz']['mask'], self._mask[:, ref_voxel[1], :])
             self._slices['zy']['mask'] = np.logical_or(
-                self._slices['zy']['mask'],
-                self._mask.collective_getitem((ref_voxel[0], slice(None), slice(None))))
+                self._slices['zy']['mask'], self._mask[ref_voxel[0], :, :])
 
         #Region
         if self._region is not None:
@@ -448,9 +426,9 @@ class OrthogonalViewer():
         self._slices['xz']['segmentation'] = np.zeros(self._slices['xz']['image'].shape).astype('int')
         self._slices['zy']['segmentation'] = np.zeros(self._slices['zy']['image'].shape).astype('int')
         if self._segmentation is not None:
-            self._slices['xy']['segmentation'] = self._segmentation.collective_getitem((slice(None), slice(None), ref_voxel[2])).copy()
-            self._slices['xz']['segmentation'] = self._segmentation.collective_getitem((slice(None), ref_voxel[1], slice(None))).copy()
-            self._slices['zy']['segmentation'] = self._segmentation.collective_getitem((ref_voxel[0], slice(None), slice(None))).copy()
+            self._slices['xy']['segmentation'] = self._segmentation[:, :, ref_voxel[2]].copy()
+            self._slices['xz']['segmentation'] = self._segmentation[:, ref_voxel[1], :].copy()
+            self._slices['zy']['segmentation'] = self._segmentation[ref_voxel[0], :, :].copy()
 
     def _set_grid(self):
         """
@@ -767,14 +745,13 @@ class OrthogonalViewer():
         if not any(self._slices[plane]['plot'] for plane in ('xy', 'xz', 'zy', 'histogram')):
             self._slices['xy']['plot'] = True
         self._get_slices()
-        if mpi_rank == self._mpi_proc or True:
-            self._set_grid() #Set up the grid layout.
-            self._build_xyplane()
-            self._build_zyplane()
-            self._build_xzplane()
-            self._build_histogram_plane()
-            self._set_visibility()
-            self._update_plots()
+        self._set_grid() #Set up the grid layout.
+        self._build_xyplane()
+        self._build_zyplane()
+        self._build_xzplane()
+        self._build_histogram_plane()
+        self._set_visibility()
+        self._update_plots()
 
     def _update_plots(self):
         """
@@ -865,8 +842,7 @@ class OrthogonalViewer():
         self._slices['histogram']['lines']['full'].set(**self._histogram_line_dict['full'])
 
         self._plot_histogram_seg_phases()
-        if mpi_rank == self._mpi_proc or True:
-            self.figure.canvas.draw()
+        self.figure.canvas.draw()
 
 
     #Methods ------------------------------------------------------------------
@@ -885,13 +861,12 @@ class OrthogonalViewer():
         different slices or adjusting the figure's contents, ensuring that
         the presentation remains visually appealing and focused on the data.
         """
-        if mpi_rank == self._mpi_proc or True:
-            fwidth, fheight = self._fig.get_size_inches()
-            if fwidth/self._ideal_width > fheight/self._ideal_height:
-                fwidth = fheight/self._ideal_height*self._ideal_width
-            else:
-                fheight = fwidth/self._ideal_width*self._ideal_height
-            self._fig.set_size_inches(fwidth, fheight)
+        fwidth, fheight = self._fig.get_size_inches()
+        if fwidth/self._ideal_width > fheight/self._ideal_height:
+            fwidth = fheight/self._ideal_height*self._ideal_width
+        else:
+            fheight = fwidth/self._ideal_width*self._ideal_height
+        self._fig.set_size_inches(fwidth, fheight)
 
 
     def expand_to_fit(self):
@@ -907,13 +882,12 @@ class OrthogonalViewer():
         components are displayed, helping to maintain an optimized layout and
         providing a more comprehensive view of the data.
         """
-        if mpi_rank == self._mpi_proc or True:
-            fwidth, fheight = self._fig.get_size_inches()
-            if fwidth/self._ideal_width < fheight/self._ideal_height:
-                fwidth = fheight/self._ideal_height*self._ideal_width
-            else:
-                fheight = fwidth/self._ideal_width*self._ideal_height
-            self._fig.set_size_inches(fwidth, fheight)
+        fwidth, fheight = self._fig.get_size_inches()
+        if fwidth/self._ideal_width < fheight/self._ideal_height:
+            fwidth = fheight/self._ideal_height*self._ideal_width
+        else:
+            fheight = fwidth/self._ideal_width*self._ideal_height
+        self._fig.set_size_inches(fwidth, fheight)
 
 
 
@@ -1729,13 +1703,13 @@ class OrthogonalViewer():
             if self.image.voxel_unit:
                 pr = pr + f' {self.image.voxel_unit}'
 
-            pr = pr + f"\nimage value: {self.image.collective_getitem((i, j, k))}"
+            pr = pr + f"\nimage value: {self.image[i, j, k]}"
             if self.image.field_unit:
                 pr = pr + f' {self.image.field_unit}'
             if self.segmentation is not None:
-                pr = pr + f"\nsegmentation phase: {self.segmentation.collective_getitem((i, j, k))}"
+                pr = pr + f"\nsegmentation phase: {self.segmentation[i, j, k]}"
             if self.mask is not None:
-                pr = pr + f"\nmasked: {self.mask.collective_getitem((i, j, k))}"
+                pr = pr + f"\nmasked: {self.mask[i, j, k]}"
             print(pr)
 
         x, y = event.xdata, event.ydata

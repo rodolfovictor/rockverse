@@ -25,11 +25,12 @@ import json
 import zarr
 from zarr.errors import ContainsArrayError
 import numpy as np
+from mpi4py import MPI
 from rockverse import _assert
 from rockverse.errors import collective_raise
 from rockverse.voxel_image._math import _array_math
 from rockverse.voxel_image._finneypack import fill_finney_pack
-from rockverse._utils import rvtqdm, auto_chunk_3d
+from rockverse._utils import rvtqdm, auto_chunk_3d, index_bounding_box
 from rockverse.config import config
 comm = config.mpi_comm
 mpi_rank = config.mpi_rank
@@ -39,6 +40,7 @@ def create(shape,
            dtype,
            chunks='nprocs',
            store=None,
+           name=None,
            overwrite=False,
            field_name='',
            field_unit='',
@@ -74,6 +76,9 @@ def create(shape,
         A string with the file path in the local file disk,
         or any valid `Zarr store <https://zarr.readthedocs.io/en/stable/user-guide/storage.html>`_,
         or ``None`` to use Memory store. Default is None.
+    name : str or None, optional
+        The name of the array within the store. If name is None, the array will be located at
+        the root of the store.
     overwrite : bool, optional
         If True, delete all pre-existing data in the store at the specified path
         before creating the new image. Default value is False.
@@ -106,7 +111,7 @@ def create(shape,
     _assert.iterable.length('shape', shape, 3)
 
     # Check for valid dtype ---------------------
-    _assert.condition('dtype', dtype)
+    _assert.condition.voxelimage_dtype('dtype', dtype)
 
     # Check for valid voxel_length --------------
     if voxel_length is not None:
@@ -121,7 +126,7 @@ def create(shape,
         _voxel_origin = voxel_origin
     else:
         _voxel_origin = [0 for k in shape]
-    _assert.iterable.ordered_numbers_positive('voxel_origin', _voxel_origin)
+    _assert.iterable.ordered_numbers('voxel_origin', _voxel_origin)
     _assert.iterable.length('voxel_origin', _voxel_origin, 3)
 
     # Check for valid chunks --------------------
@@ -142,12 +147,17 @@ def create(shape,
     # Check for valid voxel_unit ----------------
     _assert.instance('voxel_unit', voxel_unit, 'string', (str,))
 
+    # Check for valid name ----------------------
+    if name is not None:
+        _assert.instance('name', name, 'string', (str,))
+
     kwargs['shape'] = shape
     kwargs['dtype'] = dtype
     kwargs['chunks'] = _chunks
     kwargs['store'] = store
     kwargs['overwrite'] = overwrite
     kwargs['store'] = store
+    kwargs['name'] = name
     kwargs['zarr_format'] = 3
     kwargs['attributes'] = {
         '_ROCKVERSE_DATATYPE': 'VoxelImage',
@@ -174,7 +184,7 @@ def create(shape,
             collective_raise(Exception(msg))
         comm.barrier()
         with zarr.config.set({'array.order': 'C'}):
-            z = zarr.open(store=store, mode='r+')
+            z = zarr.open(store=store, path=kwargs['name'], mode='r+')
     else:
         with zarr.config.set({'array.order': 'C'}):
             z = zarr.create_array(**kwargs)
@@ -718,24 +728,28 @@ class VoxelImage():
         return f"<VoxelImage shape={self.shape} dtype={self.dtype} store={self._array.store}>"
 
 
-    def __getitem__(self, selection):
-        #Time consuming: need to loop over all blocks to guarantee fancy indexing
-        array = self._array[selection]*0
-        for block_id in range(self.nchunks):
-            root = block_id % mpi_nprocs
-            chunk_indices = self.chunk_slice_indices(block_id)
-            temp = zarr.zeros_like(self, dtype=self._array.dtype, store=None)
-            if mpi_rank == root:
-                block = self._array[chunk_indices]
-            else:
-                block = temp[chunk_indices]
-            temp[chunk_indices] = comm.bcast(block, root=root)
-            array += temp[selection]
-        return array
+    def __getitem__(self, selection, rank=None):
+        if isinstance(self._array.store, zarr.storage.LocalStore) or mpi_nprocs==1 or self.nchunks==1:
+            return self._array[selection]
+
+        # Memory store needs to reduce slice values
+        if self._array.fill_value == 0:
+            selected = self._array[selection]
+        else: #this option temporarily doubles memory
+            temp = zeros_like(self, store=None)
+            for block_id in range(self.nchunks):
+                if mpi_rank == block_id % mpi_nprocs:
+                    chunk_slice = self.chunk_slice_indices(block_id)
+                    temp._array[chunk_slice] = self._array[chunk_slice]
+            selected = temp._array[selection]
+        if rank is None:
+            return comm.allreduce(selected, op=MPI.SUM)
+
+        return comm.reduce(selected, root=rank, op=MPI.SUM)
+
 
 
     def __setitem__(self, selection, array):
-        print('ENTER')
         temp = zarr.create_array(store=None, shape=self.shape, dtype=self.dtype)
         for block_id in range(self.nchunks):
             if block_id % mpi_nprocs == mpi_rank:
@@ -1350,16 +1364,18 @@ class VoxelImage():
                                     self._array[slicex, slicey, slicez] = data.copy()
 
 
-    def copy(self, store, **kwargs):
+    def copy(self, store=None, **kwargs):
         """
         :bdg-info:`Parallel`
         :bdg-info:`CPU`
 
-        Save a copy of the voxel image to a new store.
+        Copy the voxel image to a new store.
 
         This method supports re-chunking by passing ``chunks`` in ``**kwargs``.
         This is a pottentially slow method as rechunking requires collective
         getitem and setitem.
+
+        Use a LocalStore to save a copy to the file system.
 
         Parameters
         ----------
@@ -1375,11 +1391,13 @@ class VoxelImage():
         VoxelImage
             The created copy.
         """
-        _assert.zarr_localstore('store', store)
         v = empty_like(self, store=store, **kwargs)
         for block_id in rvtqdm(range(v.nchunks), desc='Copying', unit='chunk'):
             chunk_indices = v.chunk_slice_indices(block_id)
-            v[chunk_indices] = self[chunk_indices].copy()
+            root = block_id % mpi_nprocs
+            data = self.__getitem__(chunk_indices, root)
+            if mpi_rank == root:
+                v._array[chunk_indices] = data
 
 
     def export_raw(self, filename, dtype=None, order='F', byteorder='=',

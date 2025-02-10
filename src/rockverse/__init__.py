@@ -70,7 +70,7 @@ from rockverse.viz import OrthogonalViewer
 from rockverse import dualenergyct
 from rockverse.errors import collective_raise as _collective_raise
 
-def open(store, **kwargs):
+def open(store, path=None, **kwargs):
     """
     Opens a RockVerse data store and returns the appropriate object.
 
@@ -78,6 +78,10 @@ def open(store, **kwargs):
     -----------
     store : str or zarr.storage.BaseStore
         Path or zarr store object containing RockVerse data.
+
+    path : str | None, optional
+        The path within the store to open.
+
     **kwargs : dict
         Additional arguments passed to zarr.open.
 
@@ -94,7 +98,7 @@ def open(store, **kwargs):
     status = 'OK'
     if mpi_rank == 0:
         try:
-            z = zarr.open(store, **kwargs)
+            z = zarr.open(store=store, path=path, **kwargs)
             rv_data_type = z.attrs['_ROCKVERSE_DATATYPE']
         except Exception as e:
             status = str(e)
@@ -104,7 +108,7 @@ def open(store, **kwargs):
         _collective_raise(ValueError(f"{store} does not contain valid RockVerse data."))
 
     with zarr.config.set({'array.order': 'C'}):
-        z = zarr.open(store, **kwargs)
+        z = zarr.open(store=store, path=path, **kwargs)
     rv_data_type = z.attrs['_ROCKVERSE_DATATYPE']
 
     if rv_data_type == 'VoxelImage':
