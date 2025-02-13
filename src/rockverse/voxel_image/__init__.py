@@ -27,7 +27,7 @@ from zarr.errors import ContainsArrayError
 import numpy as np
 from mpi4py import MPI
 from rockverse import _assert
-from rockverse.errors import collective_raise
+from rockverse.errors import collective_raise, collective_only_rank0_runs
 from rockverse.voxel_image._math import _array_math
 from rockverse.voxel_image._finneypack import fill_finney_pack
 from rockverse._utils import rvtqdm, auto_chunk_3d, index_bounding_box
@@ -40,7 +40,7 @@ def create(shape,
            dtype,
            chunks='nprocs',
            store=None,
-           name=None,
+           path=None,
            overwrite=False,
            field_name='',
            field_unit='',
@@ -76,9 +76,9 @@ def create(shape,
         A string with the file path in the local file disk,
         or any valid `Zarr store <https://zarr.readthedocs.io/en/stable/user-guide/storage.html>`_,
         or ``None`` to use Memory store. Default is None.
-    name : str or None, optional
-        The name of the array within the store. If name is None, the array will be located at
-        the root of the store.
+    path : str or None, optional
+        The path of the array within the store. If path is None, the array will be
+        located at the root of the store.
     overwrite : bool, optional
         If True, delete all pre-existing data in the store at the specified path
         before creating the new image. Default value is False.
@@ -147,9 +147,9 @@ def create(shape,
     # Check for valid voxel_unit ----------------
     _assert.instance('voxel_unit', voxel_unit, 'string', (str,))
 
-    # Check for valid name ----------------------
-    if name is not None:
-        _assert.instance('name', name, 'string', (str,))
+    # Check for valid path ----------------------
+    if path is not None:
+        _assert.instance('path', path, 'string', (str,))
 
     kwargs['shape'] = shape
     kwargs['dtype'] = dtype
@@ -157,7 +157,7 @@ def create(shape,
     kwargs['store'] = store
     kwargs['overwrite'] = overwrite
     kwargs['store'] = store
-    kwargs['name'] = name
+    kwargs['name'] = path
     kwargs['zarr_format'] = 3
     kwargs['attributes'] = {
         '_ROCKVERSE_DATATYPE': 'VoxelImage',
@@ -171,18 +171,10 @@ def create(shape,
 
     #Only rank 0 writes metadata to disk
     if isinstance(store, (str, zarr.storage.LocalStore)):
-        msg = ''
-        if mpi_rank == 0:
-            try:
+        with collective_only_rank0_runs():
+            if mpi_rank == 0:
                 with zarr.config.set({'array.order': 'C'}):
                     z = zarr.create_array(**kwargs)
-            except Exception as e:
-                msg = f"{e.__class__}: {e}"
-                pass
-        msg = comm.bcast(msg, root=0)
-        if msg:
-            collective_raise(Exception(msg))
-        comm.barrier()
         with zarr.config.set({'array.order': 'C'}):
             z = zarr.open(store=store, path=kwargs['name'], mode='r+')
     else:
@@ -722,7 +714,6 @@ class VoxelImage():
 
     def __init__(self, z):
         self._array = z
-
 
     def __repr__(self):
         return f"<VoxelImage shape={self.shape} dtype={self.dtype} store={self._array.store}>"

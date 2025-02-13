@@ -1,3 +1,4 @@
+import sys
 from datetime import datetime
 from tqdm import tqdm
 import numpy as np
@@ -15,6 +16,9 @@ def rvtqdm(*args, **kwargs):
         kwargs['disable'] = mpi_rank!=0
     if 'ascii' not in kwargs:
         kwargs['ascii'] = ' >'
+    if 'file' not in kwargs:
+        kwargs['file'] = sys.stdout
+
     datestr = datetimenow()
     if 'desc' in kwargs:
         kwargs['desc'] = f"{datestr} {kwargs['desc']}"

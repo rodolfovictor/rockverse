@@ -68,9 +68,9 @@ from rockverse import voxel_image
 from rockverse import region
 from rockverse.viz import OrthogonalViewer
 from rockverse import dualenergyct
-from rockverse.errors import collective_raise as _collective_raise
+from rockverse.errors import collective_only_rank0_runs, collective_raise
 
-def open(store, path=None, **kwargs):
+def open(store, *, path=None, **kwargs):
     """
     Opens a RockVerse data store and returns the appropriate object.
 
@@ -95,17 +95,13 @@ def open(store, path=None, **kwargs):
     ValueError
         If the store does not contain valid RockVerse data or an unsupported data type.
     """
-    status = 'OK'
-    if mpi_rank == 0:
-        try:
-            z = zarr.open(store=store, path=path, **kwargs)
-            rv_data_type = z.attrs['_ROCKVERSE_DATATYPE']
-        except Exception as e:
-            status = str(e)
-            pass
-    status = comm.bcast(status, root=0)
-    if status != 'OK':
-        _collective_raise(ValueError(f"{store} does not contain valid RockVerse data."))
+    with collective_only_rank0_runs():
+        if mpi_rank == 0:
+            try:
+                z = zarr.open(store=store, path=path, **kwargs)
+                rv_data_type = z.attrs['_ROCKVERSE_DATATYPE']
+            except:
+                raise ValueError(f"{store} does not contain valid RockVerse data.")
 
     with zarr.config.set({'array.order': 'C'}):
         z = zarr.open(store=store, path=path, **kwargs)
@@ -117,4 +113,4 @@ def open(store, path=None, **kwargs):
     if rv_data_type == 'DualEnergyCTGroup':
         return dualenergyct.DualEnergyCTGroup(z)
 
-    _collective_raise(ValueError(f"{store} does not contain valid RockVerse data."))
+    collective_raise(ValueError(f"{store} does not contain valid RockVerse data."))

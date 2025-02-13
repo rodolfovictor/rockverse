@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - VoxelImage class
   - Now can handle complex floating-point
   - ``VoxelImage.__setitem__`` implemented and is always MPI collective.
+- General function to execute in MPI rank 0 and broadcast exception
+- Dual energy inversion
+  - Handles arbitrary pdfs for standard materials, not only Gaussian.
 
 ### Changed
 - **Major change**: RockVerse data migrated to Zarr 3.0.
@@ -25,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - ``VoxelImage.save`` is now ``VoxelImage.copy`` and can save a re-chunked
     copy to any Zarr store.
   - Restricted to 3D arrays for performance. Other ``ndims`` comming soon.
+- tqdm bars now outputs to stdin by default
 
 ### Fixed
 - ???

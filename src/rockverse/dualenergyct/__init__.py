@@ -24,7 +24,9 @@ Classes:
     - Enforce directory store
 """
 
-import os
+### NOTE ###
+# All functions are built expecting zarr LocalStore #
+
 import copy
 import numpy as np
 import pandas as pd
@@ -41,13 +43,12 @@ mpi_nprocs = config.mpi_nprocs
 
 from rockverse.voxel_image import (
     VoxelImage,
-    from_array,
     full_like)
 
 from rockverse.voxel_image.histogram import Histogram
 from rockverse.optimize import gaussian_fit
 from rockverse import _assert
-from rockverse.errors import collective_raise
+from rockverse.errors import collective_raise, collective_only_rank0_runs
 from rockverse._utils import collective_print
 from rockverse.dualenergyct._periodic_table import ATOMIC_NUMBER_AND_MASS_DICT
 from rockverse.dualenergyct._gpu_functions import (
@@ -124,8 +125,8 @@ class PeriodicTable():
     Create a dual energy CT group. The periodic table will be created using
     default values:
 
-        >>> import drp
-        >>> dectgroup = drp.dualenergyct.create_group('/path/to/group/dir')
+        >>> import rockverse as rv
+        >>> dectgroup = rv.dualenergyct.create_group('/path/to/group/dir')
         >>> dectgroup.periodic_table
 
     You can get the values for a specific element using a key in the format
@@ -151,7 +152,6 @@ class PeriodicTable():
 
     """
 
-
     def __init__(self, zgroup):
         """
         Initializes the PeriodicTable instance.
@@ -162,18 +162,15 @@ class PeriodicTable():
             The Zarr group where the main :class:`Group` is stored.
         """
         self.zgroup = zgroup
-        if mpi_rank == 0 and 'ZM_table' not in self.zgroup.attrs:
-            self.zgroup.attrs['ZM_table'] = copy.deepcopy(ATOMIC_NUMBER_AND_MASS_DICT)
-        comm.barrier()
-
 
     def _get_full_table(self):
         """
         Retrieves the dictionary with the full periodic table from the Zarr group.
         """
         ZM_table = None
-        if mpi_rank == 0:
-            ZM_table = self.zgroup.attrs['ZM_table']
+        with collective_only_rank0_runs():
+            if mpi_rank == 0:
+                ZM_table = self.zgroup.attrs['ZM_table']
         ZM_table = comm.bcast(ZM_table, root=0)
         return ZM_table
 
@@ -224,10 +221,9 @@ class PeriodicTable():
             collective_raise(KeyError(
                 "New elements must be added using the add_element method."))
         ZM_table[element][prop] = value
-        if mpi_rank == 0:
-            self.zgroup.attrs['ZM_table'] = copy.deepcopy(ZM_table)
-        comm.barrier()
-
+        with collective_only_rank0_runs():
+            if mpi_rank == 0:
+                self.zgroup.attrs['ZM_table'] = copy.deepcopy(ZM_table)
 
     def add_element(self, name, Z, M):
         """
@@ -264,9 +260,9 @@ class PeriodicTable():
             collective_raise(ValueError('Atomic mass M expects numeric value.'))
         ZM_table = self._get_full_table()
         ZM_table[name] = {'Z': Z, 'M': M}
-        if mpi_rank == 0:
-            self.zgroup.attrs['ZM_table'] = copy.deepcopy(ZM_table)
-        comm.barrier()
+        with collective_only_rank0_runs():
+            if mpi_rank == 0:
+                self.zgroup.attrs['ZM_table'] = copy.deepcopy(ZM_table)
 
     def as_dataframe(self):
         """
@@ -304,8 +300,8 @@ class PeriodicTable():
         Example
         -------
 
-            >>> import drp
-            >>> dectgroup = drp.dualenergyct.create_group('/path/to/group/dir')
+            >>> import rockverse as rv
+            >>> dectgroup = rv.dualenergyct.create_group('/path/to/group/dir')
             >>> dectgroup.periodic_table.as_dict()
             {'Ac': {'M': 227.0278, 'Z': 89},
             'Ag': {'M': 107.868, 'Z': 47},
@@ -345,13 +341,6 @@ class CalibrationMaterial():
         The index of the calibration material.
     """
 
-    def _getattrs(self):
-        sattrs = None
-        if mpi_rank == 0:
-            sattrs = self.zgroup.attrs['calibration_materials'][self.index]
-        sattrs = comm.bcast(sattrs, root=0)
-        return sattrs
-
     def __init__(self, zgroup, index):
         self.index = index
         self.zgroup = zgroup
@@ -362,8 +351,9 @@ class CalibrationMaterial():
 
     def __setitem__(self, key, value):
         sattrs = None
-        if mpi_rank == 0:
-            sattrs = self.zgroup.attrs['calibration_materials'][self.index]
+        with collective_only_rank0_runs():
+            if mpi_rank == 0:
+                sattrs = self.zgroup.attrs['calibration_materials'][self.index]
         sattrs = comm.bcast(sattrs, root=0)
         if key not in sattrs:
             collective_raise(KeyError(f'{key} (new keys are not allowed).'))
@@ -375,13 +365,23 @@ class CalibrationMaterial():
             _assert.instance('segmentation_phase', value, 'integer', (int,))
         sattrs[key] = value
         attrs = None
-        if mpi_rank == 0:
-            attrs = self.zgroup.attrs.asdict()
+        with collective_only_rank0_runs():
+            if mpi_rank == 0:
+                attrs = self.zgroup.attrs.asdict()
         attrs = comm.bcast(attrs, root=0)
         attrs['calibration_materials'][self.index] = sattrs
-        if mpi_rank == 0:
-            self.zgroup.attrs.update(**attrs)
-        comm.barrier()
+        with collective_only_rank0_runs():
+            if mpi_rank == 0:
+                self.zgroup.attrs.update(**attrs)
+
+
+    def _getattrs(self):
+        sattrs = None
+        with collective_only_rank0_runs():
+            if mpi_rank == 0:
+                sattrs = self.zgroup.attrs['calibration_materials'][self.index]
+        sattrs = comm.bcast(sattrs, root=0)
+        return sattrs
 
     def keys(self):
         """
@@ -406,15 +406,17 @@ class CalibrationMaterial():
 
     def __str__(self):
         str_ = None
-        if mpi_rank == 0:
-            str_ = self.zgroup.attrs['calibration_materials'][self.index].__str__()
+        with collective_only_rank0_runs():
+            if mpi_rank == 0:
+                str_ = self.zgroup.attrs['calibration_materials'][self.index].__str__()
         str_ = comm.bcast(str_, root=0)
         return str_
 
     def __repr__(self):
         repr_ = None
-        if mpi_rank == 0:
-            repr_ = self.zgroup.attrs['calibration_materials'][self.index].__repr__()
+        with collective_only_rank0_runs():
+            if mpi_rank == 0:
+                repr_ = self.zgroup.attrs['calibration_materials'][self.index].__repr__()
         repr_ = comm.bcast(repr_, root=0)
         return repr_
 
@@ -457,7 +459,6 @@ class CalibrationMaterial():
         return rhohat, values
 
 
-
 class DualEnergyCTGroup():
     """
     :bdg-info:`Parallel`
@@ -468,7 +469,7 @@ class DualEnergyCTGroup():
     The workflow is described in the
     `original research paper <http://dx.doi.org/10.1002/2017JB014408>`_.
     This class builds upon
-    `Zarr groups <https://zarr.readthedocs.io/en/stable/api/hierarchy.html>`_
+    `Zarr groups <https://zarr.readthedocs.io/en/stable/user-guide/groups.html>`_
     and is adapted for MPI (Message Passing Interface) processing,
     allowing for parallel computation across multiple CPUs or GPUs.
 
@@ -476,76 +477,34 @@ class DualEnergyCTGroup():
     ----------
     store : str
         Zarr store where the underlying Zarr group will be created.
+    path : str, optional
+        Group path within store.
     overwrite : bool
         If True, deletes all data under ``store`` and creates a new group.
     **kwargs
         Additional keyword arguments for
-        `Zarr group creation <https://zarr.readthedocs.io/en/stable/api/hierarchy.html>`_.
+        `Zarr group creation <https://zarr.readthedocs.io/en/stable/api/zarr/index.html#zarr.create_group>`_.
     """
 
-    # Process model master-slave commanded by rank 0
+    # Process model master-slave commanded by rank 0 using zarr local store
 
-    def __init__(self,
-                 store,
-                 overwrite=False,
-                 **kwargs):
-        kwargs['overwrite'] = overwrite
-        if mpi_rank == 0:
-            try:
-                z = zarr.hierarchy.open_group(store, 'r')
-            except Exception:
-                kwargs['overwrite'] = True
-            if 'overwrite' in kwargs and kwargs['overwrite']:
-                z = zarr.group(store=store, **kwargs)
-                z.attrs['_ROCKVERSE_DATATYPE'] = 'DualEnergyCTGroup'
-                z.attrs['tol'] = 1e-12
-                z.attrs['whis'] = 1.5
-                z.attrs['required_iterations'] = 5000
-                z.attrs['maximum_iterations'] = 50000
-                z.attrs['maxA'] = 2000
-                z.attrs['maxB'] = 1500
-                z.attrs['maxn'] = 30
-                z.attrs['threads_per_block'] = 4
-                z.attrs['hash_buffer_size'] = 100
-                z.attrs['calibration_materials'] = {
-                    "lowEHistogram": "",
-                    "highEHistogram": "",
-                    "0": {
-                        'description': None,
-                        'segmentation_phase': None,
-                        'lowE_gaussian_center_bounds': None,
-                        'highE_gaussian_center_bounds': None,
-                        },
-                    "1": {
-                        'description': None,
-                        'segmentation_phase': None,
-                        'composition': None,
-                        'bulk_density': None,
-                        'lowE_gaussian_center_bounds': None,
-                        'highE_gaussian_center_bounds': None,
-                        },
-                    "2": {
-                        'description': None,
-                        'segmentation_phase': None,
-                        'composition': None,
-                        'bulk_density': None,
-                        'lowE_gaussian_center_bounds': None,
-                        'highE_gaussian_center_bounds': None,
-                        },
-                    "3": {
-                        'description': None,
-                        'segmentation_phase': None,
-                        'composition': None,
-                        'bulk_density': None,
-                        'lowE_gaussian_center_bounds': None,
-                        'highE_gaussian_center_bounds': None,
-                        }
-                }
-                self._histogram_bins = 256
-        comm.barrier()
-        self.zgroup = zarr.open_group(store,
-                                      mode='r+',
-                                      )
+    def _get_attribute(self, attr_name):
+        value = None
+        with collective_only_rank0_runs():
+            if mpi_rank == 0:
+                value = self.zgroup.attrs[attr_name]
+        value = comm.bcast(value, root=0)
+        return value
+
+    def _set_attribute(self, attr_name, attr_value):
+        with collective_only_rank0_runs():
+            if mpi_rank == 0:
+                attrs = self.zgroup.attrs.asdict()
+                attrs[attr_name] = attr_value
+                self.zgroup.attrs.update(attrs)
+
+    def __init__(self, zgroup):
+        self.zgroup = zgroup
         self._calibration_material0 = CalibrationMaterial(self.zgroup, '0')
         self._calibration_material1 = CalibrationMaterial(self.zgroup, '1')
         self._calibration_material2 = CalibrationMaterial(self.zgroup, '2')
@@ -554,8 +513,7 @@ class DualEnergyCTGroup():
         self.current_hashes = {'lowE': '',
                                'highE': '',
                                'mask': '',
-                               'segmentation': '',}
-
+                               'segmentation': ''}
 
     # Arrays ----------------------------------------------
 
@@ -830,75 +788,42 @@ class DualEnergyCTGroup():
         Number of equal-width histogram bins for the CT images.
         Must be a positive integer.
         '''
-        bins = None
-        if mpi_rank == 0 and 'histogram_bins' in self.zgroup.attrs:
-            bins = self.zgroup.attrs['histogram_bins']
-        bins = comm.bcast(bins, root=0)
-        return bins
+        return self._get_attribute('histogram_bins')
 
     @histogram_bins.setter
     def histogram_bins(self, v):
         _assert.condition.positive_integer('histogram_bins', v)
-        if mpi_rank == 0:
-            attrs = self.zgroup.attrs.asdict()
-            attrs['histogram_bins'] = v
-            self.zgroup.attrs.update(attrs)
-        comm.barrier()
-
+        self._set_attribute('histogram_bins', v)
 
     @property
     def maxA(self):
         "Maximum value for coefficient A in broad search."
-        maxA_ = None
-        if mpi_rank == 0:
-            maxA_ = self.zgroup.attrs['maxA']
-        maxA_ = comm.bcast(maxA_, root=0)
-        return maxA_
+        return self._get_attribute('maxA')
 
     @maxA.setter
     def maxA(self, v):
         _assert.instance('maxA', v, 'number', (float, int))
-        if mpi_rank == 0:
-            attrs = self.zgroup.attrs.asdict()
-            attrs['maxA'] = v
-            self.zgroup.attrs.update(attrs)
-        comm.barrier()
+        self._set_attribute('maxA', v)
 
     @property
     def maxB(self):
         "Maximum value for coefficient B in broad search."
-        maxB_ = None
-        if mpi_rank == 0:
-            maxB_ = self.zgroup.attrs['maxB']
-        maxB_ = comm.bcast(maxB_, root=0)
-        return maxB_
+        return self._get_attribute('maxB')
 
     @maxB.setter
     def maxB(self, v):
         _assert.instance('maxB', v, 'number', (float, int))
-        if mpi_rank == 0:
-            attrs = self.zgroup.attrs.asdict()
-            attrs['maxB'] = v
-            self.zgroup.attrs.update(attrs)
-        comm.barrier()
+        self._set_attribute('maxB', v)
 
     @property
     def maxn(self):
         "Maximum value for coefficient n in broad search."
-        maxn_ = None
-        if mpi_rank == 0:
-            maxn_ = self.zgroup.attrs['maxn']
-        maxn_ = comm.bcast(maxn_, root=0)
-        return maxn_
+        return self._get_attribute('maxn')
 
     @maxn.setter
     def maxn(self, v):
         _assert.instance('maxn', v, 'number', (float, int))
-        if mpi_rank == 0:
-            attrs = self.zgroup.attrs.asdict()
-            attrs['maxn'] = v
-            self.zgroup.attrs.update(attrs)
-        comm.barrier()
+        self._set_attribute('maxn', v)
 
     @property
     def lowEhistogram(self):
@@ -907,10 +832,11 @@ class DualEnergyCTGroup():
         Return ``None`` if lowECT is not set.
         """
         hist = 'None'
-        if mpi_rank == 0 and 'lowEHistogram' in self.zgroup:
-            hist = {'data': self.zgroup['lowEHistogram'][...],
-                    'columns': ['bin_centers',
-                                *self.zgroup['lowEHistogram'].attrs['columns']]}
+        with collective_only_rank0_runs():
+            if mpi_rank == 0 and 'lowEHistogram' in self.zgroup:
+                hist = {'data': self.zgroup['lowEHistogram'][...],
+                        'columns': ['bin_centers',
+                                    *self.zgroup['lowEHistogram'].attrs['columns']]}
         hist = comm.bcast(hist, root=0)
         if hist == 'None':
             return None
@@ -924,9 +850,10 @@ class DualEnergyCTGroup():
         Return ``None`` if highECT is not set.
         """
         hist = 'None'
-        if mpi_rank == 0 and 'highEHistogram' in self.zgroup:
-            hist = {'data': self.zgroup['highEHistogram'][...],
-                    'columns': ['bin_centers', *self.zgroup['highEHistogram'].attrs['columns']]}
+        with collective_only_rank0_runs():
+            if mpi_rank == 0 and 'highEHistogram' in self.zgroup:
+                hist = {'data': self.zgroup['highEHistogram'][...],
+                        'columns': ['bin_centers', *self.zgroup['highEHistogram'].attrs['columns']]}
         hist = comm.bcast(hist, root=0)
         if hist == 'None':
             return None
@@ -940,9 +867,10 @@ class DualEnergyCTGroup():
         coefficients. Returns ``None`` if not calculated.
         """
         matrix = None
-        if mpi_rank == 0:
-            if zarr.storage.contains_array(self.zgroup.store, '/matrixl'):
-                matrix = self.zgroup['matrixl'][...]
+        with collective_only_rank0_runs():
+            if mpi_rank == 0:
+                if 'matrixl' in self.zgroup:
+                    matrix = self.zgroup['matrixl'][...]
         matrix = comm.bcast(matrix, root=0)
         if matrix is None:
             return None
@@ -956,9 +884,10 @@ class DualEnergyCTGroup():
         coefficients. Returns ``None`` if not calculated.
         """
         matrix = None
-        if mpi_rank == 0:
-            if zarr.storage.contains_array(self.zgroup.store, '/matrixh'):
-                matrix = self.zgroup['matrixh'][...]
+        with collective_only_rank0_runs():
+            if mpi_rank == 0:
+                if 'matrixh' in self.zgroup:
+                    matrix = self.zgroup['matrixh'][...]
         matrix = comm.bcast(matrix, root=0)
         if matrix is None:
             return None
@@ -975,22 +904,12 @@ class DualEnergyCTGroup():
         Use it for fine-tuning GPU performance based on your specific
         GPU capabilities. Default value is 4.
         """
-        threads_per_block_ = None
-        if mpi_rank == 0:
-            threads_per_block_ = self.zgroup.attrs['threads_per_block']
-        threads_per_block_ = comm.bcast(threads_per_block_, root=0)
-        return threads_per_block_
-
+        return self._get_attribute('threads_per_block')
 
     @threads_per_block.setter
     def threads_per_block(self, v):
         _assert.instance('threads_per_block', v, 'int', (int,))
-        if mpi_rank == 0:
-            attrs = self.zgroup.attrs.asdict()
-            attrs['threads_per_block'] = v
-            self.zgroup.attrs.update(attrs)
-        comm.barrier()
-
+        self._set_attribute('threads_per_block', v)
 
     @property
     def hash_buffer_size(self):
@@ -1003,22 +922,12 @@ class DualEnergyCTGroup():
         less memory but slow down the hashing operation due to the need to access the file
         system more times. Default value of 100 should be a good compromise in most cases.
         """
-        hash_buffer_size_ = None
-        if mpi_rank == 0:
-            hash_buffer_size_ = self.zgroup.attrs['hash_buffer_size']
-        hash_buffer_size_ = comm.bcast(hash_buffer_size_, root=0)
-        return hash_buffer_size_
-
+        return self._get_attribute('hash_buffer_size')
 
     @hash_buffer_size.setter
     def hash_buffer_size(self, v):
         _assert.instance('hash_buffer_size', v, 'int', (int,))
-        if mpi_rank == 0:
-            attrs = self.zgroup.attrs.asdict()
-            attrs['hash_buffer_size'] = v
-            self.zgroup.attrs.update(attrs)
-        comm.barrier()
-
+        self._set_attribute('hash_buffer_size', v)
 
     @property
     def tol(self):
@@ -1026,20 +935,12 @@ class DualEnergyCTGroup():
         Tolerance value for terminating the Newton-Raphson optimizations.
         Default value is 1e-12.
         """
-        tol_ = None
-        if mpi_rank == 0:
-            tol_ = self.zgroup.attrs['tol']
-        tol_ = comm.bcast(tol_, root=0)
-        return tol_
+        return self._get_attribute('tol')
 
     @tol.setter
     def tol(self, v):
         _assert.instance('tol', v, 'float', (float,))
-        if mpi_rank == 0:
-            attrs = self.zgroup.attrs.asdict()
-            attrs['tol'] = v
-            self.zgroup.attrs.update(attrs)
-        comm.barrier()
+        self._set_attribute('tol', v)
 
     @property
     def required_iterations(self):
@@ -1047,20 +948,12 @@ class DualEnergyCTGroup():
         The required number of valid Monte Carlo iterations for each voxel.
         Default value is 5000.
         """
-        required_iterations_ = None
-        if mpi_rank == 0:
-            required_iterations_ = self.zgroup.attrs['required_iterations']
-        required_iterations_ = comm.bcast(required_iterations_, root=0)
-        return required_iterations_
+        return self._get_attribute('required_iterations')
 
     @required_iterations.setter
     def required_iterations(self, v):
         _assert.instance('required_iterations', v, 'integer', (int,))
-        if mpi_rank == 0:
-            attrs = self.zgroup.attrs.asdict()
-            attrs['required_iterations'] = v
-            self.zgroup.attrs.update(attrs)
-        comm.barrier()
+        self._set_attribute('required_iterations', v)
 
     @property
     def maximum_iterations(self):
@@ -1069,20 +962,12 @@ class DualEnergyCTGroup():
         Default value is 50000. Recommended 10 times the required number of valid
         Monte Carlo iterations.
         """
-        maximum_iterations_ = None
-        if mpi_rank == 0:
-            maximum_iterations_ = self.zgroup.attrs['maximum_iterations']
-        maximum_iterations_ = comm.bcast(maximum_iterations_, root=0)
-        return maximum_iterations_
+        return self._get_attribute('maximum_iterations')
 
     @maximum_iterations.setter
     def maximum_iterations(self, v):
         _assert.instance('maximum_iterations', v, 'integer', (int,))
-        if mpi_rank == 0:
-            attrs = self.zgroup.attrs.asdict()
-            attrs['maximum_iterations'] = v
-            self.zgroup.attrs.update(attrs)
-        comm.barrier()
+        self._set_attribute('maximum_iterations', v)
 
     @property
     def whis(self):
@@ -1093,20 +978,12 @@ class DualEnergyCTGroup():
         :math:`Q_2`, and :math:`Q_3` are the three quartiles for the Monte Carlo
         results. Default value is 1.5.
         """
-        whis_ = None
-        if mpi_rank == 0:
-            whis_ = self.zgroup.attrs['whis']
-        whis_ = comm.bcast(whis_, root=0)
-        return whis_
+        return self._get_attribute('whis')
 
     @whis.setter
     def whis(self, v):
         _assert.instance('whis', v, 'number', (int, float))
-        if mpi_rank == 0:
-            attrs = self.zgroup.attrs.asdict()
-            attrs['whis'] = v
-            self.zgroup.attrs.update(attrs)
-        comm.barrier()
+        self._set_attribute('whis', v)
 
     @property
     def calibration_gaussian_coefficients(self):
@@ -1119,10 +996,11 @@ class DualEnergyCTGroup():
             :label: gaussian
         """
         coeff = None
-        if mpi_rank == 0 and 'CalibrationGaussianCoefficients' in self.zgroup:
-            coeff = {'data': self.zgroup['CalibrationGaussianCoefficients'][...],
-                     'index': self.zgroup['CalibrationGaussianCoefficients'].attrs['index'],
-                     'columns': self.zgroup['CalibrationGaussianCoefficients'].attrs['columns']}
+        with collective_only_rank0_runs():
+            if mpi_rank == 0 and 'CalibrationGaussianCoefficients' in self.zgroup:
+                coeff = {'data': self.zgroup['CalibrationGaussianCoefficients'][...],
+                        'index': self.zgroup['CalibrationGaussianCoefficients'].attrs['index'],
+                        'columns': self.zgroup['CalibrationGaussianCoefficients'].attrs['columns']}
         coeff = comm.bcast(coeff, root=0)
         return pd.DataFrame(data=coeff['data'], index=coeff['index'],
                             columns=coeff['columns'])
@@ -1133,8 +1011,9 @@ class DualEnergyCTGroup():
         See calibration_gaussian_coefficients.
         """
         coeff = None
-        if mpi_rank == 0 and 'CalibrationGaussianCoefficients' in self.zgroup:
-            coeff = self.zgroup['CalibrationGaussianCoefficients'][...]
+        with collective_only_rank0_runs():
+            if mpi_rank == 0 and 'CalibrationGaussianCoefficients' in self.zgroup:
+                coeff = self.zgroup['CalibrationGaussianCoefficients'][...]
         coeff = comm.bcast(coeff, root=0)
         return coeff
 
@@ -1162,14 +1041,15 @@ class DualEnergyCTGroup():
         overwrite : bool, optional
             If True, overwrite existing mask (default is False).
         **kwargs
-            Additional keyword arguments for the `drp.full_like` function used
-            to create the mask array.
+            Additional keyword arguments for the `rockverse.voxel_image.full_like`
+            function used to create the mask array.
         """
         if self.lowECT is None:
             collective_raise(ValueError("lowECT must be set before creating mask."))
         kwargs['overwrite'] = overwrite
         kwargs['fill_value'] = fill_value
-        kwargs['store'] = os.path.join(self.zgroup.store.path, 'mask')
+        kwargs['store'] = self.zgroup.store
+        kwargs['path'] = 'mask'
         kwargs['dtype'] = 'b1'
         kwargs['field_name'] = field_name
         kwargs['description'] = description
@@ -1180,9 +1060,11 @@ class DualEnergyCTGroup():
         """
         Remove the mask array from the structure.
         """
-        if zarr.storage.contains_array(self.zgroup.store, '/mask') and mpi_rank == 0:
-            zarr.storage.rmdir(self.zgroup.store, '/mask')
+        with collective_only_rank0_runs():
+            if mpi_rank == 0 and 'mask' in self.zgroup:
+                zarr.storage.rmdir(self.zgroup.store, '/mask')
         comm.barrier()
+
 
     def create_segmentation(self, fill_value=0, dtype='u1', overwrite=False,
                             field_name='segmentation', description='Segmentation voxel image',
@@ -1201,14 +1083,15 @@ class DualEnergyCTGroup():
         overwrite : bool, optional
             If True, overwrite existing segmentation.
         **kwargs
-            Additional keyword arguments for the `drp.full_like` function used
+            Additional keyword arguments for the `rockverse.voxel_image.full_like` function used
             to create the segmentation array.
         """
         if self.lowECT is None:
             collective_raise(ValueError("lowECT must be set before creating segmentation."))
         kwargs['overwrite'] = overwrite
         kwargs['fill_value'] = fill_value
-        kwargs['store'] = os.path.join(self.zgroup.store.path, 'segmentation')
+        kwargs['store'] = self.zgroup.store
+        kwargs['path'] = 'segmentation'
         kwargs['dtype'] = dtype
         kwargs['field_name'] = field_name
         kwargs['description'] = description
@@ -1238,7 +1121,7 @@ class DualEnergyCTGroup():
 
         kwargs.update(**image.meta_data_as_dict)
         kwargs['store'] = self.zgroup.store
-        kwargs['name'] = name
+        kwargs['path'] = name
         _ = image.copy(**kwargs)
 
 
@@ -1377,15 +1260,20 @@ class DualEnergyCTGroup():
         values[:, 0] = new_hist.bin_centers
         values[:, 1:] = new_hist.count.values
         columns = [str(k) for k in new_hist.count.columns]
-        if mpi_rank == 0:
-            _ = self.zgroup.create_dataset(name=ct+'EHistogram',
-                                           data=values,
-                                           overwrite=True)
-            self.zgroup[ct+'EHistogram'].attrs['columns'] = columns
+        with collective_only_rank0_runs():
+            if mpi_rank == 0:
+                new_array = self.zgroup.create_array(name=ct+'EHistogram',
+                                                    shape=values.shape,
+                                                    dtype=values.dtype,
+                                                    chunks=values.shape,
+                                                    overwrite=True,
+                                                    attributes={'columns': columns})
+                new_array[...] = values
         comm.barrier()
         hexdigest = hash_histogram(self, ct)
-        if mpi_rank == 0:
-            self.zgroup[ct+'EHistogram'].attrs['md5sum'] = hexdigest
+        with collective_only_rank0_runs():
+            if mpi_rank == 0:
+                self.zgroup[ct+'EHistogram'].attrs['md5sum'] = hexdigest
         comm.barrier()
 
 
@@ -1431,9 +1319,9 @@ class DualEnergyCTGroup():
             for j, (hist, label) in enumerate(zip((self.lowEhistogram,
                                                    self.highEhistogram),
                                                   ('lowE', 'highE'))):
-                x = hist.bin_centers.values
-                y = hist[phase].values
-                bounds = calibration_material[f'{label}_gaussian_center_bounds']
+                x = hist.bin_centers.values.astype(float)
+                y = hist[phase].values.astype(float)
+                bounds = np.array(calibration_material[f'{label}_gaussian_center_bounds']).astype(float)
                 try:
                     c = list(gaussian_fit(x, y, center_bounds=bounds))
                     coefs[i, 0+3*j] = c[0]
@@ -1443,15 +1331,20 @@ class DualEnergyCTGroup():
                     e.add_note(f'On calibration material {i}, {label}')
                     collective_raise(e)
         coefs = comm.bcast(coefs, root=0)
-        if mpi_rank == 0:
-            acoefs = self.zgroup.array(name='CalibrationGaussianCoefficients',
-                                       data=coefs, dtype='f8', overwrite=True)
-            acoefs.attrs['columns'] = columns
-            acoefs.attrs['index'] = index
-        comm.barrier()
+        with collective_only_rank0_runs():
+            if mpi_rank == 0:
+                acoefs = self.zgroup.create_array(name='CalibrationGaussianCoefficients',
+                                                  shape=coefs.shape,
+                                                  dtype='f8',
+                                                  chunks=coefs.shape,
+                                                  overwrite=True,
+                                                  attributes={'columns': columns,
+                                                              'index': index})
+                acoefs[...] = coefs
         hexdigest = hash_calibration_gaussian_coefficients(self)
-        if mpi_rank == 0:
-            acoefs.attrs['md5sum'] = hexdigest
+        with collective_only_rank0_runs():
+            if mpi_rank == 0:
+                acoefs.attrs['md5sum'] = hexdigest
         comm.barrier()
 
 
@@ -1468,15 +1361,16 @@ class DualEnergyCTGroup():
         # Init matrices ----------------------------------------------
         matrixl = np.ones((maximum, 11), dtype='f8')
         matrixh = np.ones((maximum, 11), dtype='f8')
-        if mpi_rank == 0:
-            temp = self.zgroup['matrixl'][...]
-            temp = temp[temp[:, -1]<tol, :]
-            length = min(matrixl.shape[0], temp.shape[0])
-            matrixl[:length, :] = temp[:length, :]
-            temp = self.zgroup['matrixh'][...]
-            temp = temp[temp[:, -1]<tol, :]
-            length = min(matrixh.shape[0], temp.shape[0])
-            matrixh[:length, :] = temp[:length, :]
+        with collective_only_rank0_runs():
+            if mpi_rank == 0:
+                temp = self.zgroup['matrixl'][...]
+                temp = temp[temp[:, -1]<tol, :]
+                length = min(matrixl.shape[0], temp.shape[0])
+                matrixl[:length, :] = temp[:length, :]
+                temp = self.zgroup['matrixh'][...]
+                temp = temp[temp[:, -1]<tol, :]
+                length = min(matrixh.shape[0], temp.shape[0])
+                matrixh[:length, :] = temp[:length, :]
         matrixl = comm.bcast(matrixl, root=0)
         matrixh = comm.bcast(matrixh, root=0)
 
@@ -1550,26 +1444,28 @@ class DualEnergyCTGroup():
         """
         tol, whis = self.tol, self.whis
         total = [0, 0]
-        if mpi_rank == 0:
-            for l, label in enumerate(('matrixl', 'matrixh')):
-                matrix = self.zgroup[label][...]
-                matrix = matrix[matrix[:, -1]<tol, :]
-                not_valid = set()
-                for k in range(11):
-                    data = matrix[:, k]
-                    Q1, Q3 = np.percentile(data, [25, 75])
-                    not_valid = not_valid.union(set(np.argwhere(data<Q1-whis*(Q3-Q1)).flatten()))
-                    not_valid = not_valid.union(set(np.argwhere(data>Q3+whis*(Q3-Q1)).flatten()))
-                valid = sorted(set(range(matrix.shape[0])) - not_valid)
-                matrix = matrix[valid, :]
-                total[l] = matrix.shape[0]
-                self.zgroup[label][:total[l], :] = matrix
-                self.zgroup[label][total[l]:, :] = self.zgroup[label][total[l]:, :]*0+1
+        with collective_only_rank0_runs():
+            if mpi_rank == 0:
+                for l, label in enumerate(('matrixl', 'matrixh')):
+                    matrix = self.zgroup[label][...]
+                    matrix = matrix[matrix[:, -1]<tol, :]
+                    not_valid = set()
+                    for k in range(11):
+                        data = matrix[:, k]
+                        Q1, Q3 = np.percentile(data, [25, 75])
+                        not_valid = not_valid.union(set(np.argwhere(data<Q1-whis*(Q3-Q1)).flatten()))
+                        not_valid = not_valid.union(set(np.argwhere(data>Q3+whis*(Q3-Q1)).flatten()))
+                    valid = sorted(set(range(matrix.shape[0])) - not_valid)
+                    matrix = matrix[valid, :]
+                    total[l] = matrix.shape[0]
+                    self.zgroup[label][:total[l], :] = matrix
+                    self.zgroup[label][total[l]:, :] = self.zgroup[label][total[l]:, :]*0+1
         total = comm.bcast(total, root=0)
         hexdigest = hash_coefficient_matrices(self)
-        if mpi_rank == 0:
-            self.zgroup['matrixl'].attrs['md5sum'] = hexdigest
-            self.zgroup['matrixh'].attrs['md5sum'] = hexdigest
+        with collective_only_rank0_runs():
+            if mpi_rank == 0:
+                self.zgroup['matrixl'].attrs['md5sum'] = hexdigest
+                self.zgroup['matrixh'].attrs['md5sum'] = hexdigest
         comm.barrier()
         return total
 
@@ -1585,9 +1481,10 @@ class DualEnergyCTGroup():
         """
         matrixl = None
         matrixh = None
-        if mpi_rank == 0:
-            matrixl = self.zgroup['matrixl'][...].astype('f8')
-            matrixh = self.zgroup['matrixh'][...].astype('f8')
+        with collective_only_rank0_runs():
+            if mpi_rank == 0:
+                matrixl = self.zgroup['matrixl'][...].astype('f8')
+                matrixh = self.zgroup['matrixh'][...].astype('f8')
         matrixl = comm.bcast(matrixl, root=0)
         matrixh = comm.bcast(matrixh, root=0)
 
@@ -1879,14 +1776,20 @@ class DualEnergyCTGroup():
 
         if need_coefficient_matrices(self) or restart:
             maximum = self.maximum_iterations
-            if mpi_rank == 0:
-                _ = self.zgroup.create_dataset('matrixl', shape=(maximum, 11),
-                                               chunks=False, dtype='f8',
-                                               fill_value=1, overwrite=True)
-                _ = self.zgroup.create_dataset('matrixh', shape=(maximum, 11),
-                                               chunks=False, dtype='f8',
-                                               fill_value=1, overwrite=True)
-            comm.barrier()
+            with collective_only_rank0_runs():
+                if mpi_rank == 0:
+                    _ = self.zgroup.create_array(name='matrixl',
+                                                 shape=(maximum, 11),
+                                                 chunks=(maximum, 11),
+                                                 dtype='f8',
+                                                 fill_value=1,
+                                                 overwrite=True)
+                    _ = self.zgroup.create_array(name='matrixh',
+                                                 shape=(maximum, 11),
+                                                 chunks=(maximum, 11),
+                                                 dtype='f8',
+                                                 fill_value=1,
+                                                 overwrite=True)
             bar = rvtqdm(total=2*self.maximum_iterations,
                          desc='Generating inversion coefficients',
                          unit='',
@@ -1902,9 +1805,10 @@ class DualEnergyCTGroup():
             bar.close()
             comm.barrier()
             hexdigest = hash_coefficient_matrices(self)
-            if mpi_rank == 0:
-                self.zgroup['matrixl'].attrs['md5sum'] = hexdigest
-                self.zgroup['matrixh'].attrs['md5sum'] = hexdigest
+            with collective_only_rank0_runs():
+                if mpi_rank == 0:
+                    self.zgroup['matrixl'].attrs['md5sum'] = hexdigest
+                    self.zgroup['matrixh'].attrs['md5sum'] = hexdigest
             comm.barrier()
         else:
             collective_print('Calibration matrices up to date.')
@@ -1974,6 +1878,67 @@ class DualEnergyCTGroup():
         self._calc_rho_Z()
 
 
-
-def create_group(*args, **kwargs):
-    return DualEnergyCTGroup(*args, **kwargs)
+def create_group(store, *, path=None, overwrite=False, **kwargs):
+    _assert.zarr_localstore('store', store)
+    if path is not None:
+        _assert.instance('path', path, 'string', (str,))
+    _assert.boolean('overwrite', overwrite)
+    kwargs['store'] = store
+    kwargs['path'] = path
+    kwargs['zarr_format'] = 3
+    kwargs['overwrite'] = overwrite
+    kwargs['attributes'] = {
+        '_ROCKVERSE_DATATYPE': 'DualEnergyCTGroup',
+        'histogram_bins': 256,
+        'tol': 1e-12,
+        'whis': 1.5,
+        'required_iterations': 5000,
+        'maximum_iterations': 50000,
+        'maxA': 2000,
+        'maxB': 1500,
+        'maxn': 30,
+        'threads_per_block': 4,
+        'hash_buffer_size': 100,
+        'calibration_materials': {
+            "lowEHistogram": "",
+            "highEHistogram": "",
+            "0": {
+                'description': None,
+                'segmentation_phase': None,
+                'lowE_gaussian_center_bounds': None,
+                'highE_gaussian_center_bounds': None,
+                },
+            "1": {
+                'description': None,
+                'segmentation_phase': None,
+                'composition': None,
+                'bulk_density': None,
+                'lowE_gaussian_center_bounds': None,
+                'highE_gaussian_center_bounds': None,
+                },
+            "2": {
+                'description': None,
+                'segmentation_phase': None,
+                'composition': None,
+                'bulk_density': None,
+                'lowE_gaussian_center_bounds': None,
+                'highE_gaussian_center_bounds': None,
+                },
+            "3": {
+                'description': None,
+                'segmentation_phase': None,
+                'composition': None,
+                'bulk_density': None,
+                'lowE_gaussian_center_bounds': None,
+                'highE_gaussian_center_bounds': None,
+                }
+            },
+            'ZM_table': copy.deepcopy(ATOMIC_NUMBER_AND_MASS_DICT)
+        }
+    with collective_only_rank0_runs():
+        if mpi_rank == 0:
+            with zarr.config.set({'array.order': 'C'}):
+                z = zarr.create_group(**kwargs)
+    with zarr.config.set({'array.order': 'C'}):
+        z = zarr.open_group(store=kwargs['store'], path=kwargs['path'], mode='r+')
+    return DualEnergyCTGroup(z)

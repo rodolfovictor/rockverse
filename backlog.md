@@ -20,15 +20,22 @@ VOXELIMAGE
   - EXPORT RAW COMPLEX IN REAL AND IMAGINARY
   - DETAIL TEST ON ALL VOXELIMAGE FUNCTIONS AND METHODS
   - GPT DOCUMENTATION
-  - Put bar in copy method, overhead gigante com muitos chunks
+  - COPY change to faste chunk by chunk method if same chunk shape
+  - change array to zarray
+
 
 MIGRATE DUAL ENERGY TO ZARR 3
   - DUALENERGYCTGROUP
-  - GUAREANTEE LOCALSTORE?
+      - reviewed __init__
+  - --------------> Não está gerando todos os coeficientes <------------
+  - --------------> ERRO NO FIT <------------
   - GUARANTEE SAME CHUNK SIZE FOR ALL ARRAYS
-  - COPY TOO SLOW. WRITE ONE SPECIFIC FOR LOCALSTORE OR TRY MASTER-SLAVE
   - lowECT etc to snake_case
-  - In the tutorial, put rechunk
+  - In the tutorial
+    - put rechunk
+    - raise number of bins at the beginning
+  - put inversion parameters as input parameters
+
 
 DEVELOP GENERAL HISTOGRAM
 
