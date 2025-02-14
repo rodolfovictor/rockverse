@@ -1,18 +1,22 @@
 # Backlog
 
+NOW MIGRATING TO ZARR 3
+
 Resolvendo dual energy
+ACABEI DE REORGANIZAR O CALIBRATION MATERIAL class
+    - REVISAR AS FUNÇÕES REMANESCENTES
+
+
 Execute o tutorial
-AttributeError: 'LocalStore' object has no attribute 'path'
 
 REVIEW PRINTS TO COLLECTIVE PRINT IN CONFIG
 
-NOW MIGRATING TO ZARR 3
-
-MIGRATING HOSTOGRAM
+MIGRATING HISTOGRAM
   - PUT MDF OPTION (maybe discrete=True)
 
 MIGRATING ORTHOGONALVIEWER
   - Check for interactivity
+  - AINDA QUERO FAZER SÓ O RANK 0 colocar imagem
 
 VOXELIMAGE
   - PUT DATA IN VOXELIMAGE CREATE
@@ -28,13 +32,18 @@ MIGRATE DUAL ENERGY TO ZARR 3
   - DUALENERGYCTGROUP
       - reviewed __init__
   - --------------> Não está gerando todos os coeficientes <------------
-  - --------------> ERRO NO FIT <------------
+  - GENERALIZE TO ARBITRARY PDFs
   - GUARANTEE SAME CHUNK SIZE FOR ALL ARRAYS
   - lowECT etc to snake_case
   - In the tutorial
     - put rechunk
     - raise number of bins at the beginning
-  - put inversion parameters as input parameters
+  - put inversion parameters as input parameters or dictionary
+  - name or path?
+  - POSSIBILITY TO INVERT ONLY CHUNKS OR ONLY SEGMENTATION PHASES
+  * ``'description'`` - string describing `calibration_material0`. Will be
+    used in the default plots.
+
 
 
 DEVELOP GENERAL HISTOGRAM

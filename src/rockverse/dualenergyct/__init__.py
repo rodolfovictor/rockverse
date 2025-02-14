@@ -341,84 +341,134 @@ class CalibrationMaterial():
         The index of the calibration material.
     """
 
+    __slots__ = ['index', 'zgroup']
+
     def __init__(self, zgroup, index):
         self.index = index
         self.zgroup = zgroup
 
-    def __getitem__(self, key):
-        sattrs = self._getattrs()
-        return sattrs[key]
-
-    def __setitem__(self, key, value):
-        sattrs = None
+    def _get_attribute(self, attr_name):
+        value = None
         with collective_only_rank0_runs():
             if mpi_rank == 0:
-                sattrs = self.zgroup.attrs['calibration_materials'][self.index]
-        sattrs = comm.bcast(sattrs, root=0)
-        if key not in sattrs:
-            collective_raise(KeyError(f'{key} (new keys are not allowed).'))
-        if key == 'description':
-            _assert.instance('description', value, 'string', (str,))
-        if key == 'bulk_density':
-            _assert.instance('bulk_density', value, 'number', (int, float))
-        if key == 'segmentation_phase':
-            _assert.instance('segmentation_phase', value, 'integer', (int,))
-        sattrs[key] = value
-        attrs = None
+                if attr_name in self.zgroup.attrs["calibration_material"][self.index]:
+                    value = self.zgroup.attrs["calibration_material"][self.index][attr_name]
+        value = comm.bcast(value, root=0)
+        return value
+
+    def _set_attribute(self, attr_name, attr_value):
         with collective_only_rank0_runs():
             if mpi_rank == 0:
                 attrs = self.zgroup.attrs.asdict()
-        attrs = comm.bcast(attrs, root=0)
-        attrs['calibration_materials'][self.index] = sattrs
+                attrs["calibration_material"][self.index][attr_name] = attr_value
+                self.zgroup.attrs.update(attrs)
+
+    def _check_if_material_0(self, property):
+        if self.index == '0':
+            collective_raise(AttributeError('Calibration material 0 is empty space '
+                                            f'(no {property} attribute).'))
+
+    @property
+    def description(self):
+        return self._get_attribute('description')
+
+    @description.setter
+    def description(self, v):
+        _assert.instance('description', v, 'string', (str,))
+        self._set_attribute('description', v)
+
+    @property
+    def bulk_density(self):
+        self._check_if_material_0('bulk_density')
+        return self._get_attribute('bulk_density')
+
+    @bulk_density.setter
+    def bulk_density(self, v):
+        _assert.condition.positive_integer_or_float('bulk_density', v)
+        self._check_if_material_0('bulk_density')
+        self._set_attribute('bulk_density', float(v))
+
+    @property
+    def composition(self):
+        self._check_if_material_0('composition')
+        return self._get_attribute('composition')
+
+    @composition.setter
+    def composition(self, v):
+        _assert.instance('composition', v, 'dict', (dict,))
+        self._check_if_material_0('composition')
+        table = None
         with collective_only_rank0_runs():
             if mpi_rank == 0:
-                self.zgroup.attrs.update(**attrs)
+                table = self.zgroup.attrs["ZM_table"]
+        table = comm.bcast(table, root=0)
+        elements = set(table.keys())
+        for key, value in v.items():
+            if key not in elements:
+                collective_raise(ValueError(f"Setting {v}: element {key} not in periodic table."))
+            if not isinstance(value, (int, float)):
+                collective_raise(ValueError(f"Setting {v}: invalid proportionate number for {key}."))
+        self._set_attribute('composition', v)
 
 
-    def _getattrs(self):
-        sattrs = None
+    def _get_pdf(self, name):
+        new_array = None
+        with collective_only_rank0_runs():
+            array_name = f'{name}_standard{self.index}_pdf'
+            if mpi_rank == 0:
+                if array_name in self.zgroup:
+                    new_array = self.zgroup[array_name][...]
+        new_array = comm.bcast(new_array, root=0)
+        if new_array is not None:
+            return new_array[:, 0], new_array[:, 1]
+        return None
+
+
+    def _set_pdf(self, name, value):
+        if (not isinstance(value, (tuple, list))
+            or len(value) != 2
+            or not isinstance(value[0], (list, tuple, np.ndarray))
+            or not isinstance(value[1], (list, tuple, np.ndarray))
+            or len(value[0]) != len(value[1])):
+            collective_raise(ValueError(
+                'Probability density function (pdf) must be a 2-element list '
+                'or tuple containing equal size arrays with x and y pdf values.'))
         with collective_only_rank0_runs():
             if mpi_rank == 0:
-                sattrs = self.zgroup.attrs['calibration_materials'][self.index]
-        sattrs = comm.bcast(sattrs, root=0)
-        return sattrs
+                new_array = self.zgroup.create_array(name=f'{name}_standard{self.index}_pdf',
+                                                     shape=(len(value[0]), 2),
+                                                     chunks=(len(value[0]), 2),
+                                                     dtype=float,
+                                                     overwrite=True)
+                new_array[:, 0] = value[0]
+                new_array[:, 1] = value[1]
 
-    def keys(self):
-        """
-        Get the keys of the calibration material dictionary.
-        """
-        sattrs = self._getattrs()
-        return sattrs.keys()
+    @property
+    def lowE_pdf(self):
+        return self._get_pdf('lowE')
 
-    def values(self):
-        """
-        Get the values of the calibration material dictionary.
-        """
-        sattrs = self._getattrs()
-        return sattrs.values()
+    @lowE_pdf.setter
+    def lowE_pdf(self, v):
+        return self._set_pdf('lowE', v)
 
+    @property
+    def highE_pdf(self):
+        return self._get_pdf('highE')
+
+    @highE_pdf.setter
+    def highE_pdf(self, v):
+        return self._set_pdf('highE', v)
+
+
+
+
+    #---- FAZER ASDICT -------#
     def items(self):
         """
         Get the key-value pairs of the calibration material properties.
         """
         sattrs = self._getattrs()
         return sattrs.items()
-
-    def __str__(self):
-        str_ = None
-        with collective_only_rank0_runs():
-            if mpi_rank == 0:
-                str_ = self.zgroup.attrs['calibration_materials'][self.index].__str__()
-        str_ = comm.bcast(str_, root=0)
-        return str_
-
-    def __repr__(self):
-        repr_ = None
-        with collective_only_rank0_runs():
-            if mpi_rank == 0:
-                repr_ = self.zgroup.attrs['calibration_materials'][self.index].__repr__()
-        repr_ = comm.bcast(repr_, root=0)
-        return repr_
 
     def check(self):
         """
@@ -505,10 +555,10 @@ class DualEnergyCTGroup():
 
     def __init__(self, zgroup):
         self.zgroup = zgroup
-        self._calibration_material0 = CalibrationMaterial(self.zgroup, '0')
-        self._calibration_material1 = CalibrationMaterial(self.zgroup, '1')
-        self._calibration_material2 = CalibrationMaterial(self.zgroup, '2')
-        self._calibration_material3 = CalibrationMaterial(self.zgroup, '3')
+        self._calibration_material = [CalibrationMaterial(self.zgroup, "0"),
+                                      CalibrationMaterial(self.zgroup, "1"),
+                                      CalibrationMaterial(self.zgroup, "2"),
+                                      CalibrationMaterial(self.zgroup, "3")]
         self._periodic_table = PeriodicTable(self.zgroup)
         self.current_hashes = {'lowE': '',
                                'highE': '',
@@ -686,27 +736,15 @@ class DualEnergyCTGroup():
     # Calibration materials and periodic table ----------------------
 
     @property
-    def calibration_material0(self):
-        """Dictionary-like object with the properties for `calibration_material0`
-        (empty region). The following keys must be set:
-
-        * ``'description'`` - string describing `calibration_material0`. Will be
-          used in the default plots.
-
-        * ``'segmentation_phase'`` - segmentation phase in segmentation array
-          defining the voxels belonging to `calibration_material0`.
-
-        * ``'lowE_gaussian_center_bounds'`` - two-element list with lower and upper
-          bounds for the gaussian center in the lowECT image histogram.
-
-        * ``'highE_gaussian_center_bounds'`` - two-element list with lower and upper
-          bounds for the gaussian center in the highECT image histogram.
+    def calibration_material(self):
         """
-        return self._calibration_material0
+        ??????????????????????????????
+        ??????????????????????????????
+        ??????????????????????????????
+        ??????????????????????????????
 
-    @property
-    def calibration_material1(self):
-        """Dictionary-like object with the properties for `calibration_material1`.
+
+        Dictionary-like object with the properties for `calibration_material1`.
         The keys are the same as in `calibration_material0`, plus these additional
         ones:
 
@@ -758,21 +796,7 @@ class DualEnergyCTGroup():
             dectgroup.calibration_material1['composition'] = {'C': 2, 'F': 4}
             dectgroup.calibration_material1['bulk_density'] = 2.2
         """
-        return self._calibration_material1
-
-    @property
-    def calibration_material2(self):
-        """Dictionary-like object with the properties for `calibration_material2`.
-        See `calibration_material1` for details.
-        """
-        return self._calibration_material2
-
-    @property
-    def calibration_material3(self):
-        """Dictionary-like object with the properties for `calibration_material3`.
-        See `calibration_material1` for details.
-        """
-        return self._calibration_material3
+        return self._calibration_material
 
     @property
     def periodic_table(self):
@@ -1225,7 +1249,7 @@ class DualEnergyCTGroup():
 
 
     # Histograms ----------------------------------------------------
-    def _calc_histogram(self, ct):
+    def _calc_histogramDEPRECATED(self, ct):
         """
         Calculate histograms for the low and high energy CT data, using the
         segmentation and mask arrays, as well as the specified number of bins.
@@ -1276,8 +1300,8 @@ class DualEnergyCTGroup():
                 self.zgroup[ct+'EHistogram'].attrs['md5sum'] = hexdigest
         comm.barrier()
 
-
-    def _fit_histograms(self):
+    #DEPRECATED
+    def _fit_histogramsDEPRECATED(self):
         """
         Fit Gaussian distributions to the histograms of calibration materials
         for both low and high energy CT data.
@@ -1889,7 +1913,6 @@ def create_group(store, *, path=None, overwrite=False, **kwargs):
     kwargs['overwrite'] = overwrite
     kwargs['attributes'] = {
         '_ROCKVERSE_DATATYPE': 'DualEnergyCTGroup',
-        'histogram_bins': 256,
         'tol': 1e-12,
         'whis': 1.5,
         'required_iterations': 5000,
@@ -1899,38 +1922,24 @@ def create_group(store, *, path=None, overwrite=False, **kwargs):
         'maxn': 30,
         'threads_per_block': 4,
         'hash_buffer_size': 100,
-        'calibration_materials': {
-            "lowEHistogram": "",
-            "highEHistogram": "",
+        'calibration_material': {
             "0": {
                 'description': None,
-                'segmentation_phase': None,
-                'lowE_gaussian_center_bounds': None,
-                'highE_gaussian_center_bounds': None,
                 },
             "1": {
                 'description': None,
-                'segmentation_phase': None,
                 'composition': None,
                 'bulk_density': None,
-                'lowE_gaussian_center_bounds': None,
-                'highE_gaussian_center_bounds': None,
                 },
             "2": {
                 'description': None,
-                'segmentation_phase': None,
                 'composition': None,
                 'bulk_density': None,
-                'lowE_gaussian_center_bounds': None,
-                'highE_gaussian_center_bounds': None,
                 },
             "3": {
                 'description': None,
-                'segmentation_phase': None,
                 'composition': None,
                 'bulk_density': None,
-                'lowE_gaussian_center_bounds': None,
-                'highE_gaussian_center_bounds': None,
                 }
             },
             'ZM_table': copy.deepcopy(ATOMIC_NUMBER_AND_MASS_DICT)

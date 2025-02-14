@@ -99,7 +99,7 @@ class OrthogonalViewer():
             Unsigned int voxel image with segmentation phases to overlay labeled
             regions on slices and histogram.
 
-        bins : int or sequence of scalars, optional
+        histogram_bins : int or sequence of scalars, optional
             Binning definition for histogram calculation.
 
         ref_voxel : tuple of int, optional
@@ -235,7 +235,7 @@ class OrthogonalViewer():
                  region=None,
                  mask=None,
                  segmentation=None,
-                 bins=None,
+                 histogram_bins=None,
                  ref_voxel=None,
                  ref_point=None,
                  show_xy_plane=True,
@@ -278,7 +278,7 @@ class OrthogonalViewer():
         self._region = region
 
         self._histogram = Histogram(image,
-                                    bins=bins,
+                                    bins=histogram_bins,
                                     mask=mask,
                                     segmentation=segmentation,
                                     region=region)

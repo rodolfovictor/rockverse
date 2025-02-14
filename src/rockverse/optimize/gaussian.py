@@ -1,59 +1,78 @@
 import numpy as np
 from scipy.optimize import minimize
 
-
-#%%
 def gaussian_val(c, x):
     return c[0]*np.exp(-0.5*((x-c[1])/c[2])**2)
+
+
+def _gaussian_fit_logspace(x, y):
+
+    #get sorted data
+    ind = np.argsort(x)
+    xs = np.array(x[ind]).astype(float)
+    ys = np.array(y[ind]).astype(float)
+
+    # get only positive values and go to logspace
+    xp = xs[ys>0]
+    yp = np.log(ys[ys>0])
+
+    #normalize
+    minxp = min(xp)
+    ranxp = max(xp)-min(xp)
+    minyp = min(yp)
+    ranyp = max(yp)-min(yp)
+    xn = (xp-minxp)/ranxp
+    yn = (yp-minyp)/ranyp
+
+    # Polynomial fit on normalized data
+    m = len(xn)
+    A = np.ones((m, 3), dtype=float)
+    A[:, 0] = xn*xn
+    A[:, 1] = xn
+    cn = np.linalg.lstsq(A, yn)[0]
+
+    # Back to true data on log space
+    cl = np.array([0, 0, 0], dtype=float)
+    cl[0] = ranyp*cn[0]/ranxp/ranxp
+    cl[1] = -cn[0]*ranyp*2*minxp/ranxp/ranxp + ranyp*cn[1]/ranxp
+    cl[2] = cn[0]*ranyp*minxp*minxp/ranxp/ranxp -ranyp*cn[1]*minxp/ranxp +cn[2]*ranyp +minyp
+
+    # Back to true data in linear space
+    c = np.array([0, 0, 0], dtype=float)
+    c[2] = np.sqrt(-1/2/cl[0])
+    c[1] = cl[1]*c[2]*c[2]
+    c[0] = np.exp(cl[2]+0.5*((c[1]/c[2])**2))
+
+    return c
+
 
 def error_gaussian(c, x, y, order=1):
     return np.linalg.norm(y-gaussian_val(c, x), ord=order)
 
-def gaussian_fit(x, y, *, center_bounds=None, order=1):
+
+def gaussian_fit(x, y, order=1):
     if not isinstance(x, np.ndarray) or not isinstance(y, np.ndarray):
         raise ValueError("x and y must be numpy arrays.")
 
     #Data conditioning
-    minx = np.min(x)
-    maxx = np.max(x)
-    miny = np.min(y)
-    maxy = np.max(y)
-    rangex = maxx-minx
-    rangey = maxy-miny
+    minx = min(x)
+    rangex = max(x)-minx
+    rangey = max(y)-min(y)
     x_cond = (x-minx)/rangex
-    y_cond = (y-miny)/rangey
-    if center_bounds is not None:
-        lim_mu = np.array([min(center_bounds), max(center_bounds)])
-        lim_mu -= minx
-        lim_mu /= rangex
-        mean_guess = np.mean(lim_mu)
-    else:
-        lim_mu = (None, None)
-        mean_guess = np.sum(y_cond*x_cond)/np.sum(y_cond)
-    var_guess = np.sqrt(np.sum((y_cond*x_cond-mean_guess)**2))/np.sum(y_cond)
+    y_cond = y/rangey
+    i = np.argmax(y_cond)
+    imin = max(i-2, 0)
+    imax = min(imin+5, len(y_cond))
+    c0 = _gaussian_fit_logspace(x_cond[imin:imax], y_cond[imin:imax])
 
-    c_cond = [max(y_cond), mean_guess, var_guess]
-    fun_cond = minimize(error_gaussian,
-                        x0=c_cond,
-                        args=(x_cond, y_cond, order),
-                        bounds=((1e-10*c_cond[0], None),
-                                lim_mu,
-                                (1e-10*c_cond[2], None)),
-                        method='Powell')
+    fun = minimize(error_gaussian, x0=c0, args=(x_cond, y_cond, order))
 
-    cfit = [fun_cond.x[0] * rangey + miny,
-            fun_cond.x[1] * rangex + minx,
-            fun_cond.x[2] * rangex]
-    if lim_mu[0] is not None:
-        lim_mu *= rangex
-        lim_mu += minx
-
-    fun = minimize(error_gaussian, x0=cfit, args=(x, y, order),
-                   bounds=((1e-10*cfit[0], None),
-                           lim_mu,
-                           (1e-10*cfit[2], None)),
-                   method='Powell')
-    return fun.x
+    #Back to original data
+    c = fun.x
+    c[0] *= rangey
+    c[1] = minx + c[1]*rangex
+    c[2] *= rangex
+    return c
 
 def multi_gaussian_val(c, x):
     y = 0*x
