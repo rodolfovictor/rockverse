@@ -7,7 +7,24 @@ from rockverse.dualenergyct._corefunctions import calcABn_gpu
 
 
 @cuda.jit()
-def _coeff_matrix_broad_search_gpu(rng_states, matrix, Z1v, Z2v, Z3v, args):
+def coeff_matrix_broad_search_gpu(rng_states, matrix, Z1v, Z2v, Z3v, args, cdfx0, cdfy0, cdfx1, cdfy1, cdfx2, cdfy2, cdfx3, cdfy3):
+
+    def draw_pdf(cdfx, cdfy, cdfvalue):
+        pdf = None
+        #Try linear interpolation
+        for k in range(1, len(cdfx)):
+            if cdfy[k-1] <= cdfvalue < cdfy[k]:
+                m = (cdfx[k]-cdfx[k-1])/(cdfy[k]-cdfy[k-1])
+                pdf = cdfx[k] + m*(cdfy[k]-cdfy[k-1])
+                break
+        if pdf is None: #fall back to closest
+            min_dist = abs(cdfy[0]-cdfvalue)
+            pdf = cdfx[0]
+            for k in range(1, len(cdfx)):
+                if abs(cdfy[k]-cdfvalue)<min_dist:
+                    min_dist = abs(cdfy[k]-cdfvalue)
+                    pdf = cdfx[k]
+        return pdf
 
     def Zn(values, n):
         sum_ = np.float64(0)
@@ -25,7 +42,7 @@ def _coeff_matrix_broad_search_gpu(rng_states, matrix, Z1v, Z2v, Z3v, args):
         err = (F1*F1+F2*F2+F3*F3)**0.5
         return err
 
-    m0, s0, m1, s1, m2, s2, m3, s3, rho1, rho2, rho3, maxA, maxB, maxn, tol = args
+    rho1, rho2, rho3, maxA, maxB, maxn, tol = args
     k = cuda.grid(1)
     if k<0 or k>=matrix.shape[0]:
         return
@@ -36,10 +53,10 @@ def _coeff_matrix_broad_search_gpu(rng_states, matrix, Z1v, Z2v, Z3v, args):
     for _ in range(100):
         if matrix[k, -1] < tol:
             return
-        CT0 = m0 + s0*xoroshiro128p_normal_float64(rng_states, k)
-        CT1 = m1 + s1*xoroshiro128p_normal_float64(rng_states, k)
-        CT2 = m2 + s2*xoroshiro128p_normal_float64(rng_states, k)
-        CT3 = m3 + s3*xoroshiro128p_normal_float64(rng_states, k)
+        CT0 = draw_pdf(cdfx0, cdfy0, xoroshiro128p_uniform_float64(rng_states, k))
+        CT1 = draw_pdf(cdfx1, cdfy1, xoroshiro128p_uniform_float64(rng_states, k))
+        CT2 = draw_pdf(cdfx2, cdfy2, xoroshiro128p_uniform_float64(rng_states, k))
+        CT3 = draw_pdf(cdfx3, cdfy3, xoroshiro128p_uniform_float64(rng_states, k))
         for _ in range(100):
             A0 = xoroshiro128p_uniform_float64(rng_states, k)*maxA + 1e-10
             B0 = xoroshiro128p_uniform_float64(rng_states, k)*maxB + 1e-10
@@ -62,7 +79,7 @@ def _coeff_matrix_broad_search_gpu(rng_states, matrix, Z1v, Z2v, Z3v, args):
                 matrix[k, 10] = err
                 return
 
-def _fill_coeff_matrix_gpu(matrix, Z1v, Z2v, Z3v, args):
+def _fill_coeff_matrix_gpuDEPRECATE(matrix, Z1v, Z2v, Z3v, args):
      threadsperblock = 32
      blockspergrid = int(np.ceil(matrix.shape[0]/threadsperblock))
      rng_states = create_xoroshiro128p_states(threadsperblock * blockspergrid, seed=1)

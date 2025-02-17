@@ -9,9 +9,25 @@ from rockverse.dualenergyct._corefunctions import calcABn_cpu
 from rockverse.dualenergyct._corefunctions import calc_rho_Z_cpu
 
 
-
 @njit()
-def _fill_coeff_matrix_cpu(matrix, Z1v, Z2v, Z3v, args):
+def fill_coeff_matrix_cpu(matrix, Z1v, Z2v, Z3v, args, cdfx0, cdfy0, cdfx1, cdfy1, cdfx2, cdfy2, cdfx3, cdfy3):
+
+    def draw_pdf(cdfx, cdfy, cdfvalue):
+        pdf = None
+        #Try linear interpolation
+        for k in range(1, len(cdfx)):
+            if cdfy[k-1] <= cdfvalue < cdfy[k]:
+                m = (cdfx[k]-cdfx[k-1])/(cdfy[k]-cdfy[k-1])
+                pdf = cdfx[k] + m*(cdfy[k]-cdfy[k-1])
+                break
+        if pdf is None: #fall back to closest
+            min_dist = abs(cdfy[0]-cdfvalue)
+            pdf = cdfx[0]
+            for k in range(1, len(cdfx)):
+                if abs(cdfy[k]-cdfvalue)<min_dist:
+                    min_dist = abs(cdfy[k]-cdfvalue)
+                    pdf = cdfx[k]
+        return pdf
 
     def Zn(values, n):
         sum_ = np.float32(0)
@@ -29,7 +45,7 @@ def _fill_coeff_matrix_cpu(matrix, Z1v, Z2v, Z3v, args):
         err = (F1*F1+F2*F2+F3*F3)**0.5
         return err
 
-    m0, s0, m1, s1, m2, s2, m3, s3, rho1, rho2, rho3, maxA, maxB, maxn, tol = args
+    rho1, rho2, rho3, maxA, maxB, maxn, tol = args
 
     #Broad random search
     for k in range(matrix.shape[0]):
@@ -40,10 +56,10 @@ def _fill_coeff_matrix_cpu(matrix, Z1v, Z2v, Z3v, args):
         for _ in range(1000):
             if matrix[k, -1] < tol:
                 break
-            CT0 = m0 + s0*np.random.randn()
-            CT1 = m1 + s1*np.random.randn()
-            CT2 = m2 + s2*np.random.randn()
-            CT3 = m3 + s3*np.random.randn()
+            CT0 = draw_pdf(cdfx0, cdfy0, np.random.rand())
+            CT1 = draw_pdf(cdfx1, cdfy1, np.random.rand())
+            CT2 = draw_pdf(cdfx2, cdfy2, np.random.rand())
+            CT3 = draw_pdf(cdfx3, cdfy3, np.random.rand())
             for _ in range(1000):
                 A0 = np.random.rand()*maxA + 1e-10
                 B0 = np.random.rand()*maxB + 1e-10
@@ -56,9 +72,8 @@ def _fill_coeff_matrix_cpu(matrix, Z1v, Z2v, Z3v, args):
                     matrix[k, :] = [CT0, CT1, CT2, CT3, Z1, Z2, Z3, A, B, n, err]
                     break
 
-
 @njit()
-def _calc_rhoZ_arrays_cpu(required_iterations, matrixl, matrixh, CTl, CTh, m0l, s0l, m0h, s0h, rho1, rho2, rho3, tol):
+def calc_rhoZ_arrays_cpu(required_iterations, matrixl, matrixh, CTl, CTh, m0l, s0l, m0h, s0h, rho1, rho2, rho3, tol):
     array_rho = np.nan*np.zeros(matrixl.shape[0], dtype='f8')
     array_Z = np.nan*np.zeros(matrixl.shape[0], dtype='f8')
     array_error = np.nan*np.zeros(matrixl.shape[0], dtype='f8')

@@ -4,9 +4,12 @@ NOW MIGRATING TO ZARR 3
 
 Resolvendo dual energy
 ACABEI DE REORGANIZAR O CALIBRATION MATERIAL class
-    - REVISAR AS FUNÇÕES REMANESCENTES
     - Avisos collective MPI calls no docstring
+- ATACANDO PREPROCESS
+    - remove histogram and gaussian coef
+    - buffer_size
 
+Numba clean GPU memory
 
 Execute o tutorial
 

@@ -159,15 +159,17 @@ def create(shape,
     kwargs['store'] = store
     kwargs['name'] = path
     kwargs['zarr_format'] = 3
-    kwargs['attributes'] = {
-        '_ROCKVERSE_DATATYPE': 'VoxelImage',
-        'description': description,
-        'field_name': field_name,
-        'field_unit': field_unit,
-        'voxel_unit': voxel_unit,
-        'voxel_origin': _voxel_origin,
-        'voxel_length': _voxel_length,
-    }
+    if 'attributes' not in kwargs:
+        kwargs['attributes'] = {}
+    kwargs['attributes'].update(
+        _ROCKVERSE_DATATYPE='VoxelImage',
+        description=description,
+        field_name=field_name,
+        field_unit=field_unit,
+        voxel_unit=voxel_unit,
+        voxel_origin=_voxel_origin,
+        voxel_length=_voxel_length,
+    )
 
     #Only rank 0 writes metadata to disk
     if isinstance(store, (str, zarr.storage.LocalStore)):
@@ -716,7 +718,7 @@ class VoxelImage():
         self._array = z
 
     def __repr__(self):
-        return f"<VoxelImage shape={self.shape} dtype={self.dtype} store={self._array.store}>"
+        return f"<VoxelImage shape={self.shape} dtype={self.dtype} store={self._array.store} path={self._array.path}>"
 
 
     def __getitem__(self, selection, rank=None):

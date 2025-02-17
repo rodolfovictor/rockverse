@@ -8,6 +8,7 @@ Note:
 
 import hashlib
 import numpy as np
+from rockverse.errors import collective_only_rank0_runs
 from rockverse.config import config
 comm = config.mpi_comm
 mpi_rank = config.mpi_rank
@@ -16,7 +17,7 @@ mpi_nprocs = config.mpi_nprocs
 from rockverse._utils import rvtqdm
 
 
-def hash_array(array, name, hash_buffer_size):
+def hash_array(array, name):
     """
     Calculate the MD5 hash of a 3D array, processing in blocks for memory efficiency.
 
@@ -30,7 +31,6 @@ def hash_array(array, name, hash_buffer_size):
     if array is None:
         return ''
 
-    buffer = hash_buffer_size
     local_md5 = ['']*array.nchunks
     for block_id in rvtqdm(range(array.nchunks), desc=f'Hashing {name}', unit='chunk'):
         chunk_slices = array.chunk_slice_indices(block_id)
@@ -55,134 +55,20 @@ def hash_input_data(group):
     Note:
     Updates the 'current_hashes' attribute of the group object.
     """
-    hash_buffer_size = group.hash_buffer_size
+    hash_buffer_size = group.hash_buffer_size #<- NOt used!...
     hashes = ['']*4
     for k, array in enumerate((group.lowECT, group.highECT, group.mask,
                                group.segmentation)):
-        hashes[k] = hash_array(array,
-                               array.field_name,
-                               hash_buffer_size) # Initialise
+        hashes[k] = hash_array(array, array.field_name)
     comm.barrier()
-    for k in range(4):
-        hexdigest = comm.bcast(hashes[k], root=k%mpi_nprocs)
-        hashes[k] = hexdigest
-        group.current_hashes['lowE'] = hashes[0]
-        group.current_hashes['highE'] = hashes[1]
-        group.current_hashes['mask'] = hashes[2]
-        group.current_hashes['segmentation'] = hashes[3]
-
-
-
-def hash_histogram(group, ct):
-    """
-    Calculate the hash for low or high energy histograms.
-
-    Parameters:
-    group (Group): The DECT group object.
-    ct (str): Either 'low' or 'high' to specify which energy histogram to hash.
-
-    Returns:
-    str: The hexadecimal digest of the MD5 hash.
-    """
-    assert ct in ('low', 'high')
-    dependency = (group.current_hashes[f'{ct}E']             #Image
-                 + group.current_hashes['segmentation']     #Segmentation
-                 + group.current_hashes['mask'])            #Mask
-    md5 = hashlib.md5(dependency.encode('ascii'))
-    md5.update(np.int64(group.histogram_bins))              #Histogram bins
-
-    hist = group.lowEhistogram if ct == 'low' else group.highEhistogram
-    md5.update(','.join(hist.columns).encode('ascii'))      #Histogram columns
-    md5.update(hist.values)                                 #Histogram values
-    return md5.hexdigest()
-
-
-
-def need_histogram(group, ct):
-    """
-    Check if the histogram needs to be recalculated.
-
-    Parameters:
-    group (Group): The DECT group object.
-    ct (str): Either 'low' or 'high' to specify which energy histogram to check.
-
-    Returns:
-    bool: True if recalculation is needed, False otherwise.
-    """
-    assert ct in ('low', 'high')
-    hist = group.lowEhistogram if ct == 'low' else group.highEhistogram
-    if hist is None:
-        return True
-    str1 = hash_histogram(group, ct)
-    str2 = group.zgroup[ct+'EHistogram'].attrs['md5sum']
-    if str1 != str2:
-        return True
-    return False
-
-
-
-def hash_calibration_gaussian_coefficients(group):
-    """
-    Calculate the cumulative hash for the calibration Gaussian coefficients.
-
-    Parameters:
-    group (Group): The DECT group object.
-
-    Returns:
-    str: The hexadecimal digest of the MD5 hash.
-    """
-    dependency = hash_histogram(group, 'low') + hash_histogram(group, 'high')
-    md5 = hashlib.md5(dependency.encode('ascii'))
-    md5.update(group._calibration_gaussian_coefficient_values)
-    return md5.hexdigest()
-
-
-
-def need_calibration_gaussian_coefficients(group):
-    """
-    Check if the calibration Gaussian coefficients need to be recalculated.
-
-    Parameters:
-    group (Group): The DECT group object.
-
-    Returns:
-    bool: True if recalculation is needed, False otherwise.
-    """
-    if group._calibration_gaussian_coefficient_values is None:
-        return True
-    str1 = hash_calibration_gaussian_coefficients(group)
-    str2 = group.zgroup['CalibrationGaussianCoefficients'].attrs['md5sum']
-    if str1 != str2:
-        return True
-    return False
-
-
-
-
-def hash_pre_process(group):
-    """
-    Calculate the cumulative hash for pre-processing data.
-
-    Parameters:
-    group (Group): The DECT group object.
-
-    Returns:
-    str: The hexadecimal digest of the MD5 hash.
-    """
-    dependency = hash_calibration_gaussian_coefficients(group)
-    md5 = hashlib.md5(dependency.encode('ascii'))
-    rho1, Z1v = group.calibration_material1._rhohat_Zn_values()
-    md5.update(rho1)
-    md5.update(Z1v)
-    rho2, Z2v = group.calibration_material2._rhohat_Zn_values()
-    md5.update(rho2)
-    md5.update(Z2v)
-    rho3, Z3v = group.calibration_material3._rhohat_Zn_values()
-    md5.update(rho3)
-    md5.update(Z3v)
-    md5.update(np.float64(group.tol))
-    return md5.hexdigest()
-
+    group.current_hashes['lowE'] = hashes[0]
+    group.current_hashes['highE'] = hashes[1]
+    group.current_hashes['mask'] = hashes[2]
+    group.current_hashes['segmentation'] = hashes[3]
+    group.current_hashes['calibration_material0'] = group.calibration_material[0].hash()
+    group.current_hashes['calibration_material1'] = group.calibration_material[1].hash()
+    group.current_hashes['calibration_material2'] = group.calibration_material[2].hash()
+    group.current_hashes['calibration_material3'] = group.calibration_material[3].hash()
 
 
 def hash_coefficient_matrices(group):
@@ -195,13 +81,16 @@ def hash_coefficient_matrices(group):
     Returns:
     str: The hexadecimal digest of the MD5 hash.
     """
-    dependency = hash_pre_process(group)
+    dependency = ''
+    for k in sorted(group.current_hashes.keys()):
+        dependency = dependency + group.current_hashes[k]
     md5 = hashlib.md5(dependency.encode('ascii'))
     matrixl = None
     matrixh = None
-    if mpi_rank == 0:
-        matrixl = group.zgroup['matrixl'][...]
-        matrixh = group.zgroup['matrixh'][...]
+    with collective_only_rank0_runs():
+        if mpi_rank == 0:
+            matrixl = group.zgroup['matrixl'][...]
+            matrixh = group.zgroup['matrixh'][...]
     matrixl = comm.bcast(matrixl, root=0)
     matrixh = comm.bcast(matrixh, root=0)
     md5.update(matrixl)

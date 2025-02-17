@@ -20,8 +20,7 @@ Classes:
 
 .. todo:
     - Get processing parameters from rcparams
-    - Print gaussian coeficients by material name
-    - Enforce directory store
+
 """
 
 ### NOTE ###
@@ -31,6 +30,7 @@ import copy
 import numpy as np
 import pandas as pd
 import zarr
+import hashlib
 from datetime import datetime
 from mpi4py import MPI
 from rockverse._utils import rvtqdm
@@ -45,31 +45,24 @@ from rockverse.voxel_image import (
     VoxelImage,
     full_like)
 
-from rockverse.voxel_image.histogram import Histogram
-from rockverse.optimize import gaussian_fit
 from rockverse import _assert
 from rockverse.errors import collective_raise, collective_only_rank0_runs
 from rockverse._utils import collective_print
 from rockverse.dualenergyct._periodic_table import ATOMIC_NUMBER_AND_MASS_DICT
 from rockverse.dualenergyct._gpu_functions import (
-    _coeff_matrix_broad_search_gpu,
+    coeff_matrix_broad_search_gpu,
     _reset_arrays_gpu,
     _calc_rhoZ_arrays_gpu
     )
 from rockverse.dualenergyct._corefunctions import _make_index
 from rockverse.dualenergyct._cpu_functions import (
-    _fill_coeff_matrix_cpu,
-    _calc_rhoZ_arrays_cpu
+    fill_coeff_matrix_cpu,
+    calc_rhoZ_arrays_cpu
     )
 from rockverse.dualenergyct._hash_functions import (
     hash_input_data,
-    hash_histogram,
-    need_histogram,
-    hash_calibration_gaussian_coefficients,
-    need_calibration_gaussian_coefficients,
     need_coefficient_matrices,
     hash_coefficient_matrices,
-    hash_pre_process,
     need_output_array
     )
 
@@ -80,14 +73,10 @@ _STATUS = ['lowECT',
           'highECT',
           'segmentation',
           'mask',
-          'histogram_bins',
           'calibration material 0: --- NOT CHECKED ---',
           'calibration material 1: --- NOT CHECKED ---',
           'calibration material 2: --- NOT CHECKED ---',
           'calibration material 3: --- NOT CHECKED ---',
-          'lowEhistogram: --- OUTDATED OR NOT SET. ---',
-          'highEhistogram: --- OUTDATED OR NOT SET. ---',
-          'calibration gaussian coefficients: --- OUTDATED OR NOT SET. ---',
           'calibration coefficient matrices: --- OUTDATED OR NOT SET. ---',
           'rho_min: --- NEEDS RESTART. ---',
           'rho_p25: --- NEEDS RESTART. ---',
@@ -420,7 +409,7 @@ class CalibrationMaterial():
                     new_array = self.zgroup[array_name][...]
         new_array = comm.bcast(new_array, root=0)
         if new_array is not None:
-            return new_array[:, 0], new_array[:, 1]
+            return np.ascontiguousarray(new_array[:, 0]), np.ascontiguousarray(new_array[:, 1])
         return None
 
 
@@ -453,8 +442,16 @@ class CalibrationMaterial():
                                       chunks=(len(x), 2),
                                       dtype=float,
                                       overwrite=True)
-                z[:, 0] = x
-                z[:, 1] = y/sum
+                ind = np.argsort(x)
+                z[:, 0] = x[ind]
+                z[:, 1] = y[ind]/sum
+
+    def _get_cdf(self, name):
+        x, y = self._get_pdf(name)
+        sum = 0*x
+        for k in range(1, len(x)):
+            sum[k] += sum[k-1] + (y[k]+y[k-1])*(x[k]-x[k-1])*0.5
+        return np.ascontiguousarray(x), np.ascontiguousarray(sum)
 
     @property
     def lowE_pdf(self):
@@ -465,12 +462,20 @@ class CalibrationMaterial():
         return self._set_pdf('lowE', v)
 
     @property
+    def lowE_cdf(self):
+        return self._get_cdf('lowE')
+
+    @property
     def highE_pdf(self):
         return self._get_pdf('highE')
 
     @highE_pdf.setter
     def highE_pdf(self, v):
         return self._set_pdf('highE', v)
+
+    @property
+    def highE_cdf(self):
+        return self._get_cdf('highE')
 
     def as_dict(self):
         items = {'description': self.description}
@@ -480,6 +485,22 @@ class CalibrationMaterial():
         items['lowE_pdf'] = self.lowE_pdf
         items['highE_pdf'] = self.highE_pdf
         return items
+
+    def hash(self):
+        md5 = hashlib.md5()
+        if self.index != '0' and self.bulk_density is not None:
+            md5.update(np.array([float(self.bulk_density),], dtype=float))
+        if self.index != '0' and self.composition is not None:
+            composition = self.composition
+            for k in sorted(composition.keys()):
+                md5.update(k.encode('ascii'))
+                md5.update(np.array([float(composition[k]),], dtype=float))
+        for pdf in (self.lowE_pdf, self.highE_pdf):
+            if pdf is not None:
+                x, y = self.lowE_pdf
+                md5.update(np.array(x, dtype=float))
+                md5.update(np.array(y, dtype=float))
+        return md5.hexdigest()
 
     def check(self):
         """
@@ -495,6 +516,7 @@ class CalibrationMaterial():
         if msg:
             return f"Calibration material {self.index}:" + msg
         return msg
+
 
     def _rhohat_Zn_values(self):
         """
@@ -576,7 +598,11 @@ class DualEnergyCTGroup():
         self.current_hashes = {'lowE': '',
                                'highE': '',
                                'mask': '',
-                               'segmentation': ''}
+                               'segmentation': '',
+                               'calibration_material0': '',
+                               'calibration_material1': '',
+                               'calibration_material2': '',
+                               'calibration_material3': ''}
 
     # Arrays ----------------------------------------------
 
@@ -606,7 +632,7 @@ class DualEnergyCTGroup():
     def mask(self):
         """
         The mask voxel image. Returns ``None`` if not set. Masked voxels
-        will be ignored during the Monte Carlo inversion and histogram calculations.
+        will be ignored during the Monte Carlo inversion.
         Can only be changed through the
         :ref:`array creation methods <dect_array_creation>`.
         """
@@ -619,8 +645,8 @@ class DualEnergyCTGroup():
     def segmentation(self):
         """
         The segmentation voxel image. Returns ``None`` if not set. This array
-        is used to locate the calibration materials in the image and calculate
-        histograms. Can only be changed through the
+        is used to locate the calibration materials in the image. <- ?????? DEPRECATED
+        Can only be changed through the
         :ref:`array creation methods <dect_array_creation>`.
         """
         if 'segmentation' in self.zgroup:
@@ -820,19 +846,6 @@ class DualEnergyCTGroup():
         return self._periodic_table
 
     @property
-    def histogram_bins(self):
-        '''
-        Number of equal-width histogram bins for the CT images.
-        Must be a positive integer.
-        '''
-        return self._get_attribute('histogram_bins')
-
-    @histogram_bins.setter
-    def histogram_bins(self, v):
-        _assert.condition.positive_integer('histogram_bins', v)
-        self._set_attribute('histogram_bins', v)
-
-    @property
     def maxA(self):
         "Maximum value for coefficient A in broad search."
         return self._get_attribute('maxA')
@@ -861,41 +874,6 @@ class DualEnergyCTGroup():
     def maxn(self, v):
         _assert.instance('maxn', v, 'number', (float, int))
         self._set_attribute('maxn', v)
-
-    @property
-    def lowEhistogram(self):
-        """
-        Histogram count for the low energy image as a Pandas DataFrame.
-        Return ``None`` if lowECT is not set.
-        """
-        hist = 'None'
-        with collective_only_rank0_runs():
-            if mpi_rank == 0 and 'lowEHistogram' in self.zgroup:
-                hist = {'data': self.zgroup['lowEHistogram'][...],
-                        'columns': ['bin_centers',
-                                    *self.zgroup['lowEHistogram'].attrs['columns']]}
-        hist = comm.bcast(hist, root=0)
-        if hist == 'None':
-            return None
-        return pd.DataFrame(data=hist['data'], columns=hist['columns'])
-
-
-    @property
-    def highEhistogram(self):
-        """
-        Histogram count for the high energy image as a Pandas DataFrame.
-        Return ``None`` if highECT is not set.
-        """
-        hist = 'None'
-        with collective_only_rank0_runs():
-            if mpi_rank == 0 and 'highEHistogram' in self.zgroup:
-                hist = {'data': self.zgroup['highEHistogram'][...],
-                        'columns': ['bin_centers', *self.zgroup['highEHistogram'].attrs['columns']]}
-        hist = comm.bcast(hist, root=0)
-        if hist == 'None':
-            return None
-        return pd.DataFrame(data=hist['data'], columns=hist['columns'])
-
 
     @property
     def lowE_inversion_coefficients(self):
@@ -1022,45 +1000,6 @@ class DualEnergyCTGroup():
         _assert.instance('whis', v, 'number', (int, float))
         self._set_attribute('whis', v)
 
-    @property
-    def calibration_gaussian_coefficients(self):
-        """
-        A Pandas DataFrame with the fitting coefficients ``[A, mu, sigma]``
-        for the calibration materials in the low and high energy CT images,
-        according to the model
-
-        .. math:: y = Ae^{-\\frac{1}{2}\\bigg(\\frac{x-\\mu}{\\sigma}\\bigg)^2}.
-            :label: gaussian
-        """
-        coeff = None
-        with collective_only_rank0_runs():
-            if mpi_rank == 0 and 'CalibrationGaussianCoefficients' in self.zgroup:
-                coeff = {'data': self.zgroup['CalibrationGaussianCoefficients'][...],
-                        'index': self.zgroup['CalibrationGaussianCoefficients'].attrs['index'],
-                        'columns': self.zgroup['CalibrationGaussianCoefficients'].attrs['columns']}
-        coeff = comm.bcast(coeff, root=0)
-        return pd.DataFrame(data=coeff['data'], index=coeff['index'],
-                            columns=coeff['columns'])
-
-    @property
-    def _calibration_gaussian_coefficient_values(self):
-        """
-        See calibration_gaussian_coefficients.
-        """
-        coeff = None
-        with collective_only_rank0_runs():
-            if mpi_rank == 0 and 'CalibrationGaussianCoefficients' in self.zgroup:
-                coeff = self.zgroup['CalibrationGaussianCoefficients'][...]
-        coeff = comm.bcast(coeff, root=0)
-        return coeff
-
-
-
-
-
-
-
-
 
     # Array creation ------------------------------------------------
 
@@ -1175,13 +1114,11 @@ class DualEnergyCTGroup():
         else:
             status[0] = "lowECT: " + self.lowECT.__repr__()
 
-
         if self.highECT is None:
             status[1] = "=====> highECT array is not set."
             complete = False
         else:
             status[1] = "highECT: " + self.highECT.__repr__()
-
 
         if self.segmentation is None:
             status[2] = "=====> segmentation array is not set."
@@ -1189,60 +1126,55 @@ class DualEnergyCTGroup():
         else:
             status[2] = "segmentation: " + self.segmentation.__repr__()
 
-
         if self.mask is None:
             status[3] = "mask array is not set (optional)."
         else:
             status[3] = "mask: " + self.mask.__repr__()
 
-
-        if self.histogram_bins is None:
-            status[4] = "=====> histogram_bins is not set."
+        string = self.calibration_material[0].check()
+        if string:
+            status[4] = string
             complete = False
         else:
-            status[4] = f"histogram_bins = {self.histogram_bins}"
+            status[4] = 'Calibration material 0 OK.'
 
-
-        string = self.calibration_material0.check()
+        string = self.calibration_material[1].check()
         if string:
             status[5] = string
             complete = False
         else:
-            status[5] = 'Calibration material 0 OK.'
+            status[5] = 'Calibration material 1 OK.'
 
-        string = self.calibration_material1.check()
+        string = self.calibration_material[2].check()
         if string:
             status[6] = string
             complete = False
         else:
-            status[6] = 'Calibration material 1 OK.'
+            status[6] = 'Calibration material 2 OK.'
 
-        string = self.calibration_material2.check()
+        string = self.calibration_material[3].check()
         if string:
             status[7] = string
             complete = False
         else:
-            status[7] = 'Calibration material 2 OK.'
-
-        string = self.calibration_material3.check()
-        if string:
-            status[8] = string
-            complete = False
-        else:
-            status[8] = 'Calibration material 3 OK.'
+            status[7] = 'Calibration material 3 OK.'
 
         if not complete:
             return False
 
         # Check for shape, chunks and dtypes
         msg = ''
-        shapes = [self.lowECT.shape, self.highECT.shape, self.segmentation.shape]
-        chunks = [self.lowECT.chunks, self.highECT.chunks, self.segmentation.chunks]
-        tmp_msg = 'lowECT, highECT, and segmentation'
+        shapes = [self.lowECT.shape, self.highECT.shape]
+        chunks = [self.lowECT.chunks, self.highECT.chunks]
+        tmp_msg = 'lowECT, highECT'
+        if self.segmentation is not None:
+            shapes.append(self.segmentation.shape)
+            chunks.append(self.segmentation.chunks)
+            tmp_msg = f'{tmp_msg}, segmentation'
         if self.mask is not None:
             shapes.append(self.mask.shape)
             chunks.append(self.mask.chunks)
-            tmp_msg = 'lowECT, highECT, segmentation, and mask'
+            tmp_msg = f'{tmp_msg}, mask'
         if (any(shapes[k] != shapes[0] for k in range(len(shapes)))
             or any(chunks[k] != chunks[0] for k in range(len(chunks)))):
             msg = msg + "    - " + tmp_msg + " arrays must have same shape and chunk size.\n"
@@ -1250,7 +1182,7 @@ class DualEnergyCTGroup():
             msg = msg + "    - lowECT dtype must be numeric.\n"
         if self.highECT.dtype.kind not in 'uif':
             msg = msg + "    - highECT dtype must be numeric.\n"
-        if self.segmentation.dtype.kind != 'u':
+        if self.segmentation is not None and self.segmentation.dtype.kind != 'u':
             msg = msg + "    - segmentation dtype must be unsigned integer.\n"
         if self.mask is not None and self.mask.dtype.kind != 'b':
             msg = msg + "    - mask dtype must be boolean.\n"
@@ -1261,139 +1193,20 @@ class DualEnergyCTGroup():
         return True
 
 
-    # Histograms ----------------------------------------------------
-    def _calc_histogramDEPRECATED(self, ct):
-        """
-        Calculate histograms for the low and high energy CT data, using the
-        segmentation and mask arrays, as well as the specified number of bins.
-
-        The method uses the `lowECT` or `highECT` array (depending on the `ct`
-        parameter), applies the `mask` (if available), and segments the data
-        according to the `segmentation` array. The histogram is calculated using
-        the number of bins specified in `histogram_bins`.
-
-        The resulting histogram is stored in the Zarr group as 'lowEHistogram' or
-        'highEHistogram', depending on the `ct` parameter.
-
-        Parameters
-        ----------
-        ct : {'low', 'high'}
-            Specifies whether to calculate the histogram for low or high energy CT data.
-
-        Note
-        ----
-        This is an internal method and should not be called directly by users.
-        """
-        _assert.in_group('ct', ct, ('low', 'high'))
-        image = self.lowECT if ct == 'low' else self.highECT
-        new_hist = Histogram(image=image,
-                             bins=self.histogram_bins,
-                             region=None,
-                             mask=self.mask,
-                             segmentation=self.segmentation)
-        shape = list(new_hist.count.values.shape)
-        shape[1] += 1
-        values = np.zeros(shape, dtype='f8')
-        values[:, 0] = new_hist.bin_centers
-        values[:, 1:] = new_hist.count.values
-        columns = [str(k) for k in new_hist.count.columns]
-        with collective_only_rank0_runs():
-            if mpi_rank == 0:
-                new_array = self.zgroup.create_array(name=ct+'EHistogram',
-                                                    shape=values.shape,
-                                                    dtype=values.dtype,
-                                                    chunks=values.shape,
-                                                    overwrite=True,
-                                                    attributes={'columns': columns})
-                new_array[...] = values
-        comm.barrier()
-        hexdigest = hash_histogram(self, ct)
-        with collective_only_rank0_runs():
-            if mpi_rank == 0:
-                self.zgroup[ct+'EHistogram'].attrs['md5sum'] = hexdigest
-        comm.barrier()
-
-    #DEPRECATED
-    def _fit_histogramsDEPRECATED(self):
-        """
-        Fit Gaussian distributions to the histograms of calibration materials
-        for both low and high energy CT data.
-
-        The Gaussian model used is:
-            y = A * exp(-0.5 * ((x - mu) / sigma)^2)
-
-        where:
-            y is the histogram count
-            x is the center of the histogram bin
-            A is the amplitude
-            mu is the mean
-            sigma is the standard deviation
-
-        Results are stored as a 2d array in the Zarr group as
-        'CalibrationGaussianCoefficients', with the configuration
-
-                                'A_lowE', 'mu_lowE', 'sigma_lowE', 'A_highE', 'mu_highE', 'sigma_highE'
-        Calibration material 0      .         .            .            .         .           .
-        Calibration material 1      .         .            .            .         .           .
-        Calibration material 2      .         .            .            .         .           .
-        Calibration material 3      .         .            .            .         .           .
-
-        Note
-        ----
-        This is an internal method and should not be called directly by users.
-        It assumes that the histograms have already been calculated and stored.
-        """
-        columns = ['A_lowE', 'mu_lowE', 'sigma_lowE',
-                   'A_highE', 'mu_highE', 'sigma_highE']
-        index = ['Calibration material 0', 'Calibration material 1',
-                 'Calibration material 2', 'Calibration material 3']
-        coefs = np.zeros((4, 6), dtype='f8')
-        for i, calibration_material in enumerate([self.calibration_material0,
-                                                  self.calibration_material1,
-                                                  self.calibration_material2,
-                                                  self.calibration_material3]):
-            phase = str(calibration_material['segmentation_phase'])
-            for j, (hist, label) in enumerate(zip((self.lowEhistogram,
-                                                   self.highEhistogram),
-                                                  ('lowE', 'highE'))):
-                x = hist.bin_centers.values.astype(float)
-                y = hist[phase].values.astype(float)
-                bounds = np.array(calibration_material[f'{label}_gaussian_center_bounds']).astype(float)
-                try:
-                    c = list(gaussian_fit(x, y, center_bounds=bounds))
-                    coefs[i, 0+3*j] = c[0]
-                    coefs[i, 1+3*j] = c[1]
-                    coefs[i, 2+3*j] = c[2]
-                except Exception as e:
-                    e.add_note(f'On calibration material {i}, {label}')
-                    collective_raise(e)
-        coefs = comm.bcast(coefs, root=0)
-        with collective_only_rank0_runs():
-            if mpi_rank == 0:
-                acoefs = self.zgroup.create_array(name='CalibrationGaussianCoefficients',
-                                                  shape=coefs.shape,
-                                                  dtype='f8',
-                                                  chunks=coefs.shape,
-                                                  overwrite=True,
-                                                  attributes={'columns': columns,
-                                                              'index': index})
-                acoefs[...] = coefs
-        hexdigest = hash_calibration_gaussian_coefficients(self)
-        with collective_only_rank0_runs():
-            if mpi_rank == 0:
-                acoefs.attrs['md5sum'] = hexdigest
-        comm.barrier()
-
-
-
-
     def _draw_coefficients(self):
         """
         Generate the calibration coefficient sets for low and high energy.
         """
         # Processing parameters
         maximum, tol = self.maximum_iterations, self.tol
-        coefs = self.calibration_gaussian_coefficients
+        cdfxl0, cdfyl0 = self.calibration_material[0].lowE_cdf
+        cdfxh0, cdfyh0 = self.calibration_material[0].highE_cdf
+        cdfxl1, cdfyl1 = self.calibration_material[1].lowE_cdf
+        cdfxh1, cdfyh1 = self.calibration_material[1].highE_cdf
+        cdfxl2, cdfyl2 = self.calibration_material[2].lowE_cdf
+        cdfxh2, cdfyh2 = self.calibration_material[2].highE_cdf
+        cdfxl3, cdfyl3 = self.calibration_material[3].lowE_cdf
+        cdfxh3, cdfyh3 = self.calibration_material[3].highE_cdf
 
         # Init matrices ----------------------------------------------
         matrixl = np.ones((maximum, 11), dtype='f8')
@@ -1413,33 +1226,17 @@ class DualEnergyCTGroup():
 
         # Split and process
         ind = slice(mpi_rank, maximum, mpi_nprocs)
-        rho1, Z1v = self.calibration_material1._rhohat_Zn_values()
-        rho2, Z2v = self.calibration_material2._rhohat_Zn_values()
-        rho3, Z3v = self.calibration_material3._rhohat_Zn_values()
-        m0l = coefs.loc['Calibration material 0', 'mu_lowE']
-        s0l = coefs.loc['Calibration material 0', 'sigma_lowE']
-        m1l = coefs.loc['Calibration material 1', 'mu_lowE']
-        s1l = coefs.loc['Calibration material 1', 'sigma_lowE']
-        m2l = coefs.loc['Calibration material 2', 'mu_lowE']
-        s2l = coefs.loc['Calibration material 2', 'sigma_lowE']
-        m3l = coefs.loc['Calibration material 3', 'mu_lowE']
-        s3l = coefs.loc['Calibration material 3', 'sigma_lowE']
-        m0h = coefs.loc['Calibration material 0', 'mu_highE']
-        s0h = coefs.loc['Calibration material 0', 'sigma_highE']
-        m1h = coefs.loc['Calibration material 1', 'mu_highE']
-        s1h = coefs.loc['Calibration material 1', 'sigma_highE']
-        m2h = coefs.loc['Calibration material 2', 'mu_highE']
-        s2h = coefs.loc['Calibration material 2', 'sigma_highE']
-        m3h = coefs.loc['Calibration material 3', 'mu_highE']
-        s3h = coefs.loc['Calibration material 3', 'sigma_highE']
+        rho1, Z1v = self.calibration_material[1]._rhohat_Zn_values()
+        rho2, Z2v = self.calibration_material[2]._rhohat_Zn_values()
+        rho3, Z3v = self.calibration_material[3]._rhohat_Zn_values()
         comm.barrier()
 
         # Fill broad search
         maxA, maxB, maxn = self.maxA, self.maxB, self.maxn
         matrixl = matrixl[ind, :].copy()
         matrixh = matrixh[ind, :].copy()
-        argsl = np.array([m0l, s0l, m1l, s1l, m2l, s2l, m3l, s3l, rho1, rho2, rho3, maxA, maxB, maxn, tol], dtype='f8')
-        argsh = np.array([m0h, s0h, m1h, s1h, m2h, s2h, m3h, s3h, rho1, rho2, rho3, maxA, maxB, maxn, tol], dtype='f8')
+        argsl = np.array([rho1, rho2, rho3, maxA, maxB, maxn, tol], dtype='f8')
+        argsh = np.array([rho1, rho2, rho3, maxA, maxB, maxn, tol], dtype='f8')
         device_index = config.rank_select_gpu()
         if device_index is not None:
             with config._gpus[device_index]:
@@ -1450,21 +1247,38 @@ class DualEnergyCTGroup():
                 dZ3v = cuda.to_device(Z3v)
                 dargsl = cuda.to_device(argsl)
                 dargsh = cuda.to_device(argsh)
+                dcdfxl0 = cuda.to_device(cdfxl0)
+                dcdfyl0 = cuda.to_device(cdfyl0)
+                dcdfxl1 = cuda.to_device(cdfxl1)
+                dcdfyl1 = cuda.to_device(cdfyl1)
+                dcdfxl2 = cuda.to_device(cdfxl2)
+                dcdfyl2 = cuda.to_device(cdfyl2)
+                dcdfxl3 = cuda.to_device(cdfxl3)
+                dcdfyl3 = cuda.to_device(cdfyl3)
+                dcdfxh0 = cuda.to_device(cdfxh0)
+                dcdfyh0 = cuda.to_device(cdfyh0)
+                dcdfxh1 = cuda.to_device(cdfxh1)
+                dcdfyh1 = cuda.to_device(cdfyh1)
+                dcdfxh2 = cuda.to_device(cdfxh2)
+                dcdfyh2 = cuda.to_device(cdfyh2)
+                dcdfxh3 = cuda.to_device(cdfxh3)
+                dcdfyh3 = cuda.to_device(cdfyh3)
                 threadsperblock = self.threads_per_block
                 blockspergrid = int(np.ceil(matrixl.shape[0]/threadsperblock))
 
-                rng_states = create_xoroshiro128p_states(threadsperblock*blockspergrid, seed=mpi_rank+int(datetime.now().timestamp()*1000))
-                _coeff_matrix_broad_search_gpu[blockspergrid, threadsperblock](
-                        rng_states, dmatrixl, dZ1v, dZ2v, dZ3v, dargsl)
+                rng_states = create_xoroshiro128p_states(threadsperblock*blockspergrid,
+                                                         seed=mpi_rank+int(datetime.now().timestamp()*1000))
+                coeff_matrix_broad_search_gpu[blockspergrid, threadsperblock](
+                    rng_states, dmatrixl, dZ1v, dZ2v, dZ3v, dargsl, dcdfxl0, dcdfyl0, dcdfxl1, dcdfyl1, dcdfxl2, dcdfyl2, dcdfxl3, dcdfyl3)
                 matrixl = dmatrixl.copy_to_host()
 
                 rng_states = create_xoroshiro128p_states(threadsperblock*blockspergrid, seed=mpi_rank+int(datetime.now().timestamp()*1000))
-                _coeff_matrix_broad_search_gpu[blockspergrid, threadsperblock](
-                    rng_states, dmatrixh, dZ1v, dZ2v, dZ3v, dargsh)
+                coeff_matrix_broad_search_gpu[blockspergrid, threadsperblock](
+                    rng_states, dmatrixh, dZ1v, dZ2v, dZ3v, dargsh, dcdfxh0, dcdfyh0, dcdfxh1, dcdfyh1, dcdfxh2, dcdfyh2, dcdfxh3, dcdfyh3)
                 matrixh = dmatrixh.copy_to_host()
         else:
-            _fill_coeff_matrix_cpu(matrixl, Z1v, Z2v, Z3v, argsl)
-            _fill_coeff_matrix_cpu(matrixh, Z1v, Z2v, Z3v, argsh)
+            fill_coeff_matrix_cpu(matrixl, Z1v, Z2v, Z3v, argsl, cdfxl0, cdfyl0, cdfxl1, cdfyl1, cdfxl2, cdfyl2, cdfxl3, cdfyl3)
+            fill_coeff_matrix_cpu(matrixh, Z1v, Z2v, Z3v, argsh, cdfxh0, cdfyh0, cdfxh1, cdfyh1, cdfxh2, cdfyh2, cdfxh3, cdfyh3)
         comm.barrier()
         for k in range(mpi_nprocs):
             if k == mpi_rank:
@@ -1722,37 +1536,22 @@ class DualEnergyCTGroup():
 
         hash_input_data(self)
 
-        # Histogramas
-        needlow = need_histogram(self, 'low')
-        if not needlow:
-            status[9] = 'lowEhistogram: ready.'
-        needhigh = need_histogram(self, 'high')
-        if not needhigh:
-            status[10] = 'highEhistogram: ready.'
-        if needlow or needhigh:
-            raise_not_complete(status)
-
-        # Gaussian coefficients
-        if need_calibration_gaussian_coefficients(self):
-            raise_not_complete(status)
-        status[11] = 'calibration gaussian coefficients: ready.'
-
         # Check Monte Carlo calibration drawings
         if need_coefficient_matrices(self):
-            status[12] = '====> calibration coefficient matrices outdated.'
+            status[8] = '====> calibration coefficient matrices outdated.'
         else:
-            status[12] = 'calibration coefficient matrices: ready.'
+            status[8] = 'calibration coefficient matrices: ready.'
 
         # Check Monte Carlo results
         for k, array in enumerate(('rho_min', 'rho_p25', 'rho_p50', 'rho_p75',
                                    'rho_max', 'Z_min', 'Z_p25', 'Z_p50', 'Z_p75',
                                    'Z_max', 'valid')):
             if array not in self.zgroup:
-                status[13+k] = "<not created>"
+                status[9+k] = f"{array} <not created>"
             elif need_output_array(self, array):
-                status[13+k] = f"====> {array}: failed checksum."
+                status[9+k] = f"====> {array}: failed checksum."
             else:
-                status[13+k] = f"{array} OK."
+                status[9+k] = f"{array} OK."
 
         if verbose:
             collective_print("Group check:\n- " + '\n- '.join(status))
@@ -1764,9 +1563,8 @@ class DualEnergyCTGroup():
         Perform preprocessing steps for Dual Energy Computed Tomography analysis:
 
         1. Check and hash input data for consistency.
-        2. Calculate histograms for low and high energy CT data if needed.
-        3. Fit Gaussian distributions to calibration material histograms.
-        4. Generate Monte Carlo calibration coefficient matrices.
+        2. hash depencies......
+        2. Generate Monte Carlo calibration coefficient matrices.
 
         This method uses hash functions to detect changes in input data or intermediate
         results that might require reprocessing.
@@ -1786,26 +1584,8 @@ class DualEnergyCTGroup():
                 + '\n- '.join(status[:8]))))
         hash_input_data(self)
 
-
-        # Histogramas
-        for ct in ('low', 'high'):
-            if need_histogram(self, ct) or restart:
-                self._calc_histogram(ct)
-            else:
-                collective_print(f'{ct}Ehistogram up to date.')
-
-
-        # Gaussian coefficients
-        if need_calibration_gaussian_coefficients(self):
-            self._fit_histograms()
-        collective_print('Gaussian coefficients for calibration histograms:')
-        collective_print(self.calibration_gaussian_coefficients.to_string(),
-                         print_time=False)
-
-
         # Monte Carlo calibration drawings
-        if (not restart
-            and need_coefficient_matrices(self)
+        if (not restart and need_coefficient_matrices(self)
             and any(k in self.zgroup for k in ('matrixl', 'matrixh'))):
             collective_raise(Exception(
                 'Calibration coefficient matrices are outdated. '
@@ -1820,13 +1600,15 @@ class DualEnergyCTGroup():
                                                  chunks=(maximum, 11),
                                                  dtype='f8',
                                                  fill_value=1,
-                                                 overwrite=True)
+                                                 overwrite=True,
+                                                 attributes={'md5sum': ''})
                     _ = self.zgroup.create_array(name='matrixh',
                                                  shape=(maximum, 11),
                                                  chunks=(maximum, 11),
                                                  dtype='f8',
                                                  fill_value=1,
-                                                 overwrite=True)
+                                                 overwrite=True,
+                                                 attributes={'md5sum': ''})
             bar = rvtqdm(total=2*self.maximum_iterations,
                          desc='Generating inversion coefficients',
                          unit='',
@@ -1857,7 +1639,7 @@ class DualEnergyCTGroup():
         Run the DECT analysis on the data in this group.
 
         This method performs the following steps:
-        1. Runs preprocessing steps (histograms, Gaussian fitting, coefficient matrices).
+        1. Runs preprocessing steps (***********, coefficient matrices).
         2. Checks if output arrays exist and are up-to-date.
         3. Creates or updates output arrays as necessary.
         4. Calculates the electron density (rho) and effective atomic number (Z)
@@ -1875,7 +1657,7 @@ class DualEnergyCTGroup():
         groups = ('rho_min', 'rho_p25', 'rho_p50', 'rho_p75', 'rho_max',
                   'Z_min', 'Z_p25', 'Z_p50', 'Z_p75', 'Z_max', 'valid')
         exist = [k in self.zgroup for k in groups]
-        hexdigest = hash_pre_process(self)
+        hexdigest = hash_coefficient_matrices(self)
 
         create = False
         if restart:
@@ -1899,13 +1681,13 @@ class DualEnergyCTGroup():
         create = comm.bcast(create, root=0)
         if create:
             for k, gr in enumerate(groups):
-                dtype = 'f8' if k<10 else 'u4'
+                dtype = np.dtype('f8') if k<10 else np.dtype('u4')
                 fill_value = 0.0 if k<10 else 0
                 if k % mpi_nprocs == mpi_rank:
-                    self.zgroup[gr] = zarr.full_like(self.lowECT,
-                                                     overwrite=True,
-                                                     fill_value=fill_value,
-                                                     dtype=dtype)
+                    self.zgroup[gr] = full_like(self.lowECT,
+                                                overwrite=True,
+                                                fill_value=fill_value,
+                                                dtype=dtype)
                     self.zgroup[gr].attrs.update(self.lowECT.attrs.asdict())
                     self.zgroup[gr].attrs['field_name'] = gr
                     self.zgroup[gr].attrs['field_unit'] = 'g/cc' if k<5 else ''
