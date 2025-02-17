@@ -413,7 +413,7 @@ class CalibrationMaterial():
 
     def _get_pdf(self, name):
         new_array = None
-        with collective_only_rank0_runs():
+        with collective_only_rank0_runs(id='getting'):
             array_name = f'{name}_standard{self.index}_pdf'
             if mpi_rank == 0:
                 if array_name in self.zgroup:
@@ -433,15 +433,28 @@ class CalibrationMaterial():
             collective_raise(ValueError(
                 'Probability density function (pdf) must be a 2-element list '
                 'or tuple containing equal size arrays with x and y pdf values.'))
-        with collective_only_rank0_runs():
+        if any(value[1] < 0):
+            collective_raise(ValueError(
+                'Probability density function (pdf) values cannot be negative.'))
+        if np.sum(value[1]) == 0:
+            collective_raise(ValueError(
+                'Probability density function (pdf) has to have at least one positive value.'))
+        with collective_only_rank0_runs(id=f'{mpi_rank} aqui'):
             if mpi_rank == 0:
-                new_array = self.zgroup.create_array(name=f'{name}_standard{self.index}_pdf',
-                                                     shape=(len(value[0]), 2),
-                                                     chunks=(len(value[0]), 2),
-                                                     dtype=float,
-                                                     overwrite=True)
-                new_array[:, 0] = value[0]
-                new_array[:, 1] = value[1]
+                # pdf normalization
+                x = value[0].astype(float).copy()
+                y = value[1].astype(float).copy()
+                sum = 0.
+                for k in range(1, len(x)):
+                    sum += (y[k]+y[k-1])*(x[k]-x[k-1])*0.5
+                z = zarr.create_array(store=self.zgroup.store,
+                                      name=f'{name}_standard{self.index}_pdf',
+                                      shape=(len(x), 2),
+                                      chunks=(len(x), 2),
+                                      dtype=float,
+                                      overwrite=True)
+                z[:, 0] = x
+                z[:, 1] = y/sum
 
     @property
     def lowE_pdf(self):
@@ -459,36 +472,36 @@ class CalibrationMaterial():
     def highE_pdf(self, v):
         return self._set_pdf('highE', v)
 
-
-
-
-    #---- FAZER ASDICT -------#
-    def items(self):
-        """
-        Get the key-value pairs of the calibration material properties.
-        """
-        sattrs = self._getattrs()
-        return sattrs.items()
+    def as_dict(self):
+        items = {'description': self.description}
+        if self.index != '0':
+            items['bulk_density'] = self.bulk_density
+            items['composition'] = self.composition
+        items['lowE_pdf'] = self.lowE_pdf
+        items['highE_pdf'] = self.highE_pdf
+        return items
 
     def check(self):
         """
         Checks for missing or incorrect properties in the calibration material.
         """
         msg = ""
-        for key, value in self.items():
-            if value is None:
+        keys = ['description', 'lowE_pdf', 'highE_pdf']
+        if self.index != '0':
+            keys += ['bulk_density', 'composition']
+        for key in keys:
+            if self.__getattribute__(key) is None:
                 msg = msg + f"\n    - =====> Missing {key}."
         if msg:
             return f"Calibration material {self.index}:" + msg
         return msg
-
 
     def _rhohat_Zn_values(self):
         """
         Calculate the electron density (rhohat) and atomic number values for the calibration material.
         """
         atomic_number_and_mass = self.zgroup.attrs['ZM_table']
-        composition = self['composition']
+        composition = self.composition
         missing = [k for k in composition.keys() if k not in atomic_number_and_mass]
         if len(missing) == 1:
             collective_raise(Exception(
@@ -505,7 +518,7 @@ class CalibrationMaterial():
             values[i][2] = v
         sumZ = np.sum(values[:, 2]*values[:, 0])
         sumM = np.sum(values[:, 2]*values[:, 1])
-        rhohat = np.float64(self['bulk_density']*2.0*sumZ/sumM)
+        rhohat = np.float64(self.bulk_density*2.0*sumZ/sumM)
         return rhohat, values
 
 

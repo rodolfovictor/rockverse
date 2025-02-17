@@ -22,7 +22,7 @@ class CustomCollectiveException(Exception):
         self.__class__.__name__ = name
 
 @contextmanager
-def collective_only_rank0_runs():
+def collective_only_rank0_runs(id=''):
     """
     Allows only rank 0 to run the code block, capturing exception and
     calling collective_raise in case of errors.
@@ -35,14 +35,11 @@ def collective_only_rank0_runs():
                 <block to be run only by rank0>
     >>> <continue the code>
     """
-    error_msg = None
-    if mpi_rank == 0:
-        try:
-            yield  # Rank 0 executes
-        except Exception as e:
-            error_msg = f"{e.__class__.__name__}: {e}"
-    else:
-        yield ""
+    error_msg = ''
+    try:
+        yield
+    except Exception as e:
+        error_msg = f"{e.__class__.__name__}: {e}"
     error_msg = comm.bcast(error_msg, root=0)
     if error_msg:
         name, msg = error_msg.split(':')[0].strip(), ''.join(error_msg.split(':')[1:]).strip()

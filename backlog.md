@@ -5,6 +5,7 @@ NOW MIGRATING TO ZARR 3
 Resolvendo dual energy
 ACABEI DE REORGANIZAR O CALIBRATION MATERIAL class
     - REVISAR AS FUNÇÕES REMANESCENTES
+    - Avisos collective MPI calls no docstring
 
 
 Execute o tutorial
