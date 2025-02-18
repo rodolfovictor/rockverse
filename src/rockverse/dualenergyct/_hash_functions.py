@@ -55,7 +55,6 @@ def hash_input_data(group):
     Note:
     Updates the 'current_hashes' attribute of the group object.
     """
-    hash_buffer_size = group.hash_buffer_size #<- NOt used!...
     hashes = ['']*4
     for k, array in enumerate((group.lowECT, group.highECT, group.mask,
                                group.segmentation)):

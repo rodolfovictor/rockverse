@@ -29,6 +29,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     copy to any Zarr store.
   - Restricted to 3D arrays for performance. Other ``ndims`` comming soon.
 - tqdm bars now outputs to stdin by default
+- Dual energy CT processing
+  - Fully remodeled to use Zarr 3. No back-compatibility to RockVerse versions < 1.0
+  - Removed mandatory Gaussian distributions for the CT attenuation at standard
+    materials. Now accept arbitrary probability density functions.
 
 ### Fixed
 - ???

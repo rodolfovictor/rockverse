@@ -73,7 +73,7 @@ def fill_coeff_matrix_cpu(matrix, Z1v, Z2v, Z3v, args, cdfx0, cdfy0, cdfx1, cdfy
                     break
 
 @njit()
-def calc_rhoZ_arrays_cpu(required_iterations, matrixl, matrixh, CTl, CTh, m0l, s0l, m0h, s0h, rho1, rho2, rho3, tol):
+def calc_rhoZ_arrays_cpu(required_iterations, matrixl, matrixh, CTl, CTh, rho1, rho2, rho3, tol):
     array_rho = np.nan*np.zeros(matrixl.shape[0], dtype='f8')
     array_Z = np.nan*np.zeros(matrixl.shape[0], dtype='f8')
     array_error = np.nan*np.zeros(matrixl.shape[0], dtype='f8')

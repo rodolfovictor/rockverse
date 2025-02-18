@@ -91,8 +91,8 @@ calcABn_gpu = cuda.jit(calcABn)
 
 
 @njit()
-def _make_index(index, lowECT, highECT, mask, valid, required_iterations,
-               m0l, s0l, m0h, s0h, mpi_nprocs):
+def make_index(index, lowECT, highECT, mask, valid, required_iterations,
+                lowE_CT_cutoff, highE_CT_cutoff, mpi_nprocs):
     count = -1
     nx, ny, nz = valid.shape
     for i in range(nx):
@@ -101,18 +101,13 @@ def _make_index(index, lowECT, highECT, mask, valid, required_iterations,
                 CTl = np.float64(lowECT[i, j, k])
                 CTh = np.float64(highECT[i, j, k])
 
-                #test if 95% CI for air or smaller than air (filler)
-                if (abs((CTl-m0l)/s0l)<3
-                    or abs((CTh-m0h)/s0h)<3
-                    or (CTl<m0l-3*s0l)
-                    or (CTh<m0h-3*s0h)):
+                #test if CT value corresponds to empty space
+                if (CTl<lowE_CT_cutoff or CTh<highE_CT_cutoff):
                     continue
 
                 if not mask[i, j, k] and valid[i, j, k] < required_iterations:
                     count = (count + 1) % mpi_nprocs
                     index[i, j, k] = count
-
-
 
 def calc_rho_Z(rho1, rho2, rho3,
                  CT1h, CT2h, CT3h,

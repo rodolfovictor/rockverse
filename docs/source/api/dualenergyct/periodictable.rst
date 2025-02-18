@@ -1,11 +1,22 @@
-The PeriodicTable class
------------------------
+The ``PeriodicTable`` class
+---------------------------
 
-.. autoclass:: rockverse.dualenergyct.PeriodicTable
+.. currentmodule:: rockverse.dualenergyct
+
+.. autoclass:: PeriodicTable
+
+
+Method summary
+^^^^^^^^^^^^^^
+
+.. autosummary::
+   ~PeriodicTable.as_dict
+   ~PeriodicTable.as_dataframe
+   ~PeriodicTable.add_element
 
 Methods
 ^^^^^^^
 
-.. automethod:: rockverse.dualenergyct.PeriodicTable.as_dict
-.. automethod:: rockverse.dualenergyct.PeriodicTable.as_dataframe
-.. automethod:: rockverse.dualenergyct.PeriodicTable.add_element
+.. automethod:: PeriodicTable.as_dict
+.. automethod:: PeriodicTable.as_dataframe
+.. automethod:: PeriodicTable.add_element

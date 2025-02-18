@@ -79,23 +79,9 @@ def coeff_matrix_broad_search_gpu(rng_states, matrix, Z1v, Z2v, Z3v, args, cdfx0
                 matrix[k, 10] = err
                 return
 
-def _fill_coeff_matrix_gpuDEPRECATE(matrix, Z1v, Z2v, Z3v, args):
-     threadsperblock = 32
-     blockspergrid = int(np.ceil(matrix.shape[0]/threadsperblock))
-     rng_states = create_xoroshiro128p_states(threadsperblock * blockspergrid, seed=1)
-     d_matrix  = cuda.to_device(matrix)
-     d_Z1v = cuda.to_device(Z1v)
-     d_Z2v = cuda.to_device(Z2v)
-     d_Z3v = cuda.to_device(Z3v)
-     d_args = cuda.to_device(args)
-     _coeff_matrix_broad_search_gpu[blockspergrid, threadsperblock](rng_states, d_matrix, d_Z1v, d_Z2v, d_Z3v, d_args)
-     matrix[:] = d_matrix.copy_to_host()
-
-
-
 
 @cuda.jit()
-def _reset_arrays_gpu(darray_rho, darray_Z, darray_error):
+def reset_arrays_gpu(darray_rho, darray_Z, darray_error):
     nx, = darray_rho.shape
     i = cuda.grid(1)
     if i >= 0 and i < nx:
@@ -106,7 +92,7 @@ def _reset_arrays_gpu(darray_rho, darray_Z, darray_error):
 
 
 @cuda.jit()
-def _calc_rhoZ_arrays_gpu(darray_rho, darray_Z, darray_error, dmatrixl, dmatrixh,
+def calc_rhoZ_arrays_gpu(darray_rho, darray_Z, darray_error, dmatrixl, dmatrixh,
                          rng_states, CTl, CTh, rho1, rho2, rho3,
                          required_iterations, tol):
     nx, = darray_rho.shape

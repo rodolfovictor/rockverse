@@ -50,7 +50,7 @@ def create(shape,
            voxel_unit='',
            **kwargs):
     """
-    .. _rockverse_digitalrock_create_function:
+    .. _rockverse_voxelimage_create_function:
 
     :bdg-info:`Parallel`
     :bdg-info:`CPU`

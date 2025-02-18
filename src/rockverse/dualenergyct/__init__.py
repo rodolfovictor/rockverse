@@ -33,7 +33,7 @@ import zarr
 import hashlib
 from datetime import datetime
 from mpi4py import MPI
-from rockverse._utils import rvtqdm
+from rockverse._utils import rvtqdm, datetimenow
 from rockverse.config import config
 
 from rockverse.config import config
@@ -51,10 +51,10 @@ from rockverse._utils import collective_print
 from rockverse.dualenergyct._periodic_table import ATOMIC_NUMBER_AND_MASS_DICT
 from rockverse.dualenergyct._gpu_functions import (
     coeff_matrix_broad_search_gpu,
-    _reset_arrays_gpu,
-    _calc_rhoZ_arrays_gpu
+    reset_arrays_gpu,
+    calc_rhoZ_arrays_gpu
     )
-from rockverse.dualenergyct._corefunctions import _make_index
+from rockverse.dualenergyct._corefunctions import make_index
 from rockverse.dualenergyct._cpu_functions import (
     fill_coeff_matrix_cpu,
     calc_rhoZ_arrays_cpu
@@ -92,7 +92,6 @@ _STATUS = ['lowECT',
 
 
 class PeriodicTable():
-
     """
     Manages periodic table information for the Monte Carlo Dual Energy Computed
     Tomography (DECT) processing.
@@ -101,12 +100,12 @@ class PeriodicTable():
 
     .. note::
         This class is designed to be created and managed within the main
-        :class:`Group`. It should not be called directly.
+        :class:`DualEnergyCTGroup`. It should not be called directly.
 
     Parameters
     ----------
     zgroup : zarr.hierarchy.Group
-        The Zarr group where the main :class:`Group` is stored.
+        The Zarr group where the main :class:`DualEnergyCTGroup` is stored.
 
     Examples
     --------
@@ -148,7 +147,7 @@ class PeriodicTable():
         Parameters
         ----------
         zgroup : zarr.hierarchy.Group
-            The Zarr group where the main :class:`Group` is stored.
+            The Zarr group where the main :class:`DualEnergyCTGroup` is stored.
         """
         self.zgroup = zgroup
 
@@ -222,7 +221,7 @@ class PeriodicTable():
         ----------
         name : str
             The name of the element.
-        Z : int
+        Z : int or float
             The atomic number of the element.
         M : int or float
             The atomic mass of the element.
@@ -243,7 +242,7 @@ class PeriodicTable():
         """
         if not isinstance(name, str):
             collective_raise(ValueError('Element name expects string.'))
-        if not isinstance(Z, int):
+        if not isinstance(Z, (int, float)):
             collective_raise(ValueError('Atomic number Z expects integer value.'))
         if not isinstance(M, (int, float)):
             collective_raise(ValueError('Atomic mass M expects numeric value.'))
@@ -260,8 +259,8 @@ class PeriodicTable():
         Example
         -------
 
-            >>> import drp
-            >>> dectgroup = drp.dualenergyct.create_group('/path/to/group/dir')
+            >>> import rockverse as rv
+            >>> dectgroup = rv.dualenergyct.create_group('/path/to/group/dir')
             >>> dectgroup.periodic_table.as_dataframe()
                 Z          M
             H     1    1.00797
@@ -309,23 +308,24 @@ class PeriodicTable():
         return self._get_full_table()
 
 
-
 class CalibrationMaterial():
-
     """
     Manages calibration material information for the Monte Carlo Dual Energy
-    Computed Tomography (DECT) processing. This class handles various properties
-    such as description, bulk density, and chemical composition of the calibration
-    materials.
+    Computed Tomography (DECT) processing.
 
     .. note::
         This class is designed to be created and managed within the main
-        :class:`Group`. It should not be called directly.
+        :class:`DualEnergyCTGroup`. It should not be called directly.
+
+        All attribute get and set operations are MPI collective. Make sure
+        all your MPI processes call these functions when running within
+        a parallel environment.
+
 
     Parameters
     ----------
     zgroup : zarr.hierarchy.Group
-        The Zarr group where the main :class:`Group` is stored.
+        The Zarr group where the main :class:`DualEnergyCTGroup` is stored.
     index : {0, 1, 2, 3}
         The index of the calibration material.
     """
@@ -359,6 +359,21 @@ class CalibrationMaterial():
 
     @property
     def description(self):
+        """
+        String with material name or description.
+
+        Examples
+        --------
+
+        To get the current description:
+
+            >>> material_description = calibration_material.description
+
+        To set a new description:
+
+            >>> calibration_material.description = "Water"
+
+        """
         return self._get_attribute('description')
 
     @description.setter
@@ -368,8 +383,25 @@ class CalibrationMaterial():
 
     @property
     def bulk_density(self):
+        """
+        Bulk density for the calibration material
+        in grams per cubic centimeter (g/cc).
+
+        Examples
+        --------
+
+        To get the current bulk density:
+
+            >>> density = calibration_material.bulk_density
+
+        To set a new bulk density:
+
+            >>> calibration_material.bulk_density = 1.0  # Setting density for water
+
+        """
         self._check_if_material_0('bulk_density')
         return self._get_attribute('bulk_density')
+
 
     @bulk_density.setter
     def bulk_density(self, v):
@@ -379,6 +411,38 @@ class CalibrationMaterial():
 
     @property
     def composition(self):
+        """
+        Dictionary defining the chemical composition of the calibration material.
+        Must be set as ``key: value`` pairs where ``key`` is the element symbol
+        and ``value`` is the proportionate number of atoms of each element.
+        The element has to be a valid symbol in the :class:`PeriodicTable`.
+
+        Examples:
+
+        Water H\\ :sub:`2`\\ O:
+
+        .. code-block:: python
+
+            dectgroup.calibration_material[1].composition = {'H': 2, 'O': 1}
+
+        Silica SiO\\ :sub:`2`:
+
+        .. code-block:: python
+
+            dectgroup.calibration_material[2].composition = {'Si': 1, 'O': 2}
+
+        Dolomite CaMg(CO\\ :sub:`3`)\\ :sub:`2`:
+
+        .. code-block:: python
+
+            dectgroup.calibration_material[3].composition = {'Ca': 1, 'Mg': 1, 'C': 2, 'O': 6}
+
+        Teflon (C\\ :sub:`2`\\ F\\ :sub:`4`\\ )\\ :sub:`n`:
+
+        .. code-block:: python
+
+            dectgroup.calibration_material[3].composition = {'C': 2, 'F': 4}
+        """
         self._check_if_material_0('composition')
         return self._get_attribute('composition')
 
@@ -455,6 +519,27 @@ class CalibrationMaterial():
 
     @property
     def lowE_pdf(self):
+        """
+        Low energy CT attenuation probability density function (PDF).
+
+        This property is a two-element tuple containing:
+        - x: The attenuation values.
+        - y: The corresponding PDF values.
+
+        When setting the (x, y) tuple, the values for y do not need to be normalized,
+        as data normalization will occur before being stored.
+
+        Examples
+        --------
+        To get the current lowE PDF:
+
+            >>> x, y = calibration_material.lowE_pdf
+
+        To set a new lowE PDF:
+
+            >>> calibration_material.lowE_pdf = (new_x_values, new_y_values)
+
+        """
         return self._get_pdf('lowE')
 
     @lowE_pdf.setter
@@ -463,10 +548,47 @@ class CalibrationMaterial():
 
     @property
     def lowE_cdf(self):
+        """
+        Low energy CT attenuation cumulative density function (CDF).
+
+        This property is a two-element tuple containing:
+        - x: The attenuation values.
+        - y: The corresponding CDF values.
+
+        This is a read-only property calculated from the `lowE_pdf` using
+        numerical integration with the trapezoidal rule.
+
+        Examples
+        --------
+        Get the current lowE CDF:
+
+            >>> x, y = calibration_material.lowE_cdf
+        """
         return self._get_cdf('lowE')
 
     @property
     def highE_pdf(self):
+        """
+        High energy CT attenuation probability density function (PDF).
+
+        This property is a two-element tuple containing:
+        - x: The attenuation values.
+        - y: The corresponding PDF values.
+
+        When setting the (x, y) tuple, the values for y do not need to be normalized,
+        as data normalization will occur before being stored.
+
+        Examples
+        --------
+        To get the current lowE PDF:
+
+            >>> x, y = calibration_material.highE_pdf
+
+        To set a new lowE PDF:
+
+            >>> calibration_material.highE_pdf = (new_x_values, new_y_values)
+
+        """
         return self._get_pdf('highE')
 
     @highE_pdf.setter
@@ -475,18 +597,62 @@ class CalibrationMaterial():
 
     @property
     def highE_cdf(self):
+        """
+        High energy CT attenuation cumulative density function (CDF).
+
+        This property is a two-element tuple containing:
+        - x: The attenuation values.
+        - y: The corresponding CDF values.
+
+        This is a read-only property calculated from the `highE_pdf` using
+        numerical integration with the trapezoidal rule.
+
+        Examples
+        --------
+        Get the current highE CDF:
+
+            >>> x, y = calibration_material.highE_cdf
+        """
         return self._get_cdf('highE')
 
     def as_dict(self):
+        """
+        Outputs a dictionary containing the class attributes:
+
+        Examples
+        --------
+        Get the calibration material attributes as a dictionary:
+
+            >>> attributes_dict = calibration_material.as_dict()
+        """
         items = {'description': self.description}
         if self.index != '0':
             items['bulk_density'] = self.bulk_density
             items['composition'] = self.composition
         items['lowE_pdf'] = self.lowE_pdf
+        items['lowE_cdf'] = self.lowE_cdf
         items['highE_pdf'] = self.highE_pdf
+        items['highE_cdf'] = self.highE_cdf
         return items
 
     def hash(self):
+        """
+        Calculates the MD5 hash representation for the class instance.
+
+        This hash value is used to verify the integrity of the calibration
+        material's attributes and to track changes over time.
+
+        Returns
+        -------
+        str
+            The MD5 hash string representing the current state of the class instance.
+
+        Examples
+        --------
+        To get the hash representation of the calibration material:
+
+            >>> material_hash = calibration_material.hash()
+        """
         md5 = hashlib.md5()
         if self.index != '0' and self.bulk_density is not None:
             md5.update(np.array([float(self.bulk_density),], dtype=float))
@@ -505,6 +671,12 @@ class CalibrationMaterial():
     def check(self):
         """
         Checks for missing or incorrect properties in the calibration material.
+
+        Returns
+        -------
+        str
+            A summary of missing or incorrect properties, if any.
+            If all properties are valid, returns an empty string.
         """
         msg = ""
         keys = ['description', 'lowE_pdf', 'highE_pdf']
@@ -546,29 +718,23 @@ class CalibrationMaterial():
 
 class DualEnergyCTGroup():
     """
-    :bdg-info:`Parallel`
-    :bdg-info:`CPU`
-    :bdg-info:`GPU`
-
     Manages Dual Energy Computed Tomography (DECT) processing.
-    The workflow is described in the
-    `original research paper <http://dx.doi.org/10.1002/2017JB014408>`_.
     This class builds upon
     `Zarr groups <https://zarr.readthedocs.io/en/stable/user-guide/groups.html>`_
     and is adapted for MPI (Message Passing Interface) processing,
-    allowing for parallel computation across multiple CPUs or GPUs.
+    enabling parallel computation across multiple CPUs or GPUs.
+
+    For a detailed workflow, refer to the
+    `original research paper <http://dx.doi.org/10.1002/2017JB014408>`_.
+
+     .. note::
+        This class should not be directly instantiated.
+        Use the :func:`create_group` instead.
 
     Parameters
     ----------
-    store : str
-        Zarr store where the underlying Zarr group will be created.
-    path : str, optional
-        Group path within store.
-    overwrite : bool
-        If True, deletes all data under ``store`` and creates a new group.
-    **kwargs
-        Additional keyword arguments for
-        `Zarr group creation <https://zarr.readthedocs.io/en/stable/api/zarr/index.html#zarr.create_group>`_.
+    zgroup : zarr group
+        An existing Zarr group.
     """
 
     # Process model master-slave commanded by rank 0 using zarr local store
@@ -644,8 +810,9 @@ class DualEnergyCTGroup():
     @property
     def segmentation(self):
         """
-        The segmentation voxel image. Returns ``None`` if not set. This array
-        is used to locate the calibration materials in the image. <- ?????? DEPRECATED
+        The segmentation voxel image. Returns ``None`` if not set.
+        This array is used to locate the calibration materials in
+        the image for the pre-processing steps.
         Can only be changed through the
         :ref:`array creation methods <dect_array_creation>`.
         """
@@ -667,8 +834,8 @@ class DualEnergyCTGroup():
     @property
     def rho_p25(self):
         """
-        Voxel image with the the first quartile for the electron density
-        values per voxel (Q1 or 25th percentile) from the Monte Carlo
+        Voxel image with the the first quartile (25th percentile) for
+        the electron density values per voxel from the Monte Carlo
         inversion.
         """
         if 'rho_p25' in self.zgroup:
@@ -678,8 +845,8 @@ class DualEnergyCTGroup():
     @property
     def rho_p50(self):
         """
-        Voxel image with the the median values for the electron density
-        per voxel (Q2 or 50th percentile) from the Monte Carlo
+        Voxel image with the the median (50th percentile) values
+        for the electron density per voxel from the Monte Carlo
         inversion.
         """
         if 'rho_p50' in self.zgroup:
@@ -689,8 +856,8 @@ class DualEnergyCTGroup():
     @property
     def rho_p75(self):
         """
-        Voxel image with the the third quartile for the electron density
-        values per voxel (Q3 or 75th percentile) from the Monte Carlo
+        Voxel image with the the third quartile (75th percentile)
+        for the electron density values per voxel from the Monte Carlo
         inversion.
         """
         if 'rho_p75' in self.zgroup:
@@ -722,8 +889,8 @@ class DualEnergyCTGroup():
     @property
     def Z_p25(self):
         """
-        Voxel image with the the first quartile for the effective atomic
-        number values per voxel (Q1 or 25th percentile) from the Monte
+        Voxel image with the the first quartile (25th percentile) for the
+        effective atomic number values per voxel from the Monte
         Carlo inversion.
         """
         if 'Z_p25' in self.zgroup:
@@ -733,8 +900,8 @@ class DualEnergyCTGroup():
     @property
     def Z_p50(self):
         """
-        Voxel image with the the median values for the effective atomic
-        number per voxel (Q2 or 50th percentile) from the Monte Carlo
+        Voxel image with the the median values (50th percentile) for the
+        effective atomic number per voxel from the Monte Carlo
         inversion.
         """
         if 'Z_p50' in self.zgroup:
@@ -744,8 +911,8 @@ class DualEnergyCTGroup():
     @property
     def Z_p75(self):
         """
-        Voxel image with the the third quartile for the effective atomic
-        number values per voxel (Q3 or 75th percentile) from the Monte
+        Voxel image with the the third quartile (75th percentile) for the
+        effective atomic number values per voxel from the Monte
         Carlo inversion.
         """
         if 'Z_p75' in self.zgroup:
@@ -777,77 +944,36 @@ class DualEnergyCTGroup():
     @property
     def calibration_material(self):
         """
-        ??????????????????????????????
-        ??????????????????????????????
-        ??????????????????????????????
-        ??????????????????????????????
-
-
-        Dictionary-like object with the properties for `calibration_material1`.
-        The keys are the same as in `calibration_material0`, plus these additional
-        ones:
-
-        * ``'bulk_density'`` - bulk density for the calibration material, in g/cc.
-
-        * ``'composition'`` - dictionary defining the chemical composition. Must
-          be set as `key: value` pairs where `key` is the element symbol and
-          `value` is the proportionate number of atoms of each element.
-
-        Examples:
-
-        Water H\\ :sub:`2`\\ O:
-
-        .. code-block:: python
-
-            path = r'/path/to/my/working/dir/dect'
-            dectgroup = rockverse.dualenergyct.create_group(path)
-            dectgroup.calibration_material1['description'] = 'Water'
-            dectgroup.calibration_material1['bulk_density'] = 1
-            dectgroup.calibration_material1['composition'] = {'H': 2, 'O': 1}
-
-        Silica SiO\\ :sub:`2`:
-
-        .. code-block:: python
-
-            path = r'/path/to/my/working/dir/dect.zarr'
-            dectgroup = rockverse.dualenergyct.create_group(path)
-            dectgroup.calibration_material1['description'] = 'Silica'
-            dectgroup.calibration_material1['bulk_density'] = 2.2
-            dectgroup.calibration_material1['composition'] = {'Si': 1, 'O': 2}
-
-        Dolomite CaMg(CO\\ :sub:`3`)\\ :sub:`2`:
-
-        .. code-block:: python
-
-            path = r'/path/to/my/working/dir/dect.zarr'
-            dectgroup = rockverse.dualenergyct.create_group(path)
-            dectgroup.calibration_material1['description'] = 'Dolomite'
-            dectgroup.calibration_material1['bulk_density'] = 2.84
-            dectgroup.calibration_material1['composition'] = {'Ca': 1, 'Mg': 1, 'C': 2, 'O': 6}
-
-        Teflon (C\\ :sub:`2`\\ F\\ :sub:`4`\\ )\\ :sub:`n`:
-
-        .. code-block:: python
-
-            path = r'/path/to/my/working/dir/dect.zarr'
-            dectgroup = rockverse.dualenergyct.create_group(path)
-            dectgroup.calibration_material1['description'] = 'Teflon'
-            dectgroup.calibration_material1['composition'] = {'C': 2, 'F': 4}
-            dectgroup.calibration_material1['bulk_density'] = 2.2
+        A list containing four instances of the :class:`CalibrationMaterial`
+        class, each representing a different calibration material used in
+        Dual Energy Computed Tomography (DECT) processing.
         """
         return self._calibration_material
 
     @property
     def periodic_table(self):
         """
-        Class with atomic number and atomic mass values to be used in the
-        Monte Carlo inversion. See the details in :class:`PeriodicTable` documentation.
+        An instance of the :class:`PeriodicTable` class that provides access to atomic
+        number and atomic mass values for elements used in the Monte Carlo inversion.
         """
         return self._periodic_table
 
     @property
     def maxA(self):
-        "Maximum value for coefficient A in broad search."
+        """
+        Maximum value for inversion coefficient $A$ in the broad search algorithm
+        used during Monte Carlo simulations.
+
+        Examples
+        --------
+        To get the current value of maxA:
+
+            >>> current_maxA = dectgroup.maxA
+
+        To set a new value for maxA:
+
+            >>> dectgroup.maxA = 2500.0  # Adjusting for specific data requirements
+        """
         return self._get_attribute('maxA')
 
     @maxA.setter
@@ -857,7 +983,20 @@ class DualEnergyCTGroup():
 
     @property
     def maxB(self):
-        "Maximum value for coefficient B in broad search."
+        """
+        Maximum value for inversion coefficient $B$ in the broad search algorithm
+        used during Monte Carlo simulations.
+
+        Examples
+        --------
+        To get the current value of maxA:
+
+            >>> current_maxB = dectgroup.maxB
+
+        To set a new value for maxA:
+
+            >>> dectgroup.maxB = 500.0  # Adjusting for specific data requirements
+        """
         return self._get_attribute('maxB')
 
     @maxB.setter
@@ -867,7 +1006,20 @@ class DualEnergyCTGroup():
 
     @property
     def maxn(self):
-        "Maximum value for coefficient n in broad search."
+        """
+        Maximum value for inversion coefficient $n$ in the broad search algorithm
+        used during Monte Carlo simulations.
+
+        Examples
+        --------
+        To get the current value of maxA:
+
+            >>> current_maxn = dectgroup.maxn
+
+        To set a new value for maxA:
+
+            >>> dectgroup.maxn = 15  # Adjusting for specific data requirements
+        """
         return self._get_attribute('maxn')
 
     @maxn.setter
@@ -909,15 +1061,12 @@ class DualEnergyCTGroup():
         columns = ['CT_0', 'CT_1', 'CT_2', 'CT_3', 'Z_1', 'Z_2', 'Z_3', 'A', 'B', 'n', 'err']
         return pd.DataFrame(data=matrix, index=None, columns=columns, dtype='f8', copy=True)
 
-
-    # Inversion parameters ------------------------------------------
-
     @property
     def threads_per_block(self):
         """
         Number of threads per block when processing using GPUs.
         Use it for fine-tuning GPU performance based on your specific
-        GPU capabilities. Default value is 4.
+        GPU capabilities.
         """
         return self._get_attribute('threads_per_block')
 
@@ -927,28 +1076,9 @@ class DualEnergyCTGroup():
         self._set_attribute('threads_per_block', v)
 
     @property
-    def hash_buffer_size(self):
-        """
-        (Integer) Number of array slices processed at once when calculating hashes.
-
-        The array hashes are not calculated all at once, but updated using a number of slices
-        at a time, given by the `hash_buffer_size` parameter. Higher values for `hash_buffer_size`
-        will speed up the hashing operation but require more RAM, while lower values require
-        less memory but slow down the hashing operation due to the need to access the file
-        system more times. Default value of 100 should be a good compromise in most cases.
-        """
-        return self._get_attribute('hash_buffer_size')
-
-    @hash_buffer_size.setter
-    def hash_buffer_size(self, v):
-        _assert.instance('hash_buffer_size', v, 'int', (int,))
-        self._set_attribute('hash_buffer_size', v)
-
-    @property
     def tol(self):
         """
         Tolerance value for terminating the Newton-Raphson optimizations.
-        Default value is 1e-12.
         """
         return self._get_attribute('tol')
 
@@ -961,7 +1091,6 @@ class DualEnergyCTGroup():
     def required_iterations(self):
         """
         The required number of valid Monte Carlo iterations for each voxel.
-        Default value is 5000.
         """
         return self._get_attribute('required_iterations')
 
@@ -974,7 +1103,7 @@ class DualEnergyCTGroup():
     def maximum_iterations(self):
         """
         The maximum number of trials to get valid Monte Carlo iterations per voxel.
-        Default value is 50000. Recommended 10 times the required number of valid
+        Recommended 10 times the required number of valid
         Monte Carlo iterations.
         """
         return self._get_attribute('maximum_iterations')
@@ -1076,6 +1205,14 @@ class DualEnergyCTGroup():
                 "segmentation array dtype must be unsigned integer."))
         _ = full_like(self.lowECT, **kwargs)
 
+    def delete_segmentation(self):
+        """
+        Remove the segmentation array from the structure.
+        """
+        with collective_only_rank0_runs():
+            if mpi_rank == 0 and 'segmentation' in self.zgroup:
+                zarr.storage.rmdir(self.zgroup.store, '/segmentation')
+        comm.barrier()
 
     def copy_image(self, image, name, **kwargs):
         """
@@ -1321,9 +1458,6 @@ class DualEnergyCTGroup():
         return total
 
 
-
-
-
     def _calc_rho_Z(self):
         """
         Calculate electron density (rho) and effective atomic number (Z) distributions
@@ -1342,14 +1476,18 @@ class DualEnergyCTGroup():
         tol = self.tol
         required_iterations = self.required_iterations
         whis = self.whis
-        coefs = self.calibration_gaussian_coefficients
-        m0l = coefs.loc['Calibration material 0', 'mu_lowE']
-        s0l = coefs.loc['Calibration material 0', 'sigma_lowE']
-        m0h = coefs.loc['Calibration material 0', 'mu_highE']
-        s0h = coefs.loc['Calibration material 0', 'sigma_highE']
-        rho1, _ = self.calibration_material1._rhohat_Zn_values()
-        rho2, _ = self.calibration_material2._rhohat_Zn_values()
-        rho3, _ = self.calibration_material3._rhohat_Zn_values()
+
+        #get CT cutoff as percentile 2.5
+        x, y = self.calibration_material[0].lowE_cdf
+        ind = np.argwhere(y<0.025).flatten()[-1]
+        lowE_CT_cutoff = x[ind]
+        x, y = self.calibration_material[0].highE_cdf
+        ind = np.argwhere(y<0.025).flatten()[-1]
+        highE_CT_cutoff = x[ind]
+
+        rho1, _ = self.calibration_material[1]._rhohat_Zn_values()
+        rho2, _ = self.calibration_material[2]._rhohat_Zn_values()
+        rho3, _ = self.calibration_material[3]._rhohat_Zn_values()
         nchunks = self.lowECT.nchunks
 
         device_index = config.rank_select_gpu()
@@ -1363,7 +1501,38 @@ class DualEnergyCTGroup():
             threadsperblock = self.threads_per_block
             blockspergrid = int(np.ceil(required_iterations/threadsperblock))
 
-        for block_id in rvtqdm(range(nchunks), desc='rho/Z inversion', unit='chunk'):
+        #Count total number of voxels to be processed
+        voxels_needed = np.zeros(nchunks, dtype='u8')
+        for block_id in rvtqdm(range(nchunks), desc='Counting voxels', unit='chunk'):
+            chunk_indices = self.lowECT.chunk_slice_indices(block_id)
+            if block_id % mpi_nprocs == mpi_rank:
+                lowECT = self.lowECT[chunk_indices]
+                highECT = self.highECT[chunk_indices]
+                mask = self.mask[chunk_indices]
+                rho_min = self.zgroup['rho_min'][chunk_indices]
+                rho_p25 = self.zgroup['rho_p25'][chunk_indices]
+                rho_p50 = self.zgroup['rho_p50'][chunk_indices]
+                rho_p75 = self.zgroup['rho_p75'][chunk_indices]
+                rho_max = self.zgroup['rho_max'][chunk_indices]
+                Z_min = self.zgroup['Z_min'][chunk_indices]
+                Z_p25 = self.zgroup['Z_p25'][chunk_indices]
+                Z_p50 = self.zgroup['Z_p50'][chunk_indices]
+                Z_p75 = self.zgroup['Z_p75'][chunk_indices]
+                Z_max = self.zgroup['Z_max'][chunk_indices]
+                valid = self.zgroup['valid'][chunk_indices]
+
+                index = np.zeros_like(valid, dtype=int)-1
+                make_index(index, lowECT, highECT, mask, valid, required_iterations,
+                           lowE_CT_cutoff, highE_CT_cutoff, mpi_nprocs)
+                voxels_needed[block_id] = len(np.argwhere(index>=0))
+        voxels_needed = comm.allreduce(voxels_needed, op=MPI.SUM)
+
+        #Process all
+        totalvoxels = np.sum(voxels_needed)
+        bar = rvtqdm(total=totalvoxels, unit='voxel')
+        datetimestr = datetimenow()
+        for block_id in range(nchunks):
+            bar.set_description(f"{datetimestr} rho/Z inversion (chunk {block_id+1}/{nchunks})")
             chunk_indices = self.lowECT.chunk_slice_indices(block_id)
             if mpi_rank == 0:
                 lowECT = self.lowECT[chunk_indices].copy()
@@ -1411,14 +1580,13 @@ class DualEnergyCTGroup():
             valid = comm.bcast(valid, root=0)
 
             index = np.zeros_like(valid, dtype=int)-1
-            _make_index(index, lowECT, highECT, mask, valid, required_iterations,
-                       m0l, s0l, m0h, s0h, mpi_nprocs)
+            make_index(index, lowECT, highECT, mask, valid, required_iterations,
+                        lowE_CT_cutoff, highE_CT_cutoff, mpi_nprocs)
             index = comm.bcast(index, root=0)
             totalvoxels = len(np.argwhere(index>=0))
             if totalvoxels == 0:
                 continue
-            bar = rvtqdm(total=totalvoxels, position=1, unit='voxel',
-                         desc=f'rho/Z inversion chunk {block_id}/{nchunks}')
+
             nx, ny, nz = lowECT.shape
             for i in range(nx):
                 for j in range(ny):
@@ -1445,9 +1613,9 @@ class DualEnergyCTGroup():
 
                         if device_index is not None:
                             with config._gpus[device_index]:
-                                _reset_arrays_gpu[blockspergrid, threadsperblock](darray_rho, darray_Z, darray_error)
+                                reset_arrays_gpu[blockspergrid, threadsperblock](darray_rho, darray_Z, darray_error)
                                 rng_states = create_xoroshiro128p_states(threadsperblock*blockspergrid, seed=mpi_rank+int(datetime.now().timestamp()*1000))
-                                _calc_rhoZ_arrays_gpu[blockspergrid, threadsperblock](
+                                calc_rhoZ_arrays_gpu[blockspergrid, threadsperblock](
                                     darray_rho, darray_Z, darray_error,
                                     dmatrixl, dmatrixh, rng_states,
                                     CTl, CTh, rho1, rho2, rho3,
@@ -1456,7 +1624,7 @@ class DualEnergyCTGroup():
                                 array_Z = darray_Z.copy_to_host()
                                 array_error = darray_error.copy_to_host()
                         else:
-                            array_rho, array_Z, array_error = _calc_rhoZ_arrays_cpu(required_iterations, matrixl, matrixh, CTl, CTh, m0l, s0l, m0h, s0h, rho1, rho2, rho3, tol)
+                            array_rho, array_Z, array_error = calc_rhoZ_arrays_cpu(required_iterations, matrixl, matrixh, CTl, CTh, rho1, rho2, rho3, tol)
 
                         ind = array_error<tol
                         ind = np.logical_and(ind, ~np.isnan(array_error))
@@ -1560,11 +1728,11 @@ class DualEnergyCTGroup():
 
     def preprocess(self, restart=False):
         """
-        Perform preprocessing steps for Dual Energy Computed Tomography analysis:
+        Perform the preprocessing steps for Dual Energy Computed Tomography analysis:
 
-        1. Check and hash input data for consistency.
-        2. hash depencies......
-        2. Generate Monte Carlo calibration coefficient matrices.
+        1. Hash input data (voxel images and calibration material attributes).
+        2. Check hash depencies to guarantee simulation integrity.
+        3. Generate Monte Carlo calibration coefficient matrices if needed.
 
         This method uses hash functions to detect changes in input data or intermediate
         results that might require reprocessing.
@@ -1639,7 +1807,7 @@ class DualEnergyCTGroup():
         Run the DECT analysis on the data in this group.
 
         This method performs the following steps:
-        1. Runs preprocessing steps (***********, coefficient matrices).
+        1. Calls ``preprocess`` to check input data and coefficient matrices.
         2. Checks if output arrays exist and are up-to-date.
         3. Creates or updates output arrays as necessary.
         4. Calculates the electron density (rho) and effective atomic number (Z)
@@ -1666,7 +1834,7 @@ class DualEnergyCTGroup():
             msg = ''
             if mpi_rank == 0:
                 for gr in groups:
-                    if self.zgroup[gr].attrs['md5sum'] != hexdigest:
+                    if self.zgroup[gr].attrs['dep_md5sum'] != hexdigest:
                         msg = msg + f"\n - {gr} array failed checksum."
             msg = comm.bcast(msg, root=0)
             if msg:
@@ -1680,24 +1848,61 @@ class DualEnergyCTGroup():
 
         create = comm.bcast(create, root=0)
         if create:
-            for k, gr in enumerate(groups):
+            for k, gr in rvtqdm(enumerate(groups), desc='creating output images', unit='image'):
                 dtype = np.dtype('f8') if k<10 else np.dtype('u4')
                 fill_value = 0.0 if k<10 else 0
-                if k % mpi_nprocs == mpi_rank:
-                    self.zgroup[gr] = full_like(self.lowECT,
-                                                overwrite=True,
-                                                fill_value=fill_value,
-                                                dtype=dtype)
-                    self.zgroup[gr].attrs.update(self.lowECT.attrs.asdict())
-                    self.zgroup[gr].attrs['field_name'] = gr
-                    self.zgroup[gr].attrs['field_unit'] = 'g/cc' if k<5 else ''
-                    self.zgroup[gr].attrs['md5sum'] = hexdigest
+                image = full_like(
+                    self.lowECT,
+                    overwrite=True,
+                    fill_value=fill_value,
+                    dtype=dtype,
+                    store=self.zgroup.store,
+                    path=gr,
+                    field_name = gr,
+                    field_unit = 'g/cc' if k<5 else '')
+                with collective_only_rank0_runs():
+                    if mpi_rank == 0:
+                        image.array.attrs['dep_md5sum'] = hexdigest
         comm.barrier()
 
         self._calc_rho_Z()
 
 
 def create_group(store, *, path=None, overwrite=False, **kwargs):
+    """
+    .. _rockverse_dualenergyct_create_group:
+    :ref:`array creation methods <dect_array_creation>`.
+
+    Create a new Dual Energy Computed Tomography (DECT) group in a specified Zarr store.
+
+    Parameters
+    ----------
+    store : str
+        The path to the Zarr store where the group will be created. This has to be local
+        store or a path in the local file system.
+    path : str, optional
+        The path within the Zarr store where the new group will be created. If not provided,
+        the group will be created at the root level of the store.
+    overwrite : bool
+        If True, any existing data at the specified path will be deleted before creating
+        the new group. Default is False.
+    **kwargs
+        Additional keyword arguments to be passed to the underlying
+        `Zarr group creation funtion <https://zarr.readthedocs.io/en/stable/api/zarr/index.html#zarr.create_group>`_.
+
+    Returns
+    -------
+    DualEnergyCTGroup
+        An instance of the `DualEnergyCTGroup` class representing the newly created group.
+
+    Examples
+    --------
+    To create a new DECT group:
+
+        >>> import rockverse as rv
+        >>> dectgroup = rv.dualenergyct.create_group('/path/to/dect/store', path='group1', overwrite=True)
+    """
+
     _assert.zarr_localstore('store', store)
     if path is not None:
         _assert.instance('path', path, 'string', (str,))
@@ -1716,7 +1921,6 @@ def create_group(store, *, path=None, overwrite=False, **kwargs):
         'maxB': 1500,
         'maxn': 30,
         'threads_per_block': 4,
-        'hash_buffer_size': 100,
         'calibration_material': {
             "0": {
                 'description': None,

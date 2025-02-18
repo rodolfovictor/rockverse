@@ -10,5 +10,5 @@ Dual Energy Computed Tomography
    :caption: Contents
 
    dualenergyct/group
-   dualenergyct/periodictable
    dualenergyct/calibrationmaterial
+   dualenergyct/periodictable
