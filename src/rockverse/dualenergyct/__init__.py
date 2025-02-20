@@ -54,7 +54,7 @@ from rockverse.dualenergyct._gpu_functions import (
     reset_arrays_gpu,
     calc_rhoZ_arrays_gpu
     )
-from rockverse.dualenergyct._corefunctions import make_index
+from rockverse.dualenergyct._corefunctions import make_index, error_value
 from rockverse.dualenergyct._cpu_functions import (
     fill_coeff_matrix_cpu,
     calc_rhoZ_arrays_cpu
@@ -1346,39 +1346,44 @@ class DualEnergyCTGroup():
         cdfxh3, cdfyh3 = self.calibration_material[3].highE_cdf
 
         # Init matrices ----------------------------------------------
-        matrixl = np.ones((maximum, 11), dtype='f8')
-        matrixh = np.ones((maximum, 11), dtype='f8')
+        matrixl = None
+        matrixh = None
         with collective_only_rank0_runs():
             if mpi_rank == 0:
-                temp = self.zgroup['matrixl'][...]
-                temp = temp[temp[:, -1]<tol, :]
-                length = min(matrixl.shape[0], temp.shape[0])
-                matrixl[:length, :] = temp[:length, :]
-                temp = self.zgroup['matrixh'][...]
-                temp = temp[temp[:, -1]<tol, :]
-                length = min(matrixh.shape[0], temp.shape[0])
-                matrixh[:length, :] = temp[:length, :]
+                matrixl = self.zgroup['matrixl'][...]
+                matrixh = self.zgroup['matrixh'][...]
         matrixl = comm.bcast(matrixl, root=0)
         matrixh = comm.bcast(matrixh, root=0)
 
-        # Split and process
-        ind = slice(mpi_rank, maximum, mpi_nprocs)
+        # update error values
         rho1, Z1v = self.calibration_material[1]._rhohat_Zn_values()
         rho2, Z2v = self.calibration_material[2]._rhohat_Zn_values()
         rho3, Z3v = self.calibration_material[3]._rhohat_Zn_values()
-        comm.barrier()
+        for k in range(matrixl.shape[0]):
+            CT0, CT1, CT2, CT3, _, _, _, A, B, n = matrixl[k, :-1]
+            matrixl[k, -1] = error_value(A, B, n, CT0, CT1, CT2, CT3, rho1, rho2, rho3, Z1v, Z2v, Z3v)
+            CT0, CT1, CT2, CT3, _, _, _, A, B, n = matrixh[k, :-1]
+            matrixh[k, -1] = error_value(A, B, n, CT0, CT1, CT2, CT3, rho1, rho2, rho3, Z1v, Z2v, Z3v)
 
-        # Fill broad search
+        # Get indices for bad values
+        indl = np.argwhere(~(matrixl[:, -1]<tol)).flatten() # ~ to get nans
+        indh = np.argwhere(~(matrixh[:, -1]<tol)).flatten() # ~ to get nans
+
+        # Split among  process
+        indl_sub = indl[slice(mpi_rank, len(indl), mpi_nprocs)]
+        indh_sub = indh[slice(mpi_rank, len(indh), mpi_nprocs)]
+        sub_matrixl = matrixl[indl_sub, :].copy()
+        sub_matrixh = matrixh[indh_sub, :].copy()
+
+        # Fill by broad search
         maxA, maxB, maxn = self.maxA, self.maxB, self.maxn
-        matrixl = matrixl[ind, :].copy()
-        matrixh = matrixh[ind, :].copy()
         argsl = np.array([rho1, rho2, rho3, maxA, maxB, maxn, tol], dtype='f8')
         argsh = np.array([rho1, rho2, rho3, maxA, maxB, maxn, tol], dtype='f8')
         device_index = config.rank_select_gpu()
         if device_index is not None:
             with config._gpus[device_index]:
-                dmatrixl = cuda.to_device(matrixl)
-                dmatrixh = cuda.to_device(matrixh)
+                dmatrixl = cuda.to_device(sub_matrixl)
+                dmatrixh = cuda.to_device(sub_matrixh)
                 dZ1v = cuda.to_device(Z1v)
                 dZ2v = cuda.to_device(Z2v)
                 dZ3v = cuda.to_device(Z3v)
@@ -1407,23 +1412,38 @@ class DualEnergyCTGroup():
                                                          seed=mpi_rank+int(datetime.now().timestamp()*1000))
                 coeff_matrix_broad_search_gpu[blockspergrid, threadsperblock](
                     rng_states, dmatrixl, dZ1v, dZ2v, dZ3v, dargsl, dcdfxl0, dcdfyl0, dcdfxl1, dcdfyl1, dcdfxl2, dcdfyl2, dcdfxl3, dcdfyl3)
-                matrixl = dmatrixl.copy_to_host()
+                sub_matrixl = dmatrixl.copy_to_host()
 
                 rng_states = create_xoroshiro128p_states(threadsperblock*blockspergrid, seed=mpi_rank+int(datetime.now().timestamp()*1000))
                 coeff_matrix_broad_search_gpu[blockspergrid, threadsperblock](
                     rng_states, dmatrixh, dZ1v, dZ2v, dZ3v, dargsh, dcdfxh0, dcdfyh0, dcdfxh1, dcdfyh1, dcdfxh2, dcdfyh2, dcdfxh3, dcdfyh3)
-                matrixh = dmatrixh.copy_to_host()
+                sub_matrixh = dmatrixh.copy_to_host()
         else:
-            fill_coeff_matrix_cpu(matrixl, Z1v, Z2v, Z3v, argsl, cdfxl0, cdfyl0, cdfxl1, cdfyl1, cdfxl2, cdfyl2, cdfxl3, cdfyl3)
-            fill_coeff_matrix_cpu(matrixh, Z1v, Z2v, Z3v, argsh, cdfxh0, cdfyh0, cdfxh1, cdfyh1, cdfxh2, cdfyh2, cdfxh3, cdfyh3)
-        comm.barrier()
-        for k in range(mpi_nprocs):
-            if k == mpi_rank:
-                self.zgroup['matrixl'][ind, :] = matrixl
-                self.zgroup['matrixh'][ind, :] = matrixh
-            comm.barrier()
+            fill_coeff_matrix_cpu(sub_matrixl, Z1v, Z2v, Z3v, argsl, cdfxl0, cdfyl0, cdfxl1, cdfyl1, cdfxl2, cdfyl2, cdfxl3, cdfyl3)
+            fill_coeff_matrix_cpu(sub_matrixh, Z1v, Z2v, Z3v, argsh, cdfxh0, cdfyh0, cdfxh1, cdfyh1, cdfxh2, cdfyh2, cdfxh3, cdfyh3)
         comm.barrier()
 
+        #Collect results
+        matrixl[indl_sub, :] = sub_matrixl.copy()
+        matrixh[indh_sub, :] = sub_matrixh.copy()
+        for k in range(1, mpi_nprocs):
+            if mpi_rank == k:
+                comm.send(obj=np.ascontiguousarray(indl_sub), dest=0, tag=k)
+                comm.send(obj=np.ascontiguousarray(indh_sub), dest=0, tag=k+mpi_nprocs)
+                comm.send(obj=np.ascontiguousarray(sub_matrixl), dest=0, tag=k+2*mpi_nprocs)
+                comm.send(obj=np.ascontiguousarray(sub_matrixh), dest=0, tag=k+3*mpi_nprocs)
+            if mpi_rank == 0:
+                indl_sub = comm.recv(None, source=k, tag=k)
+                indh_sub = comm.recv(None, source=k, tag=k+mpi_nprocs)
+                sub_matrixl = comm.recv(None, source=k, tag=k+2*mpi_nprocs)
+                sub_matrixh = comm.recv(None, source=k, tag=k+3*mpi_nprocs)
+                matrixl[indl_sub, :] = sub_matrixl.copy()
+                matrixh[indh_sub, :] = sub_matrixh.copy()
+            comm.barrier()
+        with collective_only_rank0_runs():
+            if mpi_rank == 0:
+                self.zgroup['matrixl'][...] = matrixl
+                self.zgroup['matrixh'][...] = matrixh
 
 
     def _purge_coefficients(self):
@@ -1438,11 +1458,14 @@ class DualEnergyCTGroup():
                     matrix = self.zgroup[label][...]
                     matrix = matrix[matrix[:, -1]<tol, :]
                     not_valid = set()
-                    for k in range(11):
-                        data = matrix[:, k]
-                        Q1, Q3 = np.percentile(data, [25, 75])
-                        not_valid = not_valid.union(set(np.argwhere(data<Q1-whis*(Q3-Q1)).flatten()))
-                        not_valid = not_valid.union(set(np.argwhere(data>Q3+whis*(Q3-Q1)).flatten()))
+                    # This commented section is the statistical purge part,
+                    # which is deprecated. The function now simply select
+                    # the good results in broad search.
+                    #for k in range(11):
+                    #    data = matrix[:, k]
+                    #    Q1, Q3 = np.percentile(data, [25, 75])
+                    #    not_valid = not_valid.union(set(np.argwhere(data<Q1-whis*(Q3-Q1)).flatten()))
+                    #    not_valid = not_valid.union(set(np.argwhere(data>Q3+whis*(Q3-Q1)).flatten()))
                     valid = sorted(set(range(matrix.shape[0])) - not_valid)
                     matrix = matrix[valid, :]
                     total[l] = matrix.shape[0]
@@ -1654,7 +1677,6 @@ class DualEnergyCTGroup():
                         Z_p50[i, j, k] = Q2
                         Z_p75[i, j, k] = Q3
                         Z_max[i, j, k] = whis2
-            bar.close()
             comm.barrier()
             rho_min = comm.reduce(rho_min, root=0, op=MPI.SUM)
             rho_p25 = comm.reduce(rho_p25, root=0, op=MPI.SUM)
@@ -1680,7 +1702,7 @@ class DualEnergyCTGroup():
                 self.zgroup['Z_max'][chunk_indices] = Z_max.copy()
                 self.zgroup['valid'][chunk_indices] = valid.copy()
             comm.barrier()
-            bar.close()
+        bar.close()
 
 
     def check(self, *, verbose=True):
@@ -1759,7 +1781,7 @@ class DualEnergyCTGroup():
                 'Calibration coefficient matrices are outdated. '
                 'Run with restart=True to restart the simulations from scratch.'))
 
-        if need_coefficient_matrices(self) or restart:
+        if restart or need_coefficient_matrices(self):
             maximum = self.maximum_iterations
             with collective_only_rank0_runs():
                 if mpi_rank == 0:
@@ -1777,12 +1799,14 @@ class DualEnergyCTGroup():
                                                  fill_value=1,
                                                  overwrite=True,
                                                  attributes={'md5sum': ''})
+            self._draw_coefficients()
             bar = rvtqdm(total=2*self.maximum_iterations,
                          desc='Generating inversion coefficients',
                          unit='',
                          bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}]')
             current = 0
-            for _ in range(30):
+            for t in range(30):
+                comm.barrier
                 self._draw_coefficients()
                 new = self._purge_coefficients()
                 bar.update(sum(new)-current)
@@ -1848,7 +1872,7 @@ class DualEnergyCTGroup():
 
         create = comm.bcast(create, root=0)
         if create:
-            for k, gr in rvtqdm(enumerate(groups), desc='creating output images', unit='image'):
+            for k, gr in rvtqdm(enumerate(groups), desc='Creating output images'):
                 dtype = np.dtype('f8') if k<10 else np.dtype('u4')
                 fill_value = 0.0 if k<10 else 0
                 image = full_like(

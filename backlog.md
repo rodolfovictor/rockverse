@@ -2,15 +2,17 @@
 
 NOW MIGRATING TO ZARR 3
 
-Resolvendo dual energy
-ACABEI DE REORGANIZAR O CALIBRATION MATERIAL class
-    - Avisos collective MPI calls no docstring
-- ACABEI DE ORGANIZAR O DUALENERGY
-
+ACABEI DE ORGANIZAR O DUALENERGY
+  - Testando GPU e CPU
+  - Execute o tutorial
+    - put rechunk
+    - Verifique silica x teflon
+    - Explore os parâmetros de processamento antes do preprocess
+    - Separar a parte da segmentação
+  - Escreva sphinx performance
+  - put inversion parameters as input parameters or dictionary
 
 Numba clean GPU memory
-
-Execute o tutorial
 
 REVIEW PRINTS TO COLLECTIVE PRINT IN CONFIG
 
@@ -20,6 +22,7 @@ MIGRATING HISTOGRAM
 MIGRATING ORTHOGONALVIEWER
   - Check for interactivity
   - AINDA QUERO FAZER SÓ O RANK 0 colocar imagem
+  - implement set method to set many properties at once with one refresh at the end
 
 VOXELIMAGE
   - PUT DATA IN VOXELIMAGE CREATE
@@ -30,31 +33,13 @@ VOXELIMAGE
   - COPY change to faste chunk by chunk method if same chunk shape
   - change array to zarray
 
-
 MIGRATE DUAL ENERGY TO ZARR 3
   - DUALENERGYCTGROUP
-      - reviewed __init__
-  - --------------> Não está gerando todos os coeficientes <------------
-  - GENERALIZE TO ARBITRARY PDFs
-  - GUARANTEE SAME CHUNK SIZE FOR ALL ARRAYS
-  - lowECT etc to snake_case
-  - In the tutorial
-    - put rechunk
-    - raise number of bins at the beginning
-  - put inversion parameters as input parameters or dictionary
   - name or path?
-  - POSSIBILITY TO INVERT ONLY CHUNKS OR ONLY SEGMENTATION PHASES
-  * ``'description'`` - string describing `calibration_material0`. Will be
-    used in the default plots.
 
-
-
-DEVELOP GENERAL HISTOGRAM
-
-DEVELOP CONFIG whith methods like dual energy standard materials
+DEVELOP CONFIG whith methods
 
 DEPRECATE ASSERT drpdtype
-
 
 ## Tasks to be completed
 
@@ -91,9 +76,6 @@ DEPRECATE ASSERT drpdtype
 - Histogram
     - Add histogram documentation to sphinx
     - Change to fast algorithm if equal size bins
-
-- tqdm
-    - Check printing to stdout instead of stderr
 
 - Dual Energy
     - Implement run(block_id) to check inversion by running only on one chunk.

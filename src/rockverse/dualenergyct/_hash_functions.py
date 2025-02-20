@@ -111,8 +111,13 @@ def need_coefficient_matrices(group):
     if any(k not in group.zgroup for k in ('matrixl', 'matrixh')):
         return True
     str1 = hash_coefficient_matrices(group)
-    strl = group.zgroup['matrixl'].attrs['md5sum']
-    strh = group.zgroup['matrixh'].attrs['md5sum']
+    strl, strh = None, None
+    with collective_only_rank0_runs():
+        if mpi_rank == 0:
+            strl = group.zgroup['matrixl'].attrs['md5sum']
+            strh = group.zgroup['matrixh'].attrs['md5sum']
+    strl = comm.bcast(strl, root=0)
+    strh = comm.bcast(strh, root=0)
     if str1 != strl or str1 != strh:
         return True
     return False
