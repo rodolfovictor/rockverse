@@ -178,7 +178,10 @@ def create(shape,
                 with zarr.config.set({'array.order': 'C'}):
                     z = zarr.create_array(**kwargs)
         with zarr.config.set({'array.order': 'C'}):
-            z = zarr.open(store=store, path=kwargs['name'], mode='r+')
+            for k in range(mpi_nprocs):
+                if k == mpi_rank:
+                    z = zarr.open(store=store, path=kwargs['name'], mode='r+')
+                comm.barrier()
     else:
         with zarr.config.set({'array.order': 'C'}):
             z = zarr.create_array(**kwargs)
@@ -201,7 +204,7 @@ def empty(shape, dtype, **kwargs):
         NumPy dtype.
     **kwargs
         Additional keyword arguments to be passed to the underlying
-        :ref:`creation function <rockverse_digitalrock_create_function>`.
+        :ref:`creation function <rockverse_voxelimage_create_function>`.
 
     Returns
     -------
@@ -228,7 +231,7 @@ def zeros(shape, dtype, **kwargs):
         NumPy dtype.
     **kwargs
         Additional keyword arguments to be passed to the underlying
-        :ref:`creation function <rockverse_digitalrock_create_function>`.
+        :ref:`creation function <rockverse_voxelimage_create_function>`.
 
     Returns
     -------
@@ -255,7 +258,7 @@ def ones(shape, dtype, **kwargs):
         NumPy dtype.
     **kwargs
         Additional keyword arguments to be passed to the underlying
-        :ref:`creation function <rockverse_digitalrock_create_function>`.
+        :ref:`creation function <rockverse_voxelimage_create_function>`.
 
     Returns
     -------
@@ -283,7 +286,7 @@ def full(shape, dtype, fill_value, **kwargs):
         Value to fill the array.
     **kwargs
         Additional keyword arguments to be passed to the underlying
-        :ref:`creation function <rockverse_digitalrock_create_function>`.
+        :ref:`creation function <rockverse_voxelimage_create_function>`.
 
     Returns
     -------
@@ -318,7 +321,7 @@ def empty_like(a, **kwargs):
         The source voxel image to mimic.
     **kwargs
         Additional keyword arguments to be passed to the underlying
-        :ref:`creation function <rockverse_digitalrock_create_function>`.
+        :ref:`creation function <rockverse_voxelimage_create_function>`.
 
     Returns
     -------
@@ -343,7 +346,7 @@ def zeros_like(a, **kwargs):
         The source RockVerse voxel image to mimic.
     **kwargs
         Additional keyword arguments to be passed to the underlying
-        :ref:`creation function <rockverse_digitalrock_create_function>`.
+        :ref:`creation function <rockverse_voxelimage_create_function>`.
 
     Returns
     -------
@@ -367,7 +370,7 @@ def ones_like(a, **kwargs):
         The source RockVerse voxel image to mimic.
     **kwargs
         Additional keyword arguments to be passed to the underlying
-        :ref:`creation function <rockverse_digitalrock_create_function>`.
+        :ref:`creation function <rockverse_voxelimage_create_function>`.
 
     Returns
     -------
@@ -393,7 +396,7 @@ def full_like(a, fill_value, **kwargs):
         Value to fill the array.
     **kwargs
         Additional keyword arguments to be passed to the underlying
-        :ref:`creation function <rockverse_digitalrock_create_function>`.
+        :ref:`creation function <rockverse_voxelimage_create_function>`.
 
     Returns
     -------
@@ -425,7 +428,7 @@ def from_array(array, **kwargs):
 
     **kwargs
         Additional keyword arguments to be passed to the underlying
-        :ref:`creation function <rockverse_digitalrock_create_function>`.
+        :ref:`creation function <rockverse_voxelimage_create_function>`.
         Notice that image shape will match original array shape, and therefore
         keyword argument ``shape`` will be ignored in ``kwargs``.
 
@@ -502,7 +505,7 @@ def sphere_pack(shape,
         Value to fill the spheres with. Default is 1.
     **kwargs
         Additional keyword arguments to be passed to the underlying
-        :ref:`creation function <rockverse_digitalrock_create_function>`.
+        :ref:`creation function <rockverse_voxelimage_create_function>`.
 
     Returns
     -------
@@ -641,7 +644,7 @@ def import_raw(rawfile,
         accidental overwriting of existing data.
     **kwargs
         Additional keyword arguments to be passed to the underlying
-        :ref:`creation function <rockverse_digitalrock_create_function>`.
+        :ref:`creation function <rockverse_voxelimage_create_function>`.
 
     Returns
     -------
@@ -1377,7 +1380,7 @@ class VoxelImage():
 
         **kwargs
             Additional keyword arguments to be passed to the underlying
-            :ref:`creation function <rockverse_digitalrock_create_function>`.
+            :ref:`creation function <rockverse_voxelimage_create_function>`.
 
         Returns
         -------
@@ -1506,9 +1509,10 @@ class VoxelImage():
         comm.barrier()
         file.flush()
         comm.barrier()
-        if mpi_rank == 0:
-            with open(filename+'.json', 'w') as fp:
-                json.dump(attrs, fp, indent=4)
+        with collective_only_rank0_runs():
+            if mpi_rank == 0:
+                with open(filename+'.json', 'w') as fp:
+                    json.dump(attrs, fp, indent=4)
         comm.barrier()
         if write_fiji_macro:
             cmd = f"//{attrs['description']}\n" if attrs['description'] else ''
@@ -1527,10 +1531,10 @@ class VoxelImage():
             if int(dtypeout[2:]) >1 and dtypeout[0] == '<':
                 cmd = f'{cmd} little-endian'
             cmd = f'{cmd}");\n'
-            if mpi_rank == 0:
-                with open(filename+'.ijm', 'w') as fp:
-                    fp.write(cmd)
-        comm.barrier()
+            with collective_only_rank0_runs():
+                if mpi_rank == 0:
+                    with (filename+'.ijm', 'w') as fp:
+                        fp.write(cmd)
 
 
     def create_mask_from_region(self, region, **kwargs):
@@ -1550,7 +1554,7 @@ class VoxelImage():
             The source voxel image to mimic.
         **kwargs
             Additional keyword arguments to be passed to the underlying
-            :ref:`creation function <rockverse_digitalrock_create_function>`.
+            :ref:`creation function <rockverse_voxelimage_create_function>`.
             Keyword argument ``dtype`` will be ignored if passed, as the mask
             has to be of boolean type.
 

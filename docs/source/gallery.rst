@@ -21,7 +21,8 @@ Sample voxel image data
 
    tutorials/digitalrock/sample_data/import_belgian_fieldstone
    tutorials/digitalrock/sample_data/import_bentheimer_sandstone
-   tutorials/digitalrock/sample_data/import_C04B21_dualenergy
+   tutorials/digitalrock/dual_energy/dual_energy_tutorial_download_data
+
 
 Image visualization
 -----------------------

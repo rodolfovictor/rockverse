@@ -58,7 +58,8 @@ def hash_input_data(group):
     hashes = ['']*4
     for k, array in enumerate((group.lowECT, group.highECT, group.mask,
                                group.segmentation)):
-        hashes[k] = hash_array(array, array.field_name)
+        if array is not None:
+            hashes[k] = hash_array(array, array.field_name)
     comm.barrier()
     group.current_hashes['lowE'] = hashes[0]
     group.current_hashes['highE'] = hashes[1]

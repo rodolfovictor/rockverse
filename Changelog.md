@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - General function to execute in MPI rank 0 and broadcast exception
 - Dual energy inversion
   - Handles arbitrary pdfs for standard materials, not only Gaussian.
+  - Segmentation array is now optional
 
 ### Changed
 - **Major change**: RockVerse data migrated to Zarr 3.0.

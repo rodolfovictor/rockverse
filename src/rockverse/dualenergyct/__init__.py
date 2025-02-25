@@ -1258,8 +1258,7 @@ class DualEnergyCTGroup():
             status[1] = "highECT: " + self.highECT.__repr__()
 
         if self.segmentation is None:
-            status[2] = "=====> segmentation array is not set."
-            complete = False
+            status[2] = "segmentation array is not set (optional)."
         else:
             status[2] = "segmentation: " + self.segmentation.__repr__()
 
@@ -1450,7 +1449,14 @@ class DualEnergyCTGroup():
         """
         Remove outliers from the calibration coefficient matrices.
         """
-        tol, whis = self.tol, self.whis
+        tol = self.tol
+
+        # Minimum and maximum for atomic numbers
+        min_max_Z = np.zeros((3, 2), dtype='f8')
+        for k in range(1, 4):
+            temp = self.calibration_material[k]._rhohat_Zn_values()[1][:, 0]
+            min_max_Z[k-1][0] = min(temp)
+            min_max_Z[k-1][1] = max(temp)
         total = [0, 0]
         with collective_only_rank0_runs():
             if mpi_rank == 0:
@@ -1458,14 +1464,12 @@ class DualEnergyCTGroup():
                     matrix = self.zgroup[label][...]
                     matrix = matrix[matrix[:, -1]<tol, :]
                     not_valid = set()
-                    # This commented section is the statistical purge part,
-                    # which is deprecated. The function now simply select
-                    # the good results in broad search.
-                    #for k in range(11):
-                    #    data = matrix[:, k]
-                    #    Q1, Q3 = np.percentile(data, [25, 75])
-                    #    not_valid = not_valid.union(set(np.argwhere(data<Q1-whis*(Q3-Q1)).flatten()))
-                    #    not_valid = not_valid.union(set(np.argwhere(data>Q3+whis*(Q3-Q1)).flatten()))
+                    not_valid = not_valid.union(set(np.argwhere(matrix[:, 4] < min_max_Z[0, 0]).flatten())) # Remove Z1<Z1min
+                    not_valid = not_valid.union(set(np.argwhere(matrix[:, 4] > min_max_Z[0, 1]).flatten())) # Remove Z1>Z1max
+                    not_valid = not_valid.union(set(np.argwhere(matrix[:, 5] < min_max_Z[1, 0]).flatten())) # Remove Z2<Z2min
+                    not_valid = not_valid.union(set(np.argwhere(matrix[:, 5] > min_max_Z[1, 1]).flatten())) # Remove Z2>Z2max
+                    not_valid = not_valid.union(set(np.argwhere(matrix[:, 6] < min_max_Z[2, 0]).flatten())) # Remove Z3<Z3min
+                    not_valid = not_valid.union(set(np.argwhere(matrix[:, 6] > min_max_Z[2, 1]).flatten())) # Remove Z3>Z3max
                     valid = sorted(set(range(matrix.shape[0])) - not_valid)
                     matrix = matrix[valid, :]
                     total[l] = matrix.shape[0]
@@ -1531,7 +1535,10 @@ class DualEnergyCTGroup():
             if block_id % mpi_nprocs == mpi_rank:
                 lowECT = self.lowECT[chunk_indices]
                 highECT = self.highECT[chunk_indices]
-                mask = self.mask[chunk_indices]
+                if self.mask is not None:
+                    mask = self.mask[chunk_indices]
+                else:
+                    mask = np.zeros_like(lowECT, dtype=bool)
                 rho_min = self.zgroup['rho_min'][chunk_indices]
                 rho_p25 = self.zgroup['rho_p25'][chunk_indices]
                 rho_p50 = self.zgroup['rho_p50'][chunk_indices]
@@ -1560,7 +1567,10 @@ class DualEnergyCTGroup():
             if mpi_rank == 0:
                 lowECT = self.lowECT[chunk_indices].copy()
                 highECT = self.highECT[chunk_indices].copy()
-                mask = self.mask[chunk_indices].copy()
+                if self.mask is not None:
+                    mask = self.mask[chunk_indices].copy()
+                else:
+                    mask = np.zeros_like(lowECT, dtype=bool)
                 rho_min = self.zgroup['rho_min'][chunk_indices].copy()
                 rho_p25 = self.zgroup['rho_p25'][chunk_indices].copy()
                 rho_p50 = self.zgroup['rho_p50'][chunk_indices].copy()
@@ -1716,13 +1726,9 @@ class DualEnergyCTGroup():
         verbose : bool, optional
             If True (default), print detailed status information.
         """
-        def raise_not_complete(status):
-            collective_raise(ValueError(str(
-                'Group is not ready:\n- ' + '\n- '.join(status))))
-
         status = _STATUS.copy()
         if not(self._check_input_data(status)):
-            raise_not_complete(status)
+            collective_raise(ValueError(str('Group is not ready:\n- ' + '\n- '.join(status))))
 
         hash_input_data(self)
 
@@ -1806,7 +1812,7 @@ class DualEnergyCTGroup():
                          bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}]')
             current = 0
             for t in range(30):
-                comm.barrier
+                comm.barrier()
                 self._draw_coefficients()
                 new = self._purge_coefficients()
                 bar.update(sum(new)-current)
@@ -1872,7 +1878,8 @@ class DualEnergyCTGroup():
 
         create = comm.bcast(create, root=0)
         if create:
-            for k, gr in rvtqdm(enumerate(groups), desc='Creating output images'):
+            for k in rvtqdm(range(len(groups)), desc='Creating output images'):
+                gr = groups[k]
                 dtype = np.dtype('f8') if k<10 else np.dtype('u4')
                 fill_value = 0.0 if k<10 else 0
                 image = full_like(
@@ -1882,8 +1889,8 @@ class DualEnergyCTGroup():
                     dtype=dtype,
                     store=self.zgroup.store,
                     path=gr,
-                    field_name = gr,
-                    field_unit = 'g/cc' if k<5 else '')
+                    field_name=gr,
+                    field_unit='g/cc' if k<5 else '')
                 with collective_only_rank0_runs():
                     if mpi_rank == 0:
                         image.array.attrs['dep_md5sum'] = hexdigest
@@ -1970,7 +1977,11 @@ def create_group(store, *, path=None, overwrite=False, **kwargs):
     with collective_only_rank0_runs():
         if mpi_rank == 0:
             with zarr.config.set({'array.order': 'C'}):
-                z = zarr.create_group(**kwargs)
+                _ = zarr.create_group(**kwargs)
     with zarr.config.set({'array.order': 'C'}):
-        z = zarr.open_group(store=kwargs['store'], path=kwargs['path'], mode='r+')
+        #Open in sequence to concurrent reading
+        for k in range(mpi_nprocs):
+            if k == mpi_rank:
+                z = zarr.open_group(store=kwargs['store'], path=kwargs['path'], mode='r+')
+            comm.barrier()
     return DualEnergyCTGroup(z)

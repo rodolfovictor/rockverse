@@ -3,14 +3,13 @@
 NOW MIGRATING TO ZARR 3
 
 ACABEI DE ORGANIZAR O DUALENERGY
-  - Testando GPU e CPU
+  - segmentation and mask shoul not be hashed
+  - Tirar o collective call nos get/set property
   - Execute o tutorial
-    - put rechunk
-    - Verifique silica x teflon
-    - Explore os parâmetros de processamento antes do preprocess
-    - Separar a parte da segmentação
+    - link the copy_image method documentation in segmentation building
   - Escreva sphinx performance
   - put inversion parameters as input parameters or dictionary
+  - Realização dos CT values estranha
 
 Numba clean GPU memory
 

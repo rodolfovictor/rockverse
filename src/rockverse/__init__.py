@@ -50,6 +50,7 @@ from rockverse.rc import rcparams
 from rockverse.config import config
 comm = config.mpi_comm
 mpi_rank = config.mpi_rank
+mpi_nprocs = config.mpi_nprocs
 
 # Define the public API
 __all__ = [
@@ -104,7 +105,11 @@ def open(store, *, path=None, **kwargs):
                 raise ValueError(f"{store} does not contain valid RockVerse data.")
 
     with zarr.config.set({'array.order': 'C'}):
-        z = zarr.open(store=store, path=path, **kwargs)
+        for k in range(mpi_nprocs):
+            if k == mpi_rank:
+                z = zarr.open(store=store, path=path, **kwargs)
+            comm.barrier()
+
     rv_data_type = z.attrs['_ROCKVERSE_DATATYPE']
 
     if rv_data_type == 'VoxelImage':
