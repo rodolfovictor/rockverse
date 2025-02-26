@@ -20,12 +20,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - VoxelImage class
   - Not directly inheritance of Zarr array anymore.
     Zarr array attributes and methods in VoxelImage class are now only
-    accessible through class attribute ``VoxelImage.array``.
+    accessible through class attribute ``VoxelImage.zarray``.
     Old python scripts will crash if not changed.
   - ``VoxelImage.collective_getitem`` is deprecated and was removed.
     ``VoxelImage.__getitem__`` now is always MPI collective. For non-collective
-    getitem, get from ``VoxelImage.array`` instead.
-    For non-collective setitem, set ``VoxelImage.array`` instead.
+    getitem, get from ``VoxelImage.zarray`` instead.
+    For non-collective setitem, set ``VoxelImage.zarray`` instead.
   - ``VoxelImage.save`` is now ``VoxelImage.copy`` and can save a re-chunked
     copy to any Zarr store.
   - Restricted to 3D arrays for performance. Other ``ndims`` comming soon.

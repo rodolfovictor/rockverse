@@ -2,23 +2,16 @@
 Overview
 --------
 
-This module defines the basic class for RockVerse Digital Rock Petrophysics,
-the VoxelImage class, intended to contain 3D voxelized images and scalar fields
-in general. The VoxelImage class builds upon
-`Zarr arrays <https://zarr.readthedocs.io/en/stable/user-guide/arrays.html>`_
-by adding attributes and methods specifically designed for digital rock
+The ``voxel_image`` module defines the basic class for RockVerse Digital Rock Petrophysics,
+the VoxelImage class. It builds upon
+`Zarr arrays <https://zarr.readthedocs.io/en/stable/user-guide/arrays.html>`_,
+adding attributes and methods specifically designed for digital rock
 petrophysics in a high-performance, parallel computing environment.
+It can efficiently handle large images by leveraging Zarr's chunked storage.
 
-Since it is derived from Zarr arrays, it can efficiently handle large images by
-leveraging Zarr's chunked storage. Methods in this class also take advantage of
-Zarr's chunked storage for MPI-based parallel processing, optimized for both CPUs
-and GPUs using `Numba <https://numba.pydata.org/>`_ 'just-in-time' compilation,
-providing flexibility and high-performance computing (HPC) on cluster computers.
-
-The VoxelImage class is designed for simplicity, handling complex computational
-abstractions under the hood. This makes it accessible and user-friendly for non-HPC
+The ``VoxelImage`` class is designed for simplicity, handling complex computational
+abstractions under the hood, making it accessible and user-friendly for non-HPC
 specialists through high-level functions.
-
 """
 
 import json
@@ -50,11 +43,6 @@ def create(shape,
            voxel_unit='',
            **kwargs):
     """
-    .. _rockverse_voxelimage_create_function:
-
-    :bdg-info:`Parallel`
-    :bdg-info:`CPU`
-
     Create empty voxel image.
 
     Parameters
@@ -63,7 +51,7 @@ def create(shape,
         Desired image shape.
     dtype : string or dtype
         NumPy dtype. Type must be numeric (unsigned integer, integer, float, complex)
-        or boolean. Ex: ``dtype=int``, ``dtype='u2'``, ``dtype='f4', ``dtype=complex'.
+        or boolean. Ex: ``dtype=int``, ``dtype='u2'``, ``dtype='f4'``, ``dtype=complex'.
     chunks : iterable of ints | int | 'nprocs' | None, optional
         If iterable of integers, define the chunk shape. If integer, chunks will
         be as close as possible to cubic shapes, and the number of chunks will
@@ -99,7 +87,7 @@ def create(shape,
         Image voxel length unit.
     **kwargs
         Additional keyword arguments to be passed to the underlying
-        `Zarr.create_array https://zarr.readthedocs.io/en/stable/api/zarr/index.html#zarr.create_array>`_ function.
+        `Zarr.create_array <https://zarr.readthedocs.io/en/stable/api/zarr/index.html#zarr.create_array>`_ function.
 
     Returns
     -------
@@ -191,8 +179,6 @@ def create(shape,
 
 def empty(shape, dtype, **kwargs):
     """
-    :bdg-info:`Parallel`
-    :bdg-info:`CPU`
     Create an empty voxel image with the given shape.
     The array will be initialized without any specific values.
 
@@ -204,7 +190,7 @@ def empty(shape, dtype, **kwargs):
         NumPy dtype.
     **kwargs
         Additional keyword arguments to be passed to the underlying
-        :ref:`creation function <rockverse_voxelimage_create_function>`.
+        :func:`creation function <rockverse.voxel_image.create>`.
 
     Returns
     -------
@@ -219,8 +205,6 @@ def empty(shape, dtype, **kwargs):
 
 def zeros(shape, dtype, **kwargs):
     """
-    :bdg-info:`Parallel`
-    :bdg-info:`CPU`
     Create a voxel image filled with zeros.
 
     Parameters
@@ -231,7 +215,7 @@ def zeros(shape, dtype, **kwargs):
         NumPy dtype.
     **kwargs
         Additional keyword arguments to be passed to the underlying
-        :ref:`creation function <rockverse_voxelimage_create_function>`.
+        :func:`creation function <rockverse.voxel_image.create>`.
 
     Returns
     -------
@@ -246,8 +230,6 @@ def zeros(shape, dtype, **kwargs):
 
 def ones(shape, dtype, **kwargs):
     """
-    :bdg-info:`Parallel`
-    :bdg-info:`CPU`
     Create a voxel image filled with ones.
 
     Parameters
@@ -258,7 +240,7 @@ def ones(shape, dtype, **kwargs):
         NumPy dtype.
     **kwargs
         Additional keyword arguments to be passed to the underlying
-        :ref:`creation function <rockverse_voxelimage_create_function>`.
+        :func:`creation function <rockverse.voxel_image.create>`.
 
     Returns
     -------
@@ -272,8 +254,6 @@ def ones(shape, dtype, **kwargs):
 
 def full(shape, dtype, fill_value, **kwargs):
     """
-    :bdg-info:`Parallel`
-    :bdg-info:`CPU`
     Create a voxel image filled with a specified value.
 
     Parameters
@@ -286,7 +266,7 @@ def full(shape, dtype, fill_value, **kwargs):
         Value to fill the array.
     **kwargs
         Additional keyword arguments to be passed to the underlying
-        :ref:`creation function <rockverse_voxelimage_create_function>`.
+        :func:`creation function <rockverse.voxel_image.create>`.
 
     Returns
     -------
@@ -310,8 +290,6 @@ def _put_meta(a, kwargs):
 
 def empty_like(a, **kwargs):
     """
-    :bdg-info:`Parallel`
-    :bdg-info:`CPU`
     Create empty voxel image with same shape, chunks, voxel_origin,
     voxel_length, and voxel_unit as the given image.
 
@@ -321,7 +299,7 @@ def empty_like(a, **kwargs):
         The source voxel image to mimic.
     **kwargs
         Additional keyword arguments to be passed to the underlying
-        :ref:`creation function <rockverse_voxelimage_create_function>`.
+        :func:`creation function <rockverse.voxel_image.create>`.
 
     Returns
     -------
@@ -334,8 +312,6 @@ def empty_like(a, **kwargs):
 
 def zeros_like(a, **kwargs):
     """
-    :bdg-info:`Parallel`
-    :bdg-info:`CPU`
     Create voxel image filled with zeros with same shape, chunks, voxel_origin,
     voxel_length, and voxel_unit as the given image.
 
@@ -346,7 +322,7 @@ def zeros_like(a, **kwargs):
         The source RockVerse voxel image to mimic.
     **kwargs
         Additional keyword arguments to be passed to the underlying
-        :ref:`creation function <rockverse_voxelimage_create_function>`.
+        :func:`creation function <rockverse.voxel_image.create>`.
 
     Returns
     -------
@@ -359,8 +335,6 @@ def zeros_like(a, **kwargs):
 
 def ones_like(a, **kwargs):
     """
-    :bdg-info:`Parallel`
-    :bdg-info:`CPU`
     Create voxel image filled with ones with same shape, chunks, voxel_origin,
     voxel_length, and voxel_unit as the given image.
 
@@ -370,7 +344,7 @@ def ones_like(a, **kwargs):
         The source RockVerse voxel image to mimic.
     **kwargs
         Additional keyword arguments to be passed to the underlying
-        :ref:`creation function <rockverse_voxelimage_create_function>`.
+        :func:`creation function <rockverse.voxel_image.create>`.
 
     Returns
     -------
@@ -383,8 +357,6 @@ def ones_like(a, **kwargs):
 
 def full_like(a, fill_value, **kwargs):
     """
-    :bdg-info:`Parallel`
-    :bdg-info:`CPU`
     Create voxel image filled with a specified value with same shape, chunks,
     voxel_origin, voxel_length, and voxel_unit as the given image.
 
@@ -396,7 +368,7 @@ def full_like(a, fill_value, **kwargs):
         Value to fill the array.
     **kwargs
         Additional keyword arguments to be passed to the underlying
-        :ref:`creation function <rockverse_voxelimage_create_function>`.
+        :func:`creation function <rockverse.voxel_image.create>`.
 
     Returns
     -------
@@ -411,9 +383,6 @@ def full_like(a, fill_value, **kwargs):
 
 def from_array(array, **kwargs):
     """
-    :bdg-info:`Parallel`
-    :bdg-info:`CPU`
-
     Create a new VoxelImage object and copy array data into it.
 
     .. note::
@@ -428,7 +397,7 @@ def from_array(array, **kwargs):
 
     **kwargs
         Additional keyword arguments to be passed to the underlying
-        :ref:`creation function <rockverse_voxelimage_create_function>`.
+        :func:`creation function <rockverse.voxel_image.create>`.
         Notice that image shape will match original array shape, and therefore
         keyword argument ``shape`` will be ignored in ``kwargs``.
 
@@ -448,7 +417,7 @@ def from_array(array, **kwargs):
     for block_id in rvtqdm(range(z.nchunks), desc=desc, unit='chunk'):
         if block_id % mpi_nprocs == mpi_rank:
             chunk_indices = z.chunk_slice_indices(block_id)
-            z._array[chunk_indices] = array[chunk_indices]
+            z.zarray[chunk_indices] = array[chunk_indices]
     comm.barrier()
     return z
 
@@ -462,10 +431,6 @@ def sphere_pack(shape,
                 fill_value=1,
                 **kwargs):
     '''
-    :bdg-info:`Parallel`
-    :bdg-info:`CPU`
-    :bdg-info:`GPU`
-
     Create a sphere pack image.
 
     John Finney's experimental disordered packing of equal, hard spheres,
@@ -505,7 +470,7 @@ def sphere_pack(shape,
         Value to fill the spheres with. Default is 1.
     **kwargs
         Additional keyword arguments to be passed to the underlying
-        :ref:`creation function <rockverse_voxelimage_create_function>`.
+        :func:`creation function <rockverse.voxel_image.create>`.
 
     Returns
     -------
@@ -525,7 +490,7 @@ def sphere_pack(shape,
     kwargs['voxel_origin'] = [ox, oy, oz]
     kwargs['voxel_length'] = [hx, hy, hz]
     z = zeros(shape, dtype, **kwargs)
-    fill_finney_pack(array=z._array, sphere_radius=sphere_radius,
+    fill_finney_pack(array=z.zarray, sphere_radius=sphere_radius,
                       hx=hx, hy=hy, hz=hz, ox=ox, oy=oy, oz=oz,
                       fill_value=fill_value)
     return z
@@ -546,9 +511,6 @@ def import_raw(rawfile,
                **kwargs):
 
     """
-    :bdg-info:`Parallel`
-    :bdg-info:`CPU`
-
     Import raw file as a voxel image.
 
     This function imports a raw binary file into a voxel image, adding the
@@ -579,6 +541,7 @@ def import_raw(rawfile,
             * ``2`` for 16-bit data
             * ``4`` for 32-bit data
             * ``8`` for 64-bit data
+            * ``16`` for 128-bit data
 
         These are the accepted combinations:
 
@@ -608,9 +571,11 @@ def import_raw(rawfile,
 
         * ``'<f4'``: little endian 32-bit float
         * ``'<f8'``: little endian 64-bit float
+        * ``'<f16'``: little endian 128-bit float
 
         * ``'>f4'``: big endian 32-bit float
         * ``'>f8'``: big endian 64-bit float
+        * ``'>f16'``: big endian 128-bit float
 
         The imported data will be converted to the system's native byte order
         (little endian or big endian).
@@ -644,7 +609,7 @@ def import_raw(rawfile,
         accidental overwriting of existing data.
     **kwargs
         Additional keyword arguments to be passed to the underlying
-        :ref:`creation function <rockverse_voxelimage_create_function>`.
+        :func:`creation function <rockverse.voxel_image.create>`.
 
     Returns
     -------
@@ -693,12 +658,9 @@ def import_raw(rawfile,
     for block_id in rvtqdm(range(z.nchunks), desc=desc, unit='chunk'):
         if block_id % mpi_nprocs == mpi_rank:
             chunk_indices = z.chunk_slice_indices(block_id)
-            z._array[chunk_indices] = data[chunk_indices]
+            z.zarray[chunk_indices] = data[chunk_indices]
     comm.barrier()
     return z
-
-
-
 
 
 
@@ -707,7 +669,7 @@ def import_raw(rawfile,
 class VoxelImage():
     """
     The basic type for RockVerse Digital Rock Petrophysics, intended to contain
-    voxelized images and scalar fields in general. The class builds upon
+    voxelized 3D images and scalar fields in general. The class builds upon
     `Zarr arrays <https://zarr.readthedocs.io/en/stable/user-guide/arrays.html>`_
     by adding attributes and methods specifically designed for digital rock
     petrophysics in a high performance parallel computing environment.
@@ -718,26 +680,25 @@ class VoxelImage():
     """
 
     def __init__(self, z):
-        self._array = z
+        self._zarray = z
 
     def __repr__(self):
-        return f"<VoxelImage shape={self.shape} dtype={self.dtype} store={self._array.store} path={self._array.path}>"
-
+        return f"<VoxelImage shape={self.shape} dtype={self.dtype} store={self.zarray.store} path={self.zarray.path}>"
 
     def __getitem__(self, selection, rank=None):
-        if isinstance(self._array.store, zarr.storage.LocalStore) or mpi_nprocs==1 or self.nchunks==1:
-            return self._array[selection]
+        if isinstance(self.zarray.store, zarr.storage.LocalStore) or mpi_nprocs==1 or self.nchunks==1:
+            return self.zarray[selection]
 
         # Memory store needs to reduce slice values
-        if self._array.fill_value == 0:
-            selected = self._array[selection]
+        if self.zarray.fill_value == 0:
+            selected = self.zarray[selection]
         else: #this option temporarily doubles memory
             temp = zeros_like(self, store=None)
             for block_id in range(self.nchunks):
                 if mpi_rank == block_id % mpi_nprocs:
                     chunk_slice = self.chunk_slice_indices(block_id)
-                    temp._array[chunk_slice] = self._array[chunk_slice]
-            selected = temp._array[selection]
+                    temp.zarray[chunk_slice] = self.zarray[chunk_slice]
+            selected = temp.zarray[selection]
         if rank is None:
             return comm.allreduce(selected, op=MPI.SUM)
 
@@ -750,120 +711,120 @@ class VoxelImage():
         for block_id in range(self.nchunks):
             if block_id % mpi_nprocs == mpi_rank:
                 chunk_indices = self.chunk_slice_indices(block_id)
-                temp[chunk_indices] = self._array[chunk_indices].copy()
+                temp[chunk_indices] = self.zarray[chunk_indices].copy()
                 temp[selection] = array
-                self._array[chunk_indices] = temp[chunk_indices].copy()
+                self.zarray[chunk_indices] = temp[chunk_indices].copy()
 
 
     @property
     def shape(self):
         """The image shape."""
-        return self._array.shape
+        return self.zarray.shape
 
     @property
     def chunks(self):
         """The image chunk shape."""
-        return self._array.chunks
+        return self.zarray.chunks
 
     @property
     def nchunks(self):
         """The image number of chunks."""
-        return self._array.nchunks
+        return self.zarray.nchunks
 
     @property
     def ndim(self):
         """The image number of dimensions."""
-        return self._array.ndim
+        return self.zarray.ndim
 
     @property
     def dtype(self):
         """The image data type."""
-        return self._array.dtype
+        return self.zarray.dtype
 
     @property
-    def array(self):
-        """The underlying Zarr arrar object."""
-        return self._array
+    def zarray(self):
+        """The underlying Zarr array object."""
+        return self._zarray
 
     @property
     def _rockverse_datatype(self):
         """The RockVerse data type."""
-        return self._array.attrs['_ROCKVERSE_DATATYPE']
+        return self.zarray.attrs['_ROCKVERSE_DATATYPE']
 
     @property
     def description(self):
-        """Image or scalar field description."""
-        return self._array.attrs['description']
+        """General image or scalar field description."""
+        return self.zarray.attrs['description']
 
     @description.setter
     def description(self, v):
         _assert.instance('description', v, 'str', (str,))
-        self._array.attrs['description'] = v
+        self.zarray.attrs['description'] = v
 
     @property
     def field_name(self):
         """Name for the stored scalar field."""
-        return self._array.attrs['field_name']
+        return self.zarray.attrs['field_name']
 
     @field_name.setter
     def field_name(self, v):
         _assert.instance('field_name', v, 'str', (str,))
-        self._array.attrs['field_name'] = v
+        self.zarray.attrs['field_name'] = v
 
     @property
     def field_unit(self):
         """Unit for the stored scalar field."""
-        return self._array.attrs['field_unit']
+        return self.zarray.attrs['field_unit']
 
     @field_unit.setter
     def field_unit(self, v):
         _assert.instance('field_unit', v, 'str', (str,))
-        self._array.attrs['field_unit'] = v
+        self.zarray.attrs['field_unit'] = v
 
     @property
     def nx(self):
         """The number of voxels in x-direction (first axis). Equivalent to shape[0]."""
-        return self._array.shape[0]
+        return self.zarray.shape[0]
 
     @property
     def ny(self):
         """The number of voxels in y-direction (second axis). Equivalent to shape[1]."""
-        return self._array.shape[1]
+        return self.zarray.shape[1]
 
     @property
     def nz(self):
         """The number of voxels in z-direction (third axis). Equivalent to shape[2]."""
-        return self._array.shape[2]
+        return self.zarray.shape[2]
 
     @property
     def hx(self):
         """Voxel length in x-direction (first axis)."""
-        return self._array.attrs['voxel_length'][0]
+        return self.zarray.attrs['voxel_length'][0]
 
     @hx.setter
     def hx(self, v):
         _assert.condition.positive_integer_or_float('hx', v)
-        self._array.attrs['voxel_length'][0] = v
+        self.zarray.attrs['voxel_length'][0] = v
 
     @property
     def hy(self):
         """Voxel length in y-direction (second axis)."""
-        return self._array.attrs['voxel_length'][1]
+        return self.zarray.attrs['voxel_length'][1]
 
     @hy.setter
     def hy(self, v):
         _assert.condition.positive_integer_or_float('hy', v)
-        self._array.attrs['voxel_length'][1] = v
+        self.zarray.attrs['voxel_length'][1] = v
 
     @property
     def hz(self):
         """Voxel length in z-direction (third axis)."""
-        return self._array.attrs['voxel_length'][2]
+        return self.zarray.attrs['voxel_length'][2]
 
     @hz.setter
     def hz(self, v):
         _assert.condition.positive_integer_or_float('hz', v)
-        self._array.attrs['voxel_length'][2] = v
+        self.zarray.attrs['voxel_length'][2] = v
 
     @property
     def voxel_length(self):
@@ -872,27 +833,27 @@ class VoxelImage():
         as a tuple. This is a read-only property. To alter the voxel lengths,
         use the ``hx``, ``hy``, and ``hz`` properties.
         """
-        return tuple(self._array.attrs['voxel_length'])
+        return tuple(self.zarray.attrs['voxel_length'])
 
     @property
     def h_unit(self):
         """Image voxel unit."""
-        return self._array.attrs['voxel_unit']
+        return self.zarray.attrs['voxel_unit']
 
     @h_unit.setter
     def h_unit(self, v):
         _assert.instance('h_unit', v, 'string', (str,))
-        self._array.attrs['voxel_unit'] = v
+        self.zarray.attrs['voxel_unit'] = v
 
     @property
     def voxel_unit(self):
         """Image voxel unit."""
-        return self._array.attrs['voxel_unit']
+        return self.zarray.attrs['voxel_unit']
 
     @voxel_unit.setter
     def voxel_unit(self, v):
         _assert.instance('voxel_unit', v, 'string', (str,))
-        self._array.attrs['voxel_unit'] = v
+        self.zarray.attrs['voxel_unit'] = v
 
     @property
     def meta_data_as_dict(self):
@@ -902,7 +863,7 @@ class VoxelImage():
         meta = dict()
         for k in ('description', 'field_name', 'field_unit',
                   'voxel_origin', 'voxel_unit', 'voxel_length'):
-            meta[k] = self._array.attrs[k]
+            meta[k] = self.zarray.attrs[k]
         return meta
 
     @property
@@ -918,32 +879,32 @@ class VoxelImage():
     @property
     def ox(self):
         """Spatial x-coordinate for the first voxel in x-direction (first axis)."""
-        return self._array.attrs['voxel_origin'][0]
+        return self.zarray.attrs['voxel_origin'][0]
 
     @ox.setter
     def ox(self, v):
         _assert.condition.integer_or_float('ox', v)
-        self._array.attrs['voxel_origin'][0] = v
+        self.zarray.attrs['voxel_origin'][0] = v
 
     @property
     def oy(self):
         """Spatial y-coordinate for the first voxel in y-direction (second axis)."""
-        return self._array.attrs['voxel_origin'][1]
+        return self.zarray.attrs['voxel_origin'][1]
 
     @oy.setter
     def oy(self, v):
         _assert.condition.integer_or_float('oy', v)
-        self._array.attrs['voxel_origin'][1] = v
+        self.zarray.attrs['voxel_origin'][1] = v
 
     @property
     def oz(self):
         """Spatial z-coordinate for the first voxel in z-direction (third axis)."""
-        return self._array.attrs['voxel_origin'][2]
+        return self.zarray.attrs['voxel_origin'][2]
 
     @oz.setter
     def oz(self, v):
         _assert.condition.integer_or_float('oz', v)
-        self._array.attrs['voxel_origin'][2] = v
+        self.zarray.attrs['voxel_origin'][2] = v
 
     @property
     def voxel_origin(self):
@@ -955,7 +916,7 @@ class VoxelImage():
         property. To alter the voxel origins, use the ``ox``, ``oy``, and ``oz``
         properties.
         """
-        return tuple(self._array.attrs['voxel_origin'])
+        return tuple(self.zarray.attrs['voxel_origin'])
 
     @property
     def bounding_box(self):
@@ -1002,7 +963,7 @@ class VoxelImage():
         """
         if chunk_id >= self.nchunks:
             raise ValueError(f'chunk_id={chunk_id}: array has only {self.nchunks} chunks.')
-        Nblocks = self._array.cdata_shape
+        Nblocks = self.zarray.cdata_shape
         bk = chunk_id // (Nblocks[0]*Nblocks[1])
         bj = (chunk_id - bk*Nblocks[0]*Nblocks[1]) // Nblocks[0]
         bi = chunk_id - bk*Nblocks[0]*Nblocks[1] - bj*Nblocks[0]
@@ -1121,10 +1082,6 @@ class VoxelImage():
 
     def math(self, value, op, *, mask=None, segmentation=None, phases=None, region=None):
         """
-        :bdg-info:`Parallel`
-        :bdg-info:`CPU`
-        :bdg-info:`GPU`
-
         Element-wise math operations.
 
         This method applies math operations for each voxel in the image.
@@ -1200,10 +1157,6 @@ class VoxelImage():
 
     def combine(self, image, op, *, mask=None, segmentation=None, phases=None, region=None):
         """
-        :bdg-info:`Parallel`
-        :bdg-info:`CPU`
-        :bdg-info:`GPU`
-
         Combine another voxel image by element-wise math operations.
 
         This method applies math operations for each voxel in the images.
@@ -1301,9 +1254,6 @@ class VoxelImage():
 
     def broadcast_borders(self, border_voxels=1):
         """
-        :bdg-info:`Parallel`
-        :bdg-info:`CPU`
-
         Exchanges border voxels from each Zarr data block with its immediate
         neighbors.
 
@@ -1353,18 +1303,15 @@ class VoxelImage():
                                 if (receiver_id % mpi_nprocs) == (sender_id % mpi_nprocs):
                                     continue
                                 if mpi_rank == sender_id % mpi_nprocs:
-                                    data = self._array[slicex, slicey, slicez].copy()
+                                    data = self.zarray[slicex, slicey, slicez].copy()
                                     comm.send(obj=data, dest=(receiver_id % mpi_nprocs), tag=tag)
                                 if mpi_rank == receiver_id % mpi_nprocs:
                                     data = comm.recv(None, source=(sender_id % mpi_nprocs), tag=tag)
-                                    self._array[slicex, slicey, slicez] = data.copy()
+                                    self.zarray[slicex, slicey, slicez] = data.copy()
 
 
     def copy(self, store=None, **kwargs):
         """
-        :bdg-info:`Parallel`
-        :bdg-info:`CPU`
-
         Copy the voxel image to a new store.
 
         This method supports re-chunking by passing ``chunks`` in ``**kwargs``.
@@ -1380,7 +1327,7 @@ class VoxelImage():
 
         **kwargs
             Additional keyword arguments to be passed to the underlying
-            :ref:`creation function <rockverse_voxelimage_create_function>`.
+            :func:`creation function <rockverse.voxel_image.create>`.
 
         Returns
         -------
@@ -1393,15 +1340,12 @@ class VoxelImage():
             root = block_id % mpi_nprocs
             data = self.__getitem__(chunk_indices, root)
             if mpi_rank == root:
-                v._array[chunk_indices] = data
+                v.zarray[chunk_indices] = data
 
 
     def export_raw(self, filename, dtype=None, order='F', byteorder='=',
                    write_fiji_macro=False):
         """
-        :bdg-info:`Parallel`
-        :bdg-info:`CPU`
-
         Export a voxel image to a raw file and corresponding metadata to a JSON
         file.
 
@@ -1505,7 +1449,7 @@ class VoxelImage():
         for chunk_id in rvtqdm(range(self.nchunks), desc='Exporting raw file', unit='chunk'):
             if chunk_id % mpi_nprocs == mpi_rank:
                 chunk_indices = self.chunk_slice_indices(chunk_id)
-                file[chunk_indices] = self._array[chunk_indices]
+                file[chunk_indices] = self.zarray[chunk_indices]
         comm.barrier()
         file.flush()
         comm.barrier()
@@ -1539,9 +1483,6 @@ class VoxelImage():
 
     def create_mask_from_region(self, region, **kwargs):
         """
-        :bdg-info:`Parallel`
-        :bdg-info:`CPU`
-        :bdg-info:`GPU`
         Create a mask voxel image.
 
         Create boolean voxel image with same shape, chunks, voxel_origin,
@@ -1554,7 +1495,7 @@ class VoxelImage():
             The source voxel image to mimic.
         **kwargs
             Additional keyword arguments to be passed to the underlying
-            :ref:`creation function <rockverse_voxelimage_create_function>`.
+            :func:`creation function <rockverse.voxel_image.create>`.
             Keyword argument ``dtype`` will be ignored if passed, as the mask
             has to be of boolean type.
 

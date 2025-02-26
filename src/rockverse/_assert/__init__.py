@@ -16,7 +16,8 @@ def drpdtype(varname, var):
                    '>u2', '>u4', '>u8', '>u16',
                    '<i2', '<i4', '<i8', '<i16',
                    '>i2', '>i4', '>i8', '>i16',
-                   '<f4', '<f8', '>f4', '>f8'):
+                   '<f4', '<f8', '<f16',
+                   '>f4', '>f8', '>f16'):
         collective_raise(TypeError(
             f"{varname} must be passed as Numpy typestring, "
             "composed as follows:"

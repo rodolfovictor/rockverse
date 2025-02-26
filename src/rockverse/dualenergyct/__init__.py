@@ -1893,7 +1893,7 @@ class DualEnergyCTGroup():
                     field_unit='g/cc' if k<5 else '')
                 with collective_only_rank0_runs():
                     if mpi_rank == 0:
-                        image.array.attrs['dep_md5sum'] = hexdigest
+                        image.zarray.attrs['dep_md5sum'] = hexdigest
         comm.barrier()
 
         self._calc_rho_Z()

@@ -133,8 +133,8 @@ class Histogram():
             self._min = 0
             self._max = 1
             return
-        local_min = self._image._array[0, 0, 0]
-        local_max = self._image._array[0, 0, 0]
+        local_min = self._image.zarray[0, 0, 0]
+        local_max = self._image.zarray[0, 0, 0]
         local_min = comm.bcast(local_min, root=0)
         local_max = comm.bcast(local_max, root=0)
         hx, hy, hz = self._image.voxel_length
@@ -145,10 +145,10 @@ class Histogram():
             if block_id % mpi_nprocs != mpi_rank:
                 continue
             box, bex, boy, bey, boz, bez = self._image.chunk_slice_indices(block_id, return_indices=True)
-            block_data = self._image._array[box:bex, boy:bey, boz:bez]
+            block_data = self._image.zarray[box:bex, boy:bey, boz:bez]
             skip = np.zeros((bex-box, bey-boy, bez-boz), dtype='bool')
             if self._mask is not None:
-                _apply_mask_cpu(skip, self._mask._array[box:bex, boy:bey, boz:bez])
+                _apply_mask_cpu(skip, self._mask.zarray[box:bex, boy:bey, boz:bez])
             if self._region is not None:
                 self._region.mask_chunk_cpu(skip, ox, oy, oz, hx, hy, hz, box, boy, boz)
             block_data = ma.masked_array(block_data, mask=skip)
@@ -201,7 +201,7 @@ class Histogram():
             if block_id % mpi_nprocs != mpi_rank:
                 continue
             box, bex, boy, bey, boz, bez = self._image.chunk_slice_indices(block_id, return_indices=True)
-            block_segm = self._segmentation._array[box:bex, boy:bey, boz:bez]
+            block_segm = self._segmentation.zarray[box:bex, boy:bey, boz:bez]
             _block_count_phases(block_segm, count)
         comm.barrier()
         #All-reduce phases
@@ -222,16 +222,16 @@ class Histogram():
             if block_id % mpi_nprocs != mpi_rank:
                 continue
             box, bex, boy, bey, boz, bez = self._image.chunk_slice_indices(block_id, return_indices=True)
-            block_data = self._image._array[box:bex, boy:bey, boz:bez]
+            block_data = self._image.zarray[box:bex, boy:bey, boz:bez]
             if block_data.dtype.kind == 'b': #Boolean?
                 block_data = block_data.astype('u1')
             skip = np.zeros((bex-box, bey-boy, bez-boz), dtype='bool')
             if self._mask is not None:
-                _apply_mask_cpu(skip, self._mask._array[box:bex, boy:bey, boz:bez])
+                _apply_mask_cpu(skip, self._mask.zarray[box:bex, boy:bey, boz:bez])
             if self._region is not None:
                 self._region.mask_chunk_cpu(skip, ox, oy, oz, hx, hy, hz, box, boy, boz)
             if len(self._phases)>0:
-                block_segm = self._segmentation._array[box:bex, boy:bey, boz:bez]
+                block_segm = self._segmentation.zarray[box:bex, boy:bey, boz:bez]
                 phases = self._phases
             else:
                 block_segm = skip

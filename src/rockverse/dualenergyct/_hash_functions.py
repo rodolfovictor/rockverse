@@ -19,10 +19,10 @@ from rockverse._utils import rvtqdm
 
 def hash_array(array, name):
     """
-    Calculate the MD5 hash of a 3D array, processing in blocks for memory efficiency.
+    Calculate the MD5 hash of a voxel image, processing in blocks for memory efficiency.
 
     Parameters:
-    array (drp.array): The 3D array to be hashed.
+    array (VoxelImage): The 3D array to be hashed.
     name (str): Name of the array for progress bar display.
 
     Returns:

@@ -7,45 +7,46 @@ Tutorials
 Digital Rock Petrophysics
 -------------------------
 
-.. grid:: 1
-    :gutter: 4
+.. dropdown:: ??? Voxel images ???
+  :animate: fade-in
 
-    .. grid-item-card:: Voxel images
+  - :doc:`tutorials/digitalrock/voxel_image`
 
-        - :doc:`Introduction to Voxel Images <tutorials/digitalrock/voxel_image>`
-        - Visualizing Orthogonal Slices
-            - :doc:`Importing sample raw data - Bentheimer sandstone<tutorials/digitalrock/sample_data/import_bentheimer_sandstone>`
-            - :doc:`Exploring the orthogonal viewer <tutorials/digitalrock/orthogonal_viewer>`
 
-.. grid:: 1
-    :gutter: 4
 
-    .. grid-item-card:: Monte Carlo Dual Energy CT processing
+.. dropdown:: Using the orthogonal viewer
+  :animate: fade-in
 
-        - :doc:`Part 1 - Importing sample raw data <tutorials/digitalrock/dual_energy/import_C04B21_dualenergy>`
-        - :doc:`Part 2 - Preparing the data <tutorials/digitalrock/dual_energy/C04B21_Pre>`
+  - :doc:`tutorials/digitalrock/orthogonal_viewer/import_bentheimer_sandstone`
+  - :doc:`tutorials/digitalrock/orthogonal_viewer/orthogonal_viewer`
 
-.. grid:: 1
-    :gutter: 4
 
-    .. grid-item-card:: ????????
 
-        - Importing sample raw data
-            - :doc:`Importing sample raw data - Belgian Fieldstone <tutorials/digitalrock/sample_data/import_belgian_fieldstone>`
+.. dropdown:: Monte Carlo Dual Energy CT processing
+  :animate: fade-in
+
+  - :doc:`Introduction <tutorials/digitalrock/dual_energy>`
+  - :doc:`tutorials/digitalrock/dual_energy/dual_energy_tutorial_download_data`
+  - :doc:`tutorials/digitalrock/dual_energy/dual_energy_tutorial_prepare_data`
+  - :doc:`tutorials/digitalrock/dual_energy/dual_energy_tutorial_process`
+  - :doc:`tutorials/digitalrock/dual_energy/dual_energy_tutorial_performance`
+
+
+
+.. dropdown:: ???? Importing sample raw data ????
+  :animate: fade-in
+    - :doc:`tutorials/digitalrock/sample_data/import_belgian_fieldstone`
+
 
 Well logging
 ------------
 
-    .. grid-item-card::
-
-        <Comming soon!>
+Comming soon!
 
 Petrogeophysics
 ---------------
 
-    .. grid-item-card::
-
-        <Comming soon!>
+Comming soon!
 
 
 .. toctree::

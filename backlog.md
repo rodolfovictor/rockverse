@@ -24,6 +24,7 @@ MIGRATING ORTHOGONALVIEWER
   - implement set method to set many properties at once with one refresh at the end
 
 VOXELIMAGE
+  - Revisado API
   - PUT DATA IN VOXELIMAGE CREATE
   - DEPRECATE from_array
   - EXPORT RAW COMPLEX IN REAL AND IMAGINARY
@@ -31,6 +32,7 @@ VOXELIMAGE
   - GPT DOCUMENTATION
   - COPY change to faste chunk by chunk method if same chunk shape
   - change array to zarray
+  - implement hash
 
 MIGRATE DUAL ENERGY TO ZARR 3
   - DUALENERGYCTGROUP
@@ -39,6 +41,10 @@ MIGRATE DUAL ENERGY TO ZARR 3
 DEVELOP CONFIG whith methods
 
 DEPRECATE ASSERT drpdtype
+
+REVISAR TUTORIAIS
+
+REVISAR GALLERY
 
 ## Tasks to be completed
 

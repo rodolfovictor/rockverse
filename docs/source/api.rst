@@ -10,6 +10,7 @@ API
     api/region
     api/viz
     api/dualenergyct
+    api/histogram
 
 
 Indices and tables
