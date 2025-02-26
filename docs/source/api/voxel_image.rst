@@ -28,7 +28,7 @@ Basic creation functions
 .. _voxel image creation functions:
 
 .. autosummary::
-    :toctree: ..//
+    :toctree: ../_autogen
 
     create
     empty
@@ -46,7 +46,7 @@ Creating from other formats
 ===========================
 
 .. autosummary::
-    :toctree: ../_autogen/
+    :toctree: ../_autogen
 
     sphere_pack
     import_raw

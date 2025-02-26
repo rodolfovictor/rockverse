@@ -1,16 +1,20 @@
-The ``DualEnergyCTGroup`` class
--------------------------------
+========================================
+rockverse.dualenergyct.DualEnergyCTGroup
+========================================
 
 .. currentmodule:: rockverse.dualenergyct
 
 .. autoclass:: DualEnergyCTGroup
 
-Attribute summary
-^^^^^^^^^^^^^^^^^
+Attributes
+----------
 
-.. rubric:: Voxel images
+Voxel images
+~~~~~~~~~~~~
 
 .. autosummary::
+   :toctree: ../_autogen
+
    ~DualEnergyCTGroup.lowECT
    ~DualEnergyCTGroup.highECT
    ~DualEnergyCTGroup.mask
@@ -27,15 +31,21 @@ Attribute summary
    ~DualEnergyCTGroup.Z_max
    ~DualEnergyCTGroup.valid
 
-.. rubric:: Calibration materials
+Calibration materials
+~~~~~~~~~~~~~~~~~~~~~
 
 .. autosummary::
+   :toctree: ../_autogen
+
    ~DualEnergyCTGroup.calibration_material
    ~DualEnergyCTGroup.periodic_table
 
-.. rubric:: Inversion parameters
+Inversion parameters
+~~~~~~~~~~~~~~~~~~~~
 
 .. autosummary::
+   :toctree: ../_autogen
+
    ~DualEnergyCTGroup.maxA
    ~DualEnergyCTGroup.maxB
    ~DualEnergyCTGroup.maxn
@@ -48,66 +58,29 @@ Attribute summary
    ~DualEnergyCTGroup.threads_per_block
 
 
-Methods summary
-^^^^^^^^^^^^^^^
+Methods
+-------
 
 .. _dect_array_creation:
 
-.. rubric:: Handling voxel images
+Handling voxel images
+~~~~~~~~~~~~~~~~~~~~~
 
 .. autosummary::
+   :toctree: ../_autogen
+
    ~DualEnergyCTGroup.copy_image
    ~DualEnergyCTGroup.create_mask
    ~DualEnergyCTGroup.delete_mask
    ~DualEnergyCTGroup.create_segmentation
    ~DualEnergyCTGroup.delete_segmentation
 
-.. rubric:: Monte Carlo Inversion
+Monte Carlo Inversion
+~~~~~~~~~~~~~~~~~~~~~
 
 .. autosummary::
+   :toctree: ../_autogen
+
    ~DualEnergyCTGroup.check
    ~DualEnergyCTGroup.preprocess
    ~DualEnergyCTGroup.run
-
-Attributes
-^^^^^^^^^^
-
-.. autoattribute:: DualEnergyCTGroup.calibration_material
-.. autoattribute:: DualEnergyCTGroup.highECT
-.. autoattribute:: DualEnergyCTGroup.highE_inversion_coefficients
-.. autoattribute:: DualEnergyCTGroup.lowECT
-.. autoattribute:: DualEnergyCTGroup.lowE_inversion_coefficients
-.. autoattribute:: DualEnergyCTGroup.mask
-.. autoattribute:: DualEnergyCTGroup.maxA
-.. autoattribute:: DualEnergyCTGroup.maxB
-.. autoattribute:: DualEnergyCTGroup.maximum_iterations
-.. autoattribute:: DualEnergyCTGroup.maxn
-.. autoattribute:: DualEnergyCTGroup.periodic_table
-.. autoattribute:: DualEnergyCTGroup.required_iterations
-.. autoattribute:: DualEnergyCTGroup.rho_max
-.. autoattribute:: DualEnergyCTGroup.rho_min
-.. autoattribute:: DualEnergyCTGroup.rho_p25
-.. autoattribute:: DualEnergyCTGroup.rho_p50
-.. autoattribute:: DualEnergyCTGroup.rho_p75
-.. autoattribute:: DualEnergyCTGroup.segmentation
-.. autoattribute:: DualEnergyCTGroup.threads_per_block
-.. autoattribute:: DualEnergyCTGroup.tol
-.. autoattribute:: DualEnergyCTGroup.valid
-.. autoattribute:: DualEnergyCTGroup.whis
-.. autoattribute:: DualEnergyCTGroup.Z_max
-.. autoattribute:: DualEnergyCTGroup.Z_min
-.. autoattribute:: DualEnergyCTGroup.Z_p25
-.. autoattribute:: DualEnergyCTGroup.Z_p50
-.. autoattribute:: DualEnergyCTGroup.Z_p75
-
-Methods
-^^^^^^^
-
-.. automethod:: DualEnergyCTGroup.check
-.. automethod:: DualEnergyCTGroup.copy_image
-.. automethod:: DualEnergyCTGroup.create_mask
-.. automethod:: DualEnergyCTGroup.create_segmentation
-.. automethod:: DualEnergyCTGroup.delete_mask
-.. automethod:: DualEnergyCTGroup.delete_segmentation
-.. automethod:: DualEnergyCTGroup.preprocess
-.. automethod:: DualEnergyCTGroup.run

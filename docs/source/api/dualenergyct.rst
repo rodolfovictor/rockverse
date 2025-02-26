@@ -1,8 +1,8 @@
 .. _Dual Energy Computed Tomography:
 
-=============================
-:mod:`rockverse.dualenergyct`
-=============================
+======================
+rockverse.dualenergyct
+======================
 
 .. automodule:: rockverse.dualenergyct
    :no-members:
@@ -13,12 +13,13 @@ Classes
 =======
 
 .. autosummary::
-   :toctree: ../_autogen
+
    DualEnergyCTGroup
+   CalibrationMaterial
+   PeriodicTable
 
 .. toctree::
-   :maxdepth: 1
-   :caption: Contents
+   :hidden:
 
    dualenergyct/group
    dualenergyct/calibrationmaterial

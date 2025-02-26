@@ -7,13 +7,6 @@ GPUs using MPI (Message Passing Interface).
 For details about the methods used in this module, please see reference:
     1. Original research paper: http://dx.doi.org/10.1002/2017JB014408
 
-Classes:
-    - :class:`rockverse.dualenergyct.DualEnergyCTGroup`: Main class for managing DECT processing,
-      including data import, calibration, and Monte Carlo simulations.
-    - :class:`PeriodicTable`: Manages periodic table information, allowing for the retrieval
-      and modification of atomic numbers and masses.
-    - :class:`CalibrationMaterial`: Handles calibration material information, including
-      description, bulk density, and chemical composition.
 
 .. versionadded:: 0.3.0
     Initial release of the `rockverse.dualenergyct` module.
@@ -727,7 +720,7 @@ class DualEnergyCTGroup():
     For a detailed workflow, refer to the
     `original research paper <http://dx.doi.org/10.1002/2017JB014408>`_.
 
-     .. note::
+    .. note::
         This class should not be directly instantiated.
         Use the :func:`create_group` instead.
 

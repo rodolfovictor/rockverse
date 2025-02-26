@@ -1,22 +1,17 @@
-The ``PeriodicTable`` class
----------------------------
+====================================
+rockverse.dualenergyct.PeriodicTable
+====================================
 
 .. currentmodule:: rockverse.dualenergyct
 
 .. autoclass:: PeriodicTable
 
-
-Method summary
-^^^^^^^^^^^^^^
+Methods
+=======
 
 .. autosummary::
+   :toctree: ../_autogen
+
    ~PeriodicTable.as_dict
    ~PeriodicTable.as_dataframe
    ~PeriodicTable.add_element
-
-Methods
-^^^^^^^
-
-.. automethod:: PeriodicTable.as_dict
-.. automethod:: PeriodicTable.as_dataframe
-.. automethod:: PeriodicTable.add_element
