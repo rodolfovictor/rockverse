@@ -1,9 +1,12 @@
 """
-Overview
---------
+==========================================
+Voxel Image (:mod:`rockverse.voxel_image`)
+==========================================
 
-The ``voxel_image`` module defines the basic class for RockVerse Digital Rock Petrophysics,
-the VoxelImage class. It builds upon
+.. currentmodule:: rockverse.voxel_image
+
+This module handles the basic class for RockVerse Digital Rock Petrophysics,
+the ``VoxelImage`` class. It builds upon
 `Zarr arrays <https://zarr.readthedocs.io/en/stable/user-guide/arrays.html>`_,
 adding attributes and methods specifically designed for digital rock
 petrophysics in a high-performance, parallel computing environment.
@@ -12,6 +15,26 @@ It can efficiently handle large images by leveraging Zarr's chunked storage.
 The ``VoxelImage`` class is designed for simplicity, handling complex computational
 abstractions under the hood, making it accessible and user-friendly for non-HPC
 specialists through high-level functions.
+
+
+Basic creation functions
+========================
+
+.. autosummary::
+    :toctree: generated/
+
+    ~create
+    ~empty
+    ~zeros
+    ~ones
+    ~full
+    ~empty_like
+    ~zeros_like
+    ~ones_like
+    ~full_like
+    ~from_array
+
+
 """
 
 import json
