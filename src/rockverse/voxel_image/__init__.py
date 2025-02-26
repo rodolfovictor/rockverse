@@ -1,10 +1,4 @@
 """
-==========================================
-Voxel Image (:mod:`rockverse.voxel_image`)
-==========================================
-
-.. currentmodule:: rockverse.voxel_image
-
 This module handles the basic class for RockVerse Digital Rock Petrophysics,
 the ``VoxelImage`` class. It builds upon
 `Zarr arrays <https://zarr.readthedocs.io/en/stable/user-guide/arrays.html>`_,
@@ -15,26 +9,6 @@ It can efficiently handle large images by leveraging Zarr's chunked storage.
 The ``VoxelImage`` class is designed for simplicity, handling complex computational
 abstractions under the hood, making it accessible and user-friendly for non-HPC
 specialists through high-level functions.
-
-
-Basic creation functions
-========================
-
-.. autosummary::
-    :toctree: generated/
-
-    ~create
-    ~empty
-    ~zeros
-    ~ones
-    ~full
-    ~empty_like
-    ~zeros_like
-    ~ones_like
-    ~full_like
-    ~from_array
-
-
 """
 
 import json
@@ -74,7 +48,7 @@ def create(shape,
         Desired image shape.
     dtype : string or dtype
         NumPy dtype. Type must be numeric (unsigned integer, integer, float, complex)
-        or boolean. Ex: ``dtype=int``, ``dtype='u2'``, ``dtype='f4'``, ``dtype=complex'.
+        or boolean. Ex: ``dtype=int``, ``dtype='u2'``, ``dtype='f4'``, ``dtype=complex``.
     chunks : iterable of ints | int | 'nprocs' | None, optional
         If iterable of integers, define the chunk shape. If integer, chunks will
         be as close as possible to cubic shapes, and the number of chunks will

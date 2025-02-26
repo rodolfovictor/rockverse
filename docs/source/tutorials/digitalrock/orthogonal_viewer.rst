@@ -4,7 +4,7 @@
 Exploring the orthogonal viewer
 ###############################
 
-?????
+Some text
 
 .. toctree::
     :hidden:

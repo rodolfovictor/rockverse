@@ -18,7 +18,7 @@
 # -- Project information -----------------------------------------------------
 
 project = 'rockverse'
-copyright = '2024, Rodolfo A. Victor'
+copyright = '2024-2025, Rodolfo A. Victor'
 author = 'Rodolfo A. Victor'
 
 # The full version, including alpha/beta/rc tags
@@ -36,9 +36,9 @@ master_doc = 'index'
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
-    'sphinx.ext.napoleon',
     'sphinx.ext.autosummary',
-    "sphinx.ext.viewcode",
+    'sphinx.ext.napoleon',
+    'sphinx.ext.viewcode',
     'nbsphinx',
     'sphinx_copybutton',
     'sphinx_gallery.load_style',
