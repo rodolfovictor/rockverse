@@ -13,7 +13,7 @@ Matplotlib-related attributes
 .. autosummary::
     :toctree: ../_autogen
 
-    ~OrthogonalViewer.figure
+    OrthogonalViewer.figure
     OrthogonalViewer.ax_xy
     OrthogonalViewer.ax_zy
     OrthogonalViewer.ax_xz

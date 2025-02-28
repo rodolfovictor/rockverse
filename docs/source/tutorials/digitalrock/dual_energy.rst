@@ -25,6 +25,7 @@ Details about the method are publicly available in the following references:
   `doi:10.1002/2017JB014408 <https://doi.org/10.1002/2017JB014408>`_
 
 .. toctree::
+    :hidden:
 
     dual_energy/dual_energy_tutorial_download_data.ipynb
     dual_energy/dual_energy_tutorial_prepare_data.ipynb

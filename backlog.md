@@ -1,7 +1,5 @@
 # Backlog
 
-NOW MIGRATING TO ZARR 3
-
 ACABEI DE ORGANIZAR O DUALENERGY
   - segmentation and mask should not be hashed
   - Tirar o collective call nos get/set property
@@ -83,7 +81,6 @@ REVISAR GALLERY
     - Bug freezing with GPU
 
 - Zarr
-    - Update to zarr 3
     - Test block indexing for 'F' or 'C'
     - put dimension_names in voxel image
 
