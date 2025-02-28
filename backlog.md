@@ -3,11 +3,10 @@
 NOW MIGRATING TO ZARR 3
 
 ACABEI DE ORGANIZAR O DUALENERGY
-  - segmentation and mask shoul not be hashed
+  - segmentation and mask should not be hashed
   - Tirar o collective call nos get/set property
   - Execute o tutorial
     - link the copy_image method documentation in segmentation building
-  - Escreva sphinx performance
   - put inversion parameters as input parameters or dictionary
   - Realização dos CT values estranha
 
@@ -33,10 +32,6 @@ VOXELIMAGE
   - COPY change to faste chunk by chunk method if same chunk shape
   - change array to zarray
   - implement hash
-
-MIGRATE DUAL ENERGY TO ZARR 3
-  - DUALENERGYCTGROUP
-  - name or path?
 
 DEVELOP CONFIG whith methods
 

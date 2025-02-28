@@ -7,9 +7,9 @@ Gallery
 Miscellaneous
 =============
 
-.. nbgallery::
+.. nblinkgallery::
 
-   gallery/miscellaneous/logo
+   tutorials/miscellaneous/logo
 
 Digital Rock
 ============
@@ -17,7 +17,7 @@ Digital Rock
 Sample voxel image data
 -----------------------
 
-.. nbgallery::
+.. nblinkgallery::
 
    tutorials/digitalrock/sample_data/import_belgian_fieldstone
    tutorials/digitalrock/orthogonal_viewer/import_bentheimer_sandstone
@@ -27,6 +27,6 @@ Sample voxel image data
 Image visualization
 -----------------------
 
-.. nbgallery::
+.. nblinkgallery::
 
    tutorials/digitalrock/orthogonal_viewer/orthogonal_viewer

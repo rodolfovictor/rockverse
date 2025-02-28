@@ -14,16 +14,16 @@
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
 
+import os
+import rockverse
 
 # -- Project information -----------------------------------------------------
 
 project = 'rockverse'
-copyright = '2024-2025, Rodolfo A. Victor'
+copyright = '2024-%Y, Rodolfo A. Victor'
 author = 'Rodolfo A. Victor'
+version = release = rockverse.__version__
 
-# The full version, including alpha/beta/rc tags
-import rockverse as rv
-version = rv.__version__
 
 # Set the root rst to load. This is required to be named contents to allow
 # readthedocs to host the docs using its default configuration.
@@ -46,7 +46,7 @@ extensions = [
 ]
 
 nbsphinx_thumbnails = {
-    'gallery/miscellaneous/logo': 'gallery/miscellaneous/rockverse_logo_model1_white.png',
+    'tutorials/miscellaneous/logo': 'tutorials/miscellaneous/rockverse_logo_model1_white.png',
 }
 
 autoclass_content = 'class'
@@ -113,3 +113,76 @@ html_static_path = ['_static']
 html_css_files = [
     'custom.css',
 ]
+
+
+# Assemble the tutorials
+# Each entry: [main rst file in tutorial_folder, thumbnail in thumbs_folder]
+tutorial_folder = "tutorials"
+thumbs_folder = "_static/tutorial_thumbnails"
+tutorials = [
+    ['Digital Rock Petrophysics', [
+        ['digitalrock/voxel_image.ipynb', 'voxel_image.png'],
+        ['digitalrock/orthogonal_viewer.rst', 'exploring_orthogonal_viewer.png'],
+        ['digitalrock/dual_energy.rst', 'Monte_Carlo_Dual_energy_CT_processing.png'],
+    ]],
+    ['Miscellaneous', [
+        ['miscellaneous/logo.ipynb', 'using_logo.png'],
+    ]],
+]
+
+tutorials_page = '.. _rockverse_docs_tutorials:\n\n=========\nTutorials\n=========\n'
+main_toctree = []
+for section in tutorials:
+    section_name = section[0]
+    tutorials_page = f'{tutorials_page}\n\n\n{section_name}\n{'-'*len(section_name)}\n'
+    section_tutorials = section[1]
+    #Extract all tutorials in this section
+    for tutorial_name, thumbnail in section_tutorials:
+        filename = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                tutorial_folder,
+                                tutorial_name)
+        main_toctree.append(os.path.join(tutorial_folder, tutorial_name))
+        #extract tutorial toctree
+        with open(filename, 'r') as file:
+            lines = file.readlines()
+        toctree = []
+        passed = False
+        for line in lines:
+            if line.strip().startswith('.. toctree::'):
+                passed = True
+                continue
+            if passed and line.strip().endswith('.ipynb'):
+                toctree.append(line.strip())
+        #Insert section
+        tutorials_page = f"{tutorials_page}\n\n"
+        tutorials_page = f"{tutorials_page}.. grid:: 2\n"
+        tutorials_page = f"{tutorials_page}  :gutter: 0\n"
+        tutorials_page = f"{tutorials_page}\n"
+        tutorials_page = f"{tutorials_page}  .. grid-item-card::\n"
+        tutorials_page = f"{tutorials_page}    :columns: 4\n"
+        tutorials_page = f"{tutorials_page}    :shadow: none\n"
+        tutorials_page = f"{tutorials_page}\n"
+        tutorials_page = f"{tutorials_page}    .. image:: {os.path.join(thumbs_folder, thumbnail)}\n"
+        tutorials_page = f"{tutorials_page}      :align: center\n"
+        tutorials_page = f"{tutorials_page}\n"
+        tutorials_page = f"{tutorials_page}  .. grid-item-card::  :doc:`{os.path.join(tutorial_folder, tutorial_name.replace('.rst', '').replace('.ipynb', ''))}`\n"
+        tutorials_page = f"{tutorials_page}    :columns: 8\n"
+        tutorials_page = f"{tutorials_page}    :shadow: none\n"
+        tutorials_page = f"{tutorials_page}\n"
+        tutorials_page = f"{tutorials_page}    - :doc:`Start here <{os.path.join(tutorial_folder, tutorial_name.replace('.rst', '').replace('.ipynb', ''))}>`\n"
+        for notebook in toctree:
+            clean_path = os.path.join(tutorial_folder, '/'.join(tutorial_name.split('/')[:-1]).replace('.rst', '').replace('.ipynb', ''), notebook)
+            tutorials_page = f"{tutorials_page}    - :doc:`{clean_path.replace('.ipynb', '')}`\n"
+if main_toctree:
+    tutorials_page = f"{tutorials_page}\n"
+    tutorials_page = f"{tutorials_page}\n"
+    tutorials_page = f"{tutorials_page}.. toctree::\n"
+    tutorials_page = f"{tutorials_page}  :maxdepth: 2\n"
+    tutorials_page = f"{tutorials_page}  :hidden:\n\n"
+    for doc in main_toctree:
+        tutorials_page = f"{tutorials_page}  {doc.replace('.rst', '').replace('.ipynb', '')}\n"
+tutorials_page = f"{tutorials_page}\n\nWell logging\n------------\nComming soon!\n"
+tutorials_page = f"{tutorials_page}\n\nPetrogeophysics\n---------------\nComming soon!\n"
+filename = os.path.join(os.path.dirname(os.path.abspath(__file__)), '_tutorials_autogen.rst')
+with open(filename, 'w') as file:
+    print(tutorials_page, file=file)

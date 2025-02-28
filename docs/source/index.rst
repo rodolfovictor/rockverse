@@ -145,7 +145,7 @@ If you want to stay informed, consider :ref:`joining our mailing list <rockverse
 
 
     getting_started.rst
-    tutorials.rst
+    _tutorials_autogen.rst
     gallery.rst
     api.rst
     gethelp.rst

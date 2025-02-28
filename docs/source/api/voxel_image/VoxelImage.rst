@@ -3,8 +3,6 @@
 rockverse.voxel_image.VoxelImage
 ================================
 
-ERRROU
-
 .. currentmodule:: rockverse.voxel_image
 
 .. autoclass:: VoxelImage

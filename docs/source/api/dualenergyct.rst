@@ -1,8 +1,8 @@
 .. _Dual Energy Computed Tomography:
 
-======================
-rockverse.dualenergyct
-======================
+==============================================
+Dual Energy CT (:mod:`rockverse.dualenergyct`)
+==============================================
 
 .. automodule:: rockverse.dualenergyct
    :no-members:
@@ -24,3 +24,12 @@ Classes
    dualenergyct/group
    dualenergyct/calibrationmaterial
    dualenergyct/periodictable
+
+
+Related tutorials
+=================
+
+.. nblinkgallery::
+
+   ../tutorials/digitalrock/dual_energy/dual_energy_tutorial_prepare_data
+   ../tutorials/digitalrock/dual_energy/dual_energy_tutorial_process

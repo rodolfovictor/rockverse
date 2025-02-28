@@ -1,8 +1,5 @@
-.. _rockverse_docs_tutorials_digitalrock_monte_carlo_dual_energy:
-
-#####################################
 Monte Carlo Dual Energy CT processing
-#####################################
+-------------------------------------
 
 This tutorial demonstrates how to utilize RockVerse to process dual-energy
 X-ray computed tomography (CT) data, following the workflow developed by
@@ -28,7 +25,6 @@ Details about the method are publicly available in the following references:
   `doi:10.1002/2017JB014408 <https://doi.org/10.1002/2017JB014408>`_
 
 .. toctree::
-    :hidden:
 
     dual_energy/dual_energy_tutorial_download_data.ipynb
     dual_energy/dual_energy_tutorial_prepare_data.ipynb

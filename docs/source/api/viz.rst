@@ -1,13 +1,25 @@
 .. _visualization module:
 
-Visualization
--------------
+==========================================
+Visualization (:mod:`rockverse.viz`)
+==========================================
+
+.. automodule:: rockverse.viz
+  :no-members:
+  :no-inherited-members:
+  :no-special-members:
 
 .. currentmodule:: rockverse.viz
 
-.. automodule:: rockverse.viz
+
+Classes
+=======
+
+.. autosummary::
+
+  ~OrthogonalViewer
 
 .. toctree::
-   :maxdepth: 2
+  :hidden:
 
-   viz/orthogonal_viewer
+  viz/orthogonal_viewer
