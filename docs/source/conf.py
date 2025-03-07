@@ -117,6 +117,7 @@ html_css_files = [
 
 # Assemble the tutorials
 # Each entry: [main rst file in tutorial_folder, thumbnail in thumbs_folder]
+# Toctree in tutorials must contain only ipynb
 tutorial_folder = "tutorials"
 thumbs_folder = "_static/tutorial_thumbnails"
 tutorials = [
@@ -169,7 +170,8 @@ for section in tutorials:
         tutorials_page = f"{tutorials_page}    :columns: 8\n"
         tutorials_page = f"{tutorials_page}    :shadow: none\n"
         tutorials_page = f"{tutorials_page}\n"
-        tutorials_page = f"{tutorials_page}    - :doc:`Start here <{os.path.join(tutorial_folder, tutorial_name.replace('.rst', '').replace('.ipynb', ''))}>`\n"
+        if toctree:
+            tutorials_page = f"{tutorials_page}    - :doc:`Start here <{os.path.join(tutorial_folder, tutorial_name.replace('.rst', '').replace('.ipynb', ''))}>`\n"
         for notebook in toctree:
             clean_path = os.path.join(tutorial_folder, '/'.join(tutorial_name.split('/')[:-1]).replace('.rst', '').replace('.ipynb', ''), notebook)
             tutorials_page = f"{tutorials_page}    - :doc:`{clean_path.replace('.ipynb', '')}`\n"

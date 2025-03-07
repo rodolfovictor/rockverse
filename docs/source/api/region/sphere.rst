@@ -1,18 +1,26 @@
 .. _Sphere class:
 
-The Sphere class
-----------------
+rockverse.region.Sphere
+-----------------------
 
 .. currentmodule:: rockverse.region
 
 .. autoclass:: Sphere
 
-   .. rubric:: Attributes
+Attributes
+----------
 
-   .. autoattribute:: p
-   .. autoattribute:: r
-   .. autoattribute:: region
+.. autosummary::
+   :toctree: ../_autogen
 
-   .. rubric:: Methods
+   ~Sphere.p
+   ~Sphere.r
+   ~Sphere.region
 
-   .. automethod:: contains_point
+Methods
+-------
+
+.. autosummary::
+   :toctree: ../_autogen
+
+   ~Sphere.contains_point

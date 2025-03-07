@@ -30,3 +30,4 @@ Image visualization
 .. nblinkgallery::
 
    tutorials/digitalrock/orthogonal_viewer/orthogonal_viewer
+   tutorials/digitalrock/dual_energy/dual_energy_tutorial_prepare_data.ipynb

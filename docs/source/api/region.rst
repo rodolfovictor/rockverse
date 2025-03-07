@@ -1,15 +1,27 @@
 .. _region module:
 
-Region of Interest
-------------------
+============================================
+Region of Interest (:mod:`rockverse.region`)
+============================================
+
+.. automodule:: rockverse.region
+  :no-members:
+  :no-inherited-members:
+  :no-special-members:
 
 .. currentmodule:: rockverse.region
 
-.. automodule:: rockverse.region
 
+Classes
+=======
+
+.. autosummary::
+
+  ~Sphere
+  ~Cylinder
 
 .. toctree::
-   :maxdepth: 1
+   :hidden:
 
    region/sphere
    region/cylinder

@@ -4,7 +4,13 @@
 Exploring the orthogonal viewer
 ###############################
 
-Some text
+This tutorial provides a comprehensive overview of the OrthogonalViewer class,
+a useful tool for visualizing and interacting with 3D voxel images. In the
+following sections, we will cover essential features of the viewer.
+
+By the end of this tutorial, you will have a better understanding of how to
+effectively utilize the Orthogonal Viewer to gain insights from your data.
+Let's get started.
 
 .. toctree::
     :hidden:

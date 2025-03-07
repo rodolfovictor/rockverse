@@ -1,20 +1,28 @@
 .. _Cylinder class:
 
-The Cylinder class
-------------------
+rockverse.region.Cylinder
+=========================
 
 .. currentmodule:: rockverse.region
 
 .. autoclass:: Cylinder
 
-   .. rubric:: Attributes
+Attributes
+----------
 
-   .. autoattribute:: p
-   .. autoattribute:: v
-   .. autoattribute:: r
-   .. autoattribute:: l
-   .. autoattribute:: region
+.. autosummary::
+   :toctree: ../_autogen
 
-   .. rubric:: Methods
+   ~Cylinder.p
+   ~Cylinder.v
+   ~Cylinder.r
+   ~Cylinder.l
+   ~Cylinder.region
 
-   .. automethod:: contains_point
+Methods
+-------
+
+.. autosummary::
+   :toctree: ../_autogen
+
+   ~Cylinder.contains_point
