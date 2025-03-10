@@ -43,6 +43,7 @@ extensions = [
     'sphinx_copybutton',
     'sphinx_gallery.load_style',
     'sphinx_design',
+    'myst_parser',
 ]
 
 nbsphinx_thumbnails = {
@@ -114,10 +115,17 @@ html_css_files = [
     'custom.css',
 ]
 
+#Hide sidebars from pages
+html_sidebars = {
+  "install": [],
+  "gallery": []
+}
+
 
 # Assemble the tutorials
 # Each entry: [main rst file in tutorial_folder, thumbnail in thumbs_folder]
 # Toctree in tutorials must contain only ipynb
+# Use always forward slash as filesep here
 tutorial_folder = "tutorials"
 thumbs_folder = "_static/tutorial_thumbnails"
 tutorials = [
@@ -131,18 +139,19 @@ tutorials = [
     ]],
 ]
 
-tutorials_page = '.. _rockverse_docs_tutorials:\n\n=========\nTutorials\n=========\n'
+tutorials_page = '.. _rockverse_docs_tutorials:\n'
+tutorials_page = f'{tutorials_page}\n\n=========\nTutorials\n=========\n'
 main_toctree = []
 for section in tutorials:
     section_name = section[0]
-    tutorials_page = f'{tutorials_page}\n\n\n{section_name}\n{'-'*len(section_name)}\n'
+    tutorials_page = f'{tutorials_page}\n\n\n{section_name}\n{'='*len(section_name)}\n'
     section_tutorials = section[1]
     #Extract all tutorials in this section
     for tutorial_name, thumbnail in section_tutorials:
         filename = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                 tutorial_folder,
                                 tutorial_name)
-        main_toctree.append(os.path.join(tutorial_folder, tutorial_name))
+        main_toctree.append(f"{tutorial_folder}/{tutorial_name}")
         #extract tutorial toctree
         with open(filename, 'r') as file:
             lines = file.readlines()
@@ -163,18 +172,17 @@ for section in tutorials:
         tutorials_page = f"{tutorials_page}    :columns: 4\n"
         tutorials_page = f"{tutorials_page}    :shadow: none\n"
         tutorials_page = f"{tutorials_page}\n"
-        tutorials_page = f"{tutorials_page}    .. image:: {os.path.join(thumbs_folder, thumbnail)}\n"
+        tutorials_page = f"{tutorials_page}    .. image:: {thumbs_folder}/{thumbnail}\n"
         tutorials_page = f"{tutorials_page}      :align: center\n"
         tutorials_page = f"{tutorials_page}\n"
-        tutorials_page = f"{tutorials_page}  .. grid-item-card::  :doc:`{os.path.join(tutorial_folder, tutorial_name.replace('.rst', '').replace('.ipynb', ''))}`\n"
+        tutorials_page = f"{tutorials_page}  .. grid-item-card::  :doc:`{tutorial_folder}/{tutorial_name.replace('.rst', '').replace('.ipynb', '')}`\n"
         tutorials_page = f"{tutorials_page}    :columns: 8\n"
         tutorials_page = f"{tutorials_page}    :shadow: none\n"
+        tutorials_page = f"{tutorials_page}    :class-card: tutoriallist\n"
         tutorials_page = f"{tutorials_page}\n"
-        if toctree:
-            tutorials_page = f"{tutorials_page}    - :doc:`Start here <{os.path.join(tutorial_folder, tutorial_name.replace('.rst', '').replace('.ipynb', ''))}>`\n"
         for notebook in toctree:
-            clean_path = os.path.join(tutorial_folder, '/'.join(tutorial_name.split('/')[:-1]).replace('.rst', '').replace('.ipynb', ''), notebook)
-            tutorials_page = f"{tutorials_page}    - :doc:`{clean_path.replace('.ipynb', '')}`\n"
+            clean_path = f"{tutorial_folder}/{'/'.join(tutorial_name.split('/')[:-1])}/{notebook}"
+            tutorials_page = f"{tutorials_page}    - :doc:`{clean_path.replace('.rst', '').replace('.ipynb', '')}`""\n"
 if main_toctree:
     tutorials_page = f"{tutorials_page}\n"
     tutorials_page = f"{tutorials_page}\n"
@@ -183,8 +191,8 @@ if main_toctree:
     tutorials_page = f"{tutorials_page}  :hidden:\n\n"
     for doc in main_toctree:
         tutorials_page = f"{tutorials_page}  {doc.replace('.rst', '').replace('.ipynb', '')}\n"
-tutorials_page = f"{tutorials_page}\n\nWell logging\n------------\nComming soon!\n"
-tutorials_page = f"{tutorials_page}\n\nPetrogeophysics\n---------------\nComming soon!\n"
+tutorials_page = f"{tutorials_page}\n\nWell logging\n============\nComming soon!\n"
+tutorials_page = f"{tutorials_page}\n\nPetrogeophysics\n===============\nComming soon!\n"
 filename = os.path.join(os.path.dirname(os.path.abspath(__file__)), '_tutorials_autogen.rst')
 with open(filename, 'w') as file:
     print(tutorials_page, file=file)

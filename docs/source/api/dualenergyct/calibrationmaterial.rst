@@ -12,13 +12,13 @@ Attributes
 .. autosummary::
    :toctree: ../_autogen
 
-   ~CalibrationMaterial.description
-   ~CalibrationMaterial.bulk_density
-   ~CalibrationMaterial.composition
-   ~CalibrationMaterial.lowE_pdf
-   ~CalibrationMaterial.lowE_cdf
-   ~CalibrationMaterial.highE_pdf
-   ~CalibrationMaterial.highE_cdf
+   CalibrationMaterial.description
+   CalibrationMaterial.bulk_density
+   CalibrationMaterial.composition
+   CalibrationMaterial.lowE_pdf
+   CalibrationMaterial.lowE_cdf
+   CalibrationMaterial.highE_pdf
+   CalibrationMaterial.highE_cdf
 
 Methods
 =======
@@ -26,6 +26,6 @@ Methods
 .. autosummary::
    :toctree: ../_autogen
 
-   ~CalibrationMaterial.as_dict
-   ~CalibrationMaterial.hash
-   ~CalibrationMaterial.check
+   CalibrationMaterial.as_dict
+   CalibrationMaterial.hash
+   CalibrationMaterial.check

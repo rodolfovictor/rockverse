@@ -10,23 +10,23 @@ The Histogram class
 
    .. autosummary::
 
-      ~Histogram.image
-      ~Histogram.region
-      ~Histogram.mask
-      ~Histogram.segmentation
-      ~Histogram.phases
-      ~Histogram.bins
-      ~Histogram.bin_centers
-      ~Histogram.min
-      ~Histogram.max
-      ~Histogram.count
-      ~Histogram.pdf
-      ~Histogram.cdf
+      Histogram.image
+      Histogram.region
+      Histogram.mask
+      Histogram.segmentation
+      Histogram.phases
+      Histogram.bins
+      Histogram.bin_centers
+      Histogram.min
+      Histogram.max
+      Histogram.count
+      Histogram.pdf
+      Histogram.cdf
 
    .. rubric:: Methods summary
 
    .. autosummary::
-      ~Histogram.percentile
+      Histogram.percentile
 
 
    .. rubric:: Attributes documentation

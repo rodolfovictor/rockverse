@@ -5,11 +5,13 @@
 .. title:: RockVerse Documentation | Python Tools for Computational Petrophysics
 
 .. image:: _static/RockVerse_logo_model1_for_white_background_facecolor_transparent_True.png
+  :alt: RockVerse logo for white background
   :class: only-light,
   :align: center
   :width: 400px
 
 .. image:: _static/RockVerse_logo_model1_for_black_background_facecolor_transparent_True.png
+  :alt: RockVerse logo for black background
   :class: only-dark
   :align: center
   :width: 400px
@@ -68,7 +70,7 @@ If you want to stay informed, consider :ref:`joining our mailing list <rockverse
 
   .. grid-item-card:: Installation
     :text-align: center
-    :link: rockverse_docs_gettingstarted
+    :link: rockverse_docs_install
     :link-type: ref
 
     .. image:: _static/Install_light_background.svg
@@ -85,9 +87,9 @@ If you want to stay informed, consider :ref:`joining our mailing list <rockverse
     Follow installation instructions and basic tutorials to
     get RockVerse up and running.
 
-  .. grid-item-card::  Tutorials and gallery
+  .. grid-item-card::  Tutorials
     :text-align: center
-    :link: rockverse_docs_gallery
+    :link: rockverse_docs_tutorials
     :link-type: ref
 
     .. image:: _static/notebook_computer_light_background.svg
@@ -144,9 +146,10 @@ If you want to stay informed, consider :ref:`joining our mailing list <rockverse
     :maxdepth: 1
 
 
-    getting_started.rst
+    install.rst
     _tutorials_autogen.rst
     gallery.rst
     api.rst
+    release_notes.rst
     gethelp.rst
     subscribe.rst

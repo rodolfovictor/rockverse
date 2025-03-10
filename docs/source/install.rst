@@ -3,13 +3,10 @@
 Installation
 ============
 
-.. contents:: Table of Contents
-   :depth: 2
-
 Prerequisites
 -------------
 
-- **Python** 3.7 or later
+- **Python** 3.11 or later
 - Basic familiarity with command-line operations
 - Basic familiarity with virtual environments (Conda or pip)
 - If using ``pip``, a working MPI implementation with headers and a C compiler.
@@ -17,9 +14,11 @@ Prerequisites
 Installing
 ----------
 
-To avoid conflicts with existing Python setups, install RockVerse in a dedicated virtual environment.
-
-If you're unfamiliar with virtual environments, refer to:
+RockVerse is available on `PyPI <https://pypi.org/project/rockverse>`_ and
+`Conda-Forge <https://anaconda.org/conda-forge/rockverse>`_.
+To avoid conflicts with your existing Python setups, install RockVerse in a
+dedicated virtual environment. If you're unfamiliar with virtual environments,
+refer to:
 
 - `Python virtual environments <https://docs.python.org/3/tutorial/venv.html>`_
 - `Conda environments <https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html>`_
@@ -27,9 +26,9 @@ If you're unfamiliar with virtual environments, refer to:
 In this guide, the virtual environment is named ``rockverse-env``.
 
 .. note::
-   Choose either **Conda** or **pip** for the installation process.
    Using **pip** requires a working MPI implementation with headers and a C compiler.
-   Ensure ``mpicc`` and ``mpiexec`` or ``mpirun`` point to the desired MPI installation.
+   Ensure system commands ``mpicc`` and ``mpiexec`` or ``mpirun`` point to the desired
+   MPI installation before you install RockVerse.
    If MPI or a C compiler is unavailable, **Conda** is recommended.
 
 1. Create a Virtual Environment
@@ -43,7 +42,7 @@ In this guide, the virtual environment is named ``rockverse-env``.
 
       .. code-block:: sh
 
-         conda update -n base conda
+         conda update -n base -c conda-forge conda
 
       Create and activate the environment:
 
@@ -85,13 +84,15 @@ Test if you have a C compiler properly installed. Try to install Scipy in the en
 
          conda install -c conda-forge "scipy<=1.13.1"
 
+      Conda will take care of installing the compiler.
+
    .. tab-item:: Pip
 
       .. code-block:: sh
 
          pip install "scipy<=1.13.1"
 
-If you get errors using ``pip``, you must install a C compiler or use Conda for the installation process.
+      If you get errors using ``pip``, you must install a C compiler or use Conda for the installation process.
 
 3. Configure MPI
 ~~~~~~~~~~~~~~~~
@@ -206,7 +207,7 @@ Install RockVerse and its dependencies
 
          pip install git+https://github.com/rodolfovictor/rockverse.git
 
-   .. tab-item:: Development Mode
+   .. tab-item:: Pip (development mode)
 
       .. code-block:: sh
 
@@ -297,7 +298,7 @@ Updating RockVerse
 
          pip install --upgrade git+https://github.com/rodolfovictor/rockverse.git
 
-   .. tab-item:: Development Mode
+   .. tab-item:: Pip (development mode)
 
       Just pull the last updates from Github:
 

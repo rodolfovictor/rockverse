@@ -14,12 +14,12 @@ Classes
 =======
 
 .. autosummary::
-    ~VoxelImage
+  VoxelImage
 
 .. toctree::
-    :hidden:
+  :hidden:
 
-    voxel_image/VoxelImage
+  voxel_image/VoxelImage
 
 
 Basic creation functions

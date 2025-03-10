@@ -1,28 +1,11 @@
 # Backlog
 
-Numba clean GPU memory
-
-REVIEW PRINTS TO COLLECTIVE PRINT IN CONFIG
-
-MIGRATING ORTHOGONALVIEWER
-  - Check for interactivity
-  - AINDA QUERO FAZER SÓ O RANK 0 colocar imagem
-  - implement set method to set many properties at once with one refresh at the end
-
-DEVELOP CONFIG whith methods
-
-DEPRECATE ASSERT drpdtype
-
-REVISAR TUTORIAIS
-
-REVISAR GALLERY
-
 ## Tasks to be completed
 
 - Fine-tune threads per block GPU
   - Adjust GPU thread configurations for optimized performance in parallel computing tasks.
   - Investigate the best thread-per-block configuration for varying workloads.
-  - Check for NumbaPerformanceWarning
+  - Check for NumbaPerformanceWarning.
 
 - Support for 128-bit data in importing raw data
   - Extend the raw data import functionality to support 128-bit data types.
@@ -32,44 +15,62 @@ REVISAR GALLERY
   - Create a section in the documentation listing all project dependencies.
 
 - VoxelImage
-  - Implement other in place operators -=, *=, etc
-  - Guarantee segmentation and masks with different chunk size when store is not in local file system.
-  - Deprecate from_array: Put data in VoxelImage create
-  - Export raw complex data into real and imaginary
-  - Make copy function changes to fast chunk by chunk method if same chunk shape
-  - implement hash
+  - Implement in-place operators (e.g., -=, *=, etc.).
+  - Guarantee segmentation and masks with different chunk sizes when the store is not in the local file system.
+  - Deprecate from_array: integrate data into VoxelImage creation.
+  - Export raw complex data into real and imaginary components.
+  - Modify the copy function to implement a fast chunk-by-chunk method if the chunk shapes are the same.
+  - Implement hashing.
 
-- Orthogonal slices:
-  - Add scalebar
-  - Add calibrationbar
-  - Add contour lines to scalar fields
-  - Add chunk limit lines
-  - Add "over black", "over white" options for segmentation colors
-  - Histogram legend with segmentation name instead of phase number
-  - Enforce 3D images
-  - Generalize allowed colormaps
-  - Allow ref_voxel as center of referenced block (chunk)
-  - Choose which phases to be shown in histogram
-  - Check and raise ValueError if complex dtype
-  - Expand to multi-energy CT
-  - Expand to vector fields
+- Orthogonal slices
+  - Add scale bar.
+  - Add calibration bar.
+  - Add contour lines to scalar fields.
+  - Add chunk limit lines.
+  - Introduce "over black" and "over white" options for segmentation colors.
+  - Display histogram legend with segmentation names instead of phase numbers.
+  - Enforce 3D images.
+  - Generalize allowed colormaps.
+  - Allow ref_voxel as the center of the referenced block (chunk).
+  - Choose which phases to display in the histogram.
+  - Raise ValueError if complex dtype is detected.
+  - Expand to multi-energy CT.
+  - Expand to vector fields.
+  - Check for interactivity.
+  - Ensure only rank0 creates the figure while all handle collective calls.
+  - Implement a set method to set multiple properties at once with a single refresh at the end.
 
 - Histogram
-  - Add histogram documentation to sphinx
-  - Change to fast algorithm if equal size bins
-  - Put MDF option (maybe discrete=True)
+  - Add histogram documentation to Sphinx.
+  - Switch to a fast algorithm if using equal-size bins.
+  - Introduce MDF option (maybe discrete=True).
 
 - Dual Energy
   - Implement run(block_id) to check inversion by running only on one chunk.
-  - Bug accumulating results on second run
-  - Bug freezing with GPU
-  - Segmentation and mask should not be hashed
-  - Remove collective call in get/set property
-  - Put inversion parameters as input parameters or dictionary
-  - Check for weird CT MOnte Carlo drawings
+  - Fix bug accumulating results on the second run.
+  - Fix bug causing freezing with GPU.
+  - Ensure segmentation and mask are not hashed.
+  - Remove collective calls in get/set property.
+  - Pass inversion parameters as input parameters or as a dictionary.
+  - Check for unusual CT Monte Carlo drawings.
+  - Implement re-hash to ignore stored hashes and update dependencies
 
 - Zarr
-  - Test block indexing for 'F' or 'C'
-  - put dimension_names in voxel image
+  - Test block indexing for 'F' or 'C' formats.
+  - Include dimension_names in the voxel image.
+
+- Assert
+  - Deprecate drpdtype
+
+- Config attribute
+  - Develop get and set methods to prevent the addition of new keys.
+
+- Miscellaneous
+  - Review print statements for collective print.
+  - Upgrade Matplotlib version.
+
+- Miscelaneous
+  - Review prints to collective print
+  - Advance Matplotlib version
 
 > Note: These tasks are subject to change based on project needs and priorities.

@@ -13,9 +13,9 @@ Attributes
 .. autosummary::
    :toctree: ../_autogen
 
-   ~Sphere.p
-   ~Sphere.r
-   ~Sphere.region
+   Sphere.p
+   Sphere.r
+   Sphere.region
 
 Methods
 -------
@@ -23,4 +23,4 @@ Methods
 .. autosummary::
    :toctree: ../_autogen
 
-   ~Sphere.contains_point
+   Sphere.contains_point

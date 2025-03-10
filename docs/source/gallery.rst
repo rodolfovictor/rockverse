@@ -19,7 +19,6 @@ Sample voxel image data
 
 .. nblinkgallery::
 
-   tutorials/digitalrock/sample_data/import_belgian_fieldstone
    tutorials/digitalrock/orthogonal_viewer/import_bentheimer_sandstone
    tutorials/digitalrock/dual_energy/dual_energy_tutorial_download_data
 

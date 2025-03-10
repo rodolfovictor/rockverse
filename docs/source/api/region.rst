@@ -17,11 +17,11 @@ Classes
 
 .. autosummary::
 
-  ~Sphere
-  ~Cylinder
+  Sphere
+  Cylinder
 
 .. toctree::
-   :hidden:
+  :hidden:
 
-   region/sphere
-   region/cylinder
+  region/sphere
+  region/cylinder

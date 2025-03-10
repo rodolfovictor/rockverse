@@ -13,3 +13,15 @@
     --pst-font-size-h5: 18px;
     --pst-font-size-h6: 15px;
   }
+
+/* --- Remove the default underline in links --- */
+a {
+    text-decoration: none;
+}
+
+.tutoriallist {
+    /* --- Remove marker for tutorial list --- */
+    ::marker {
+        content: "";
+    }
+  }

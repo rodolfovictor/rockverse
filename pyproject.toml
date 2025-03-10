@@ -29,7 +29,7 @@ classifiers = [
 ]
 
 dependencies = [
-    "hashlib",
+    "docutils>=0.17",
     "ipympl",
     "ipython",
     "ipyparallel",
@@ -38,10 +38,12 @@ dependencies = [
     "jupyterlab",
     "matplotlib<3.10",
     "mpi4py",
+    "myst-parser",
     "nbsphinx",
     "numba",
     "numpy",
     "pandas",
+    "pandoc",
     "pip",
     "pydata-sphinx-theme",
     "scipy<=1.13.1",
