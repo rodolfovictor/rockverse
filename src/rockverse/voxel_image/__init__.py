@@ -1,6 +1,6 @@
 """
-This module handles the basic class for RockVerse Digital Rock Petrophysics,
-the ``VoxelImage`` class. It builds upon
+Handles the basic class for RockVerse Digital Rock Petrophysics,
+the :class:`VoxelImage <rockverse.voxel_image.VoxelImage>` class. It builds upon
 `Zarr arrays <https://zarr.readthedocs.io/en/stable/user-guide/arrays.html>`_,
 adding attributes and methods specifically designed for digital rock
 petrophysics in a high-performance, parallel computing environment.

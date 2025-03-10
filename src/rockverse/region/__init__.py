@@ -1,5 +1,5 @@
 """
-This module provides classes to define abstract Regions of Interest (ROIs) within
+Provides classes to define abstract Regions of Interest (ROIs) within
 :class:`VoxelImage <rockverse.voxel_image.VoxelImage>` objects.
 ROIs are used to focus computational operations on specific
 subsections of the voxel data, allowing for more efficient and targeted analysis. By

@@ -1,5 +1,5 @@
 """
-The ``rockverse.dualenergyct`` module provides classes and functions for managing
+Provides classes and functions for managing
 Dual Energy Computed Tomography (DECT) Monte Carlo processing. This module
 is optimized for parallel computation across multiple CPUs or
 GPUs using MPI (Message Passing Interface).

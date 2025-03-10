@@ -118,7 +118,8 @@ html_css_files = [
 #Hide sidebars from pages
 html_sidebars = {
   "install": [],
-  "gallery": []
+  "gallery": [],
+  "subscribe": [],
 }
 
 
@@ -130,7 +131,7 @@ tutorial_folder = "tutorials"
 thumbs_folder = "_static/tutorial_thumbnails"
 tutorials = [
     ['Digital Rock Petrophysics', [
-        ['digitalrock/voxel_image.ipynb', 'voxel_image.png'],
+        ['digitalrock/voxel_image.rst', 'voxel_image.png'],
         ['digitalrock/orthogonal_viewer.rst', 'exploring_orthogonal_viewer.png'],
         ['digitalrock/dual_energy.rst', 'Monte_Carlo_Dual_energy_CT_processing.png'],
     ]],

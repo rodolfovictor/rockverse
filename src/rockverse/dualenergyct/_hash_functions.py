@@ -1,5 +1,5 @@
 """
-This module contains hash functions to verify the integrity and consistency of data and
+Contains hash functions to verify the integrity and consistency of data and
 intermediate results in Dual Energy Computed Tomography (DECT) processing.
 
 Note:

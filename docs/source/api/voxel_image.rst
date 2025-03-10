@@ -22,10 +22,10 @@ Classes
   voxel_image/VoxelImage
 
 
+.. _voxel image creation functions:
+
 Basic creation functions
 ========================
-
-.. _voxel image creation functions:
 
 .. autosummary::
     :toctree: ../_autogen

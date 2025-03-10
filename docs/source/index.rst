@@ -29,6 +29,7 @@ computational petrophysics workflows. It is tailored for researchers and
 professionals working in **digital rock petrophysics**, **formation evaluation**,
 **well logging**, and **laboratory data analysis**.
 
+
 Built to handle large-scale simulations and memory-intensive data processing,
 RockVerse leverages state-of-the-art tools to deliver optimized performance
 across CPU and GPU parallel computational environments.
@@ -68,10 +69,10 @@ If you want to stay informed, consider :ref:`joining our mailing list <rockverse
 .. grid:: 2
   :gutter: 4
 
+
+
   .. grid-item-card:: Installation
     :text-align: center
-    :link: rockverse_docs_install
-    :link-type: ref
 
     .. image:: _static/Install_light_background.svg
       :class: only-light,
@@ -84,13 +85,32 @@ If you want to stay informed, consider :ref:`joining our mailing list <rockverse
       :width: 80px
 
     ^^^^^^
+
     Follow installation instructions and basic tutorials to
     get RockVerse up and running.
 
+    +++
+
+    .. button-ref:: rockverse_docs_install
+        :expand:
+        :color: dark
+        :class: only-light
+        :click-parent:
+
+        Go to the installation guide
+
+    .. button-ref:: rockverse_docs_install
+        :expand:
+        :color: light
+        :class: only-dark
+        :click-parent:
+
+        Go to the installation guide
+
+
+
   .. grid-item-card::  Tutorials
     :text-align: center
-    :link: rockverse_docs_tutorials
-    :link-type: ref
 
     .. image:: _static/notebook_computer_light_background.svg
       :class: only-light,
@@ -103,12 +123,67 @@ If you want to stay informed, consider :ref:`joining our mailing list <rockverse
       :width: 80px
 
     ^^^^^^
-    Explore tutorials and examples with Jupyter notebooks showcasing RockVerse workflows.
+
+    Explore tutorials with Jupyter notebooks showcasing RockVerse workflows.
+
+    +++
+
+    .. button-ref:: rockverse_docs_tutorials
+        :expand:
+        :color: dark
+        :class: only-light
+        :click-parent:
+
+        Go to the tutorials
+
+    .. button-ref:: rockverse_docs_tutorials
+        :expand:
+        :color: light
+        :class: only-dark
+        :click-parent:
+
+        Go to the tutorials
+
+
+
+  .. grid-item-card::  Gallery
+    :text-align: center
+
+    .. image:: _static/gallery_light_background.svg
+      :class: only-light,
+      :align: center
+      :width: 80px
+
+    .. image:: _static/gallery_dark_background.svg
+      :class: only-dark,
+      :align: center
+      :width: 80px
+
+    ^^^^^^
+
+    Explore our tutorials rearranged as a sample gallery.
+
+    +++
+
+    .. button-ref:: rockverse_docs_gallery
+        :expand:
+        :color: dark
+        :class: only-light
+        :click-parent:
+
+        Go to the gallery
+
+    .. button-ref:: rockverse_docs_gallery
+        :expand:
+        :color: light
+        :class: only-dark
+        :click-parent:
+
+        Go to the gallery
+
 
   .. grid-item-card::  API
     :text-align: center
-    :link: rockverse_docs_api
-    :link-type: ref
 
     .. image:: _static/api_light_background.svg
       :class: only-light,
@@ -121,12 +196,31 @@ If you want to stay informed, consider :ref:`joining our mailing list <rockverse
       :width: 80px
 
     ^^^^^^
+
     API references for in-depth understanding of library capabilities.
+
+    +++
+
+    .. button-ref:: rockverse_docs_api
+        :expand:
+        :color: dark
+        :class: only-light
+        :click-parent:
+
+        Go to the API reference
+
+    .. button-ref:: rockverse_docs_api
+        :expand:
+        :color: light
+        :class: only-dark
+        :click-parent:
+
+        Go to the API reference
+
+
 
   .. grid-item-card::  Get help
     :text-align: center
-    :link: rockverse_docs_gethelp
-    :link-type: ref
 
     .. image:: _static/gethelp_light_background.svg
       :class: only-light,
@@ -139,7 +233,63 @@ If you want to stay informed, consider :ref:`joining our mailing list <rockverse
       :width: 80px
 
     ^^^^^^
+
     If you encounter issues or have questions, here are the ways to get support.
+
+    +++
+
+    .. button-ref:: rockverse_docs_gethelp
+        :expand:
+        :color: dark
+        :class: only-light
+        :click-parent:
+
+        Go to the support details
+
+    .. button-ref:: rockverse_docs_gethelp
+        :expand:
+        :color: light
+        :class: only-dark
+        :click-parent:
+
+        Go to the support details
+
+
+
+  .. grid-item-card::  Mailing list
+    :text-align: center
+
+    .. image:: _static/mailinglist_light_background.svg
+      :class: only-light,
+      :align: center
+      :width: 80px
+
+    .. image:: _static/mailinglist_dark_background.svg
+      :class: only-dark,
+      :align: center
+      :width: 80px
+
+    ^^^^^^
+
+    Join our mailing list to stay informed about updates.
+
+    +++
+
+    .. button-ref:: rockverse_docs_maillist
+        :expand:
+        :color: dark
+        :class: only-light
+        :click-parent:
+
+        Subscribe
+
+    .. button-ref:: rockverse_docs_maillist
+        :expand:
+        :color: light
+        :class: only-dark
+        :click-parent:
+
+        Subscribe
 
 .. toctree::
     :hidden:
