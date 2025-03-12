@@ -11,7 +11,7 @@ Attributes
 ----------
 
 .. autosummary::
-   :toctree: ../_autogen
+   :toctree: _autogen
 
    Cylinder.p
    Cylinder.v
@@ -23,6 +23,6 @@ Methods
 -------
 
 .. autosummary::
-   :toctree: ../_autogen
+   :toctree: _autogen
 
    Cylinder.contains_point

@@ -14,10 +14,30 @@ and the
 :ref:`example gallery <rockverse_docs_gallery>`.
 
 
+Library-Wide
+============
+
+.. list-table::
+   :header-rows: 0
+   :widths: auto
+
+   * - ``rockverse.config``
+     - An instance of the :class:`configuration class <rockverse.configure.Config>`
+       for the RockVerse library, containing various configuration settings
+       and parameters used throughout the library.
+   * - ``rockverse.comm``
+     - The runtime Message Passing Interface (MPI) communicator.
+   * - ``rockverse.mpi_rank``
+     - The rank of the calling process in the MPI communicator.
+   * - ``rockverse.mpi_nprocs``
+     - The total number of processes in the MPI communicator.
+
+
 Digital Rock Modules
 ====================
 
 .. autosummary::
+
   rockverse.voxel_image
   rockverse.region
   rockverse.dualenergyct
@@ -28,7 +48,16 @@ Visualization Modules
 =====================
 
 .. autosummary::
+
   rockverse.viz
+
+
+Runtime configuration
+=====================
+
+.. autosummary::
+
+  rockverse.configure
 
 
 
@@ -39,4 +68,5 @@ Visualization Modules
   api/region
   api/dualenergyct
   api/viz
+  api/config
   api/histogram

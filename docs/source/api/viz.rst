@@ -1,8 +1,8 @@
 .. _visualization module:
 
-==========================================
-Visualization (:mod:`rockverse.viz`)
-==========================================
+====================
+:mod:`rockverse.viz`
+====================
 
 .. automodule:: rockverse.viz
   :no-members:

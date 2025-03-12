@@ -1,8 +1,8 @@
 .. _region module:
 
-============================================
-Region of Interest (:mod:`rockverse.region`)
-============================================
+=======================
+:mod:`rockverse.region`
+=======================
 
 .. automodule:: rockverse.region
   :no-members:

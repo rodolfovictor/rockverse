@@ -27,9 +27,9 @@ import hashlib
 from datetime import datetime
 from mpi4py import MPI
 from rockverse._utils import rvtqdm, datetimenow
-from rockverse.config import config
+from rockverse.configure import config
 
-from rockverse.config import config
+from rockverse.configure import config
 comm = config.mpi_comm
 mpi_rank = config.mpi_rank
 mpi_nprocs = config.mpi_nprocs

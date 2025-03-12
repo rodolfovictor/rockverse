@@ -1,7 +1,7 @@
 .. _OrthogonalViewer class:
 
-rockverse.viz.OrthogonalViewer
-==============================
+:class:`rockverse.viz.OrthogonalViewer`
+=======================================
 
 .. currentmodule:: rockverse.viz
 
@@ -11,66 +11,66 @@ Matplotlib-related attributes
 -----------------------------
 
 .. autosummary::
-    :toctree: ../_autogen
+    :toctree: _autogen
 
-    OrthogonalViewer.figure
-    OrthogonalViewer.ax_xy
-    OrthogonalViewer.ax_zy
-    OrthogonalViewer.ax_xz
-    OrthogonalViewer.ax_histogram
+    ~OrthogonalViewer.figure
+    ~OrthogonalViewer.ax_xy
+    ~OrthogonalViewer.ax_zy
+    ~OrthogonalViewer.ax_xz
+    ~OrthogonalViewer.ax_histogram
 
 RockVerse objects
 -----------------
 
 .. autosummary::
-    :toctree: ../_autogen
+    :toctree: _autogen
 
-    OrthogonalViewer.image
-    OrthogonalViewer.region
-    OrthogonalViewer.mask
-    OrthogonalViewer.segmentation
-    OrthogonalViewer.histogram
+    ~OrthogonalViewer.image
+    ~OrthogonalViewer.region
+    ~OrthogonalViewer.mask
+    ~OrthogonalViewer.segmentation
+    ~OrthogonalViewer.histogram
 
 Axes building attributes
 ------------------------
 
 .. autosummary::
-    :toctree: ../_autogen
+    :toctree: _autogen
 
-    OrthogonalViewer.show_xy_plane
-    OrthogonalViewer.show_xz_plane
-    OrthogonalViewer.show_zy_plane
-    OrthogonalViewer.show_histogram
-    OrthogonalViewer.gridspec_dict
-    OrthogonalViewer.update_gridspec_dict
-    OrthogonalViewer.layout
+    ~OrthogonalViewer.show_xy_plane
+    ~OrthogonalViewer.show_xz_plane
+    ~OrthogonalViewer.show_zy_plane
+    ~OrthogonalViewer.show_histogram
+    ~OrthogonalViewer.gridspec_dict
+    ~OrthogonalViewer.update_gridspec_dict
+    ~OrthogonalViewer.layout
 
 View customization attributes and methods
 -----------------------------------------
 
 .. autosummary::
-    :toctree: ../_autogen
+    :toctree: _autogen
 
-    OrthogonalViewer.ref_voxel
-    OrthogonalViewer.ref_point
-    OrthogonalViewer.image_dict
-    OrthogonalViewer.update_image_dict
-    OrthogonalViewer.show_guide_lines
-    OrthogonalViewer.guide_line_dict
-    OrthogonalViewer.update_guide_line_dict
-    OrthogonalViewer.segmentation_colors
-    OrthogonalViewer.segmentation_colormap
-    OrthogonalViewer.segmentation_alpha
-    OrthogonalViewer.mask_color
-    OrthogonalViewer.mask_alpha
-    OrthogonalViewer.histogram_bins
-    OrthogonalViewer.histogram_line_dict
-    OrthogonalViewer.update_histogram_line_dict
-    OrthogonalViewer.histogram_lines
-    OrthogonalViewer.hide_axis
-    OrthogonalViewer.shrink_to_fit
-    OrthogonalViewer.expand_to_fit
-    OrthogonalViewer.statusbar_mode
+    ~OrthogonalViewer.ref_voxel
+    ~OrthogonalViewer.ref_point
+    ~OrthogonalViewer.image_dict
+    ~OrthogonalViewer.update_image_dict
+    ~OrthogonalViewer.show_guide_lines
+    ~OrthogonalViewer.guide_line_dict
+    ~OrthogonalViewer.update_guide_line_dict
+    ~OrthogonalViewer.segmentation_colors
+    ~OrthogonalViewer.segmentation_colormap
+    ~OrthogonalViewer.segmentation_alpha
+    ~OrthogonalViewer.mask_color
+    ~OrthogonalViewer.mask_alpha
+    ~OrthogonalViewer.histogram_bins
+    ~OrthogonalViewer.histogram_line_dict
+    ~OrthogonalViewer.update_histogram_line_dict
+    ~OrthogonalViewer.histogram_lines
+    ~OrthogonalViewer.hide_axis
+    ~OrthogonalViewer.shrink_to_fit
+    ~OrthogonalViewer.expand_to_fit
+    ~OrthogonalViewer.statusbar_mode
 
 
 Interactive Features

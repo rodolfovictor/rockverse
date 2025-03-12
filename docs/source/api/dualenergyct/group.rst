@@ -13,7 +13,7 @@ Voxel images
 ~~~~~~~~~~~~
 
 .. autosummary::
-   :toctree: ../_autogen
+   :toctree: _autogen
 
    DualEnergyCTGroup.lowECT
    DualEnergyCTGroup.highECT
@@ -35,7 +35,7 @@ Calibration materials
 ~~~~~~~~~~~~~~~~~~~~~
 
 .. autosummary::
-   :toctree: ../_autogen
+   :toctree: _autogen
 
    DualEnergyCTGroup.calibration_material
    DualEnergyCTGroup.periodic_table
@@ -44,7 +44,7 @@ Inversion parameters
 ~~~~~~~~~~~~~~~~~~~~
 
 .. autosummary::
-   :toctree: ../_autogen
+   :toctree: _autogen
 
    DualEnergyCTGroup.maxA
    DualEnergyCTGroup.maxB
@@ -67,7 +67,7 @@ Handling voxel images
 ~~~~~~~~~~~~~~~~~~~~~
 
 .. autosummary::
-   :toctree: ../_autogen
+   :toctree: _autogen
 
    DualEnergyCTGroup.copy_image
    DualEnergyCTGroup.create_mask
@@ -79,7 +79,7 @@ Monte Carlo Inversion
 ~~~~~~~~~~~~~~~~~~~~~
 
 .. autosummary::
-   :toctree: ../_autogen
+   :toctree: _autogen
 
    DualEnergyCTGroup.check
    DualEnergyCTGroup.preprocess

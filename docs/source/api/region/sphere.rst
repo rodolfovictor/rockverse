@@ -11,7 +11,7 @@ Attributes
 ----------
 
 .. autosummary::
-   :toctree: ../_autogen
+   :toctree: _autogen
 
    Sphere.p
    Sphere.r
@@ -21,6 +21,6 @@ Methods
 -------
 
 .. autosummary::
-   :toctree: ../_autogen
+   :toctree: _autogen
 
    Sphere.contains_point

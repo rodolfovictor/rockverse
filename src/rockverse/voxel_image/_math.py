@@ -10,9 +10,9 @@ from rockverse._utils import rvtqdm
 from numba import njit, cuda
 import rockverse._assert as _assert
 import rockverse.errors as collective_raise
-from rockverse.config import config
+from rockverse.configure import config
 
-from rockverse.config import config
+from rockverse.configure import config
 comm = config.mpi_comm
 mpi_rank = config.mpi_rank
 mpi_nprocs = config.mpi_nprocs

@@ -10,7 +10,7 @@ Attributes
 ==========
 
 .. autosummary::
-   :toctree: ../_autogen
+   :toctree: _autogen
 
    CalibrationMaterial.description
    CalibrationMaterial.bulk_density
@@ -24,7 +24,7 @@ Methods
 =======
 
 .. autosummary::
-   :toctree: ../_autogen
+   :toctree: _autogen
 
    CalibrationMaterial.as_dict
    CalibrationMaterial.hash

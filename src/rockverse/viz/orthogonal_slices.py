@@ -21,7 +21,7 @@ from rockverse.errors import collective_raise
 from rockverse import rcparams
 from rockverse.voxel_image.histogram import Histogram
 
-from rockverse.config import config
+from rockverse.configure import config
 comm = config.mpi_comm
 mpi_rank = config.mpi_rank
 mpi_nprocs = config.mpi_nprocs

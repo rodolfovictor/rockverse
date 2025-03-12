@@ -1,4 +1,4 @@
-<img src="https://github.com/rodolfovictor/rockverse/blob/main/docs/source/_static/RockVerse_logo_model3_for_white_background_facecolor_transparent_False.png"><br>
+<img src="https://github.com/rodolfovictor/rockverse/blob/main/docs/source/_static/RockVerse_logo_model1_for_white_background_facecolor_transparent_False.png"><br>
 
 
 RockVerse: Python tools for Computational Petrophysics
@@ -22,7 +22,7 @@ featuring API reference, tutorials and sample gallery.
 Installation
 ------------
 
-Follow our online [installation guide](https://rockverse.readthedocs.io/en/latest/getting_started/install.html)
+Follow our online [installation guide](https://rockverse.readthedocs.io/en/latest/install.html)
 to get started.
 
 Development

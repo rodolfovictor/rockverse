@@ -11,7 +11,7 @@ Attributes
 ----------
 
 .. autosummary::
-    :toctree: ../_autogen
+    :toctree: _autogen
 
     VoxelImage.dtype
     VoxelImage.description
@@ -43,7 +43,7 @@ Basic methods
 -------------
 
 .. autosummary::
-    :toctree: ../_autogen
+    :toctree: _autogen
 
     VoxelImage.chunk_slice_indices
     VoxelImage.get_voxel_coordinates
@@ -55,7 +55,7 @@ Parallel math
 -------------
 
 .. autosummary::
-    :toctree: ../_autogen
+    :toctree: _autogen
 
     VoxelImage.math
     VoxelImage.combine
@@ -64,7 +64,7 @@ Saving to disk
 --------------
 
 .. autosummary::
-    :toctree: ../_autogen
+    :toctree: _autogen
 
     VoxelImage.copy
     VoxelImage.export_raw

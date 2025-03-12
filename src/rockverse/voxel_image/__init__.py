@@ -21,7 +21,7 @@ from rockverse.errors import collective_raise, collective_only_rank0_runs
 from rockverse.voxel_image._math import _array_math
 from rockverse.voxel_image._finneypack import fill_finney_pack
 from rockverse._utils import rvtqdm, auto_chunk_3d, index_bounding_box
-from rockverse.config import config
+from rockverse.configure import config
 comm = config.mpi_comm
 mpi_rank = config.mpi_rank
 mpi_nprocs = config.mpi_nprocs

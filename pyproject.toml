@@ -43,7 +43,6 @@ dependencies = [
     "numba",
     "numpy",
     "pandas",
-    "pandoc",
     "pip",
     "pydata-sphinx-theme",
     "scipy<=1.13.1",

@@ -1,8 +1,8 @@
 .. _Dual Energy Computed Tomography:
 
-==============================================
-Dual Energy CT (:mod:`rockverse.dualenergyct`)
-==============================================
+=============================
+:mod:`rockverse.dualenergyct`
+=============================
 
 .. automodule:: rockverse.dualenergyct
    :no-members:

@@ -1,6 +1,6 @@
 import sys
 
-__version__ = "1.0.0"
+__version__ = "1.0.1d"
 
 #----------------------------------------------------------------------
 # Make sure the main depencies are present with the supported versions.
@@ -47,7 +47,8 @@ from rockverse._utils.logo import make_logo
 from rockverse.rc import rcparams
 
 # Expose Config as a library-wide instance
-from rockverse.config import config
+from rockverse.configure import config
+# Expose MPI parameters library-wide variables
 comm = config.mpi_comm
 mpi_rank = config.mpi_rank
 mpi_nprocs = config.mpi_nprocs

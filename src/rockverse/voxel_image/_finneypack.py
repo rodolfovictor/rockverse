@@ -1,7 +1,7 @@
 import numpy as np
 from rockverse._utils import rvtqdm
 from numba import njit, cuda
-from rockverse.config import config
+from rockverse.configure import config
 mpi_rank = config.mpi_rank
 mpi_nprocs = config.mpi_nprocs
 

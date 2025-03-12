@@ -10,7 +10,7 @@ Methods
 =======
 
 .. autosummary::
-   :toctree: ../_autogen
+   :toctree: _autogen
 
    PeriodicTable.as_dict
    PeriodicTable.as_dataframe

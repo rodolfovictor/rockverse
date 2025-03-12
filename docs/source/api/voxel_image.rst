@@ -1,6 +1,6 @@
-==========================================
-Voxel Image (:mod:`rockverse.voxel_image`)
-==========================================
+============================
+:mod:`rockverse.voxel_image`
+============================
 
 .. automodule:: rockverse.voxel_image
    :no-members:
@@ -28,7 +28,7 @@ Basic creation functions
 ========================
 
 .. autosummary::
-    :toctree: ../_autogen
+    :toctree: _autogen
 
     create
     empty
@@ -46,7 +46,7 @@ Creating from other formats
 ===========================
 
 .. autosummary::
-    :toctree: ../_autogen
+    :toctree: _autogen
 
     sphere_pack
     import_raw
