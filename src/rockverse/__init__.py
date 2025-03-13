@@ -44,7 +44,7 @@ if matplotlib_version >= (3, 10):
 from rockverse._utils.logo import make_logo
 
 # Expose Config as a library-wide instance
-from rockverse.configure import config
+from rockverse.configure import config, config_context
 
 # Expose MPI parameters library-wide variables
 mpi_comm = config.mpi_comm

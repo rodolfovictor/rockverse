@@ -3,8 +3,9 @@
 import copy
 from mpi4py import MPI
 from numba import cuda
+from contextlib import contextmanager
 from rockverse import _assert
-from rockverse.errors import collective_raise
+from rockverse.errors import collective_raise, CustomCollectiveException
 from rockverse.configure.orthogonal_viewer import ORTHOGONAL_VIEWER as _ORTHOGONAL_VIEWER
 from rockverse.configure.latex_strings import LATEX_STRINGS as _LATEX_STRINGS
 
@@ -191,3 +192,25 @@ class Config():
         print(f'GPU {gpu_ind}: {gpu.name.decode()} (UUID: {gpu._device.uuid})')
 
 config = Config()
+
+
+
+
+class config_context():
+
+    def __init__(self, kwargs):
+        self.backup_dict = {}
+        self.update_dict = {}
+        self.update_dict.update(**kwargs)
+
+    def __enter__(self):
+
+        #Backup current configuration
+        self.backup_dict = copy.deepcopy(config._dict)
+        for k, v in self.update_dict.items():
+            config[k] = v
+
+    def __exit__(self, exc_type, exc_value, exc_tb):
+        config._dict = copy.deepcopy(self.backup_dict)
+        if exc_type is not None:
+            collective_raise(CustomCollectiveException(exc_type, exc_value))

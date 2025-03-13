@@ -21,4 +21,3 @@ Classes
   :hidden:
 
   config/config_class
-  config/working_with_GPUs
