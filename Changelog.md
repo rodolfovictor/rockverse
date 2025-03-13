@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - ``dualenergyct`` module renamed to ``dect``.
+- ``rc`` module merged into ``configure`` module.
 
 ## [1.0.0] - 2025-03-10
 

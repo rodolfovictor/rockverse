@@ -1,5 +1,3 @@
-import numpy as np
-
 ORTHOGONAL_VIEWER = {
     'X-ray CT': {
         'figure': {

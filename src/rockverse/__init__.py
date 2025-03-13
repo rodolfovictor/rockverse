@@ -43,13 +43,11 @@ if matplotlib_version >= (3, 10):
 #----------------------------------------------------------------------
 from rockverse._utils.logo import make_logo
 
-# Expose RcParams as a library-wide instance
-from rockverse.rc import rcparams
-
 # Expose Config as a library-wide instance
 from rockverse.configure import config
+
 # Expose MPI parameters library-wide variables
-comm = config.mpi_comm
+mpi_comm = config.mpi_comm
 mpi_rank = config.mpi_rank
 mpi_nprocs = config.mpi_nprocs
 
@@ -57,7 +55,6 @@ mpi_nprocs = config.mpi_nprocs
 __all__ = [
     "__version__",
     "config",
-    "rcparams",
     "make_logo",
     "open",
     "voxel_image",
@@ -74,16 +71,14 @@ from rockverse.errors import collective_only_rank0_runs, collective_raise
 
 def open(store, *, path=None, **kwargs):
     """
-    Opens a RockVerse data store and returns the appropriate object.
+    Opens RockVerse data.
 
     Parameters:
     -----------
     store : str or zarr.storage.BaseStore
         Path or zarr store object containing RockVerse data.
-
     path : str | None, optional
         The path within the store to open.
-
     **kwargs : dict
         Additional arguments passed to zarr.open.
 

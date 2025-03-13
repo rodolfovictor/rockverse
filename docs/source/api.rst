@@ -17,21 +17,30 @@ and the
 Library-Wide
 ============
 
+Objects
+-------
+
 .. list-table::
    :header-rows: 0
    :widths: auto
 
-   * - ``rockverse.config``
-     - An instance of the :class:`configuration class <rockverse.configure.Config>`
-       for the RockVerse library, containing various configuration settings
-       and parameters used throughout the library.
-   * - ``rockverse.comm``
+   * - ``rockverse.mpi_comm``
      - The runtime Message Passing Interface (MPI) communicator.
    * - ``rockverse.mpi_rank``
      - The rank of the calling process in the MPI communicator.
    * - ``rockverse.mpi_nprocs``
      - The total number of processes in the MPI communicator.
+   * - ``rockverse.config``
+     - The lib-wide instance of the :class:`configuration class <rockverse.configure.Config>`
+       containing the configuration settings and parameters.
 
+Functions
+---------
+
+.. autosummary::
+  :toctree: _autogen
+
+  rockverse.open
 
 Digital Rock Modules
 ====================

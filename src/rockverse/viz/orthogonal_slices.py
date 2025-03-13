@@ -18,7 +18,6 @@ from numba import njit
 
 from rockverse import _assert
 from rockverse.errors import collective_raise
-from rockverse import rcparams
 from rockverse.voxel_image.histogram import Histogram
 
 from rockverse.configure import config
@@ -289,45 +288,45 @@ class OrthogonalViewer():
             self._build_segmentation_colormap(segmentation_colors)
         else:
             self._build_segmentation_colormap(
-                rcparams['orthogonal_viewer'][template]['segmentation']['colors'])
+                config['orthogonal_viewer'][template]['segmentation']['colors'])
 
 
         _assert.boolean('hide_axis', hide_axis)
         self._hide_axis = hide_axis
 
-        self._image_dict = copy.deepcopy(rcparams['orthogonal_viewer'][template]['image'])
+        self._image_dict = copy.deepcopy(config['orthogonal_viewer'][template]['image'])
         self._image_dict['clim'] = self.histogram.percentile([0.05, 99.95])
         if image_dict is not None:
             _assert.dictionary('image_dict', image_dict)
             self._image_dict.update(**image_dict)
 
-        self._segmentation_alpha = rcparams['orthogonal_viewer'][template]['segmentation']['alpha']
+        self._segmentation_alpha = config['orthogonal_viewer'][template]['segmentation']['alpha']
         if segmentation_alpha is not None:
             _assert.condition.integer_or_float('segmentation_alpha', segmentation_alpha)
             self._segmentation_alpha = segmentation_alpha
 
-        self._mask_alpha = rcparams['orthogonal_viewer'][template]['mask']['alpha']
+        self._mask_alpha = config['orthogonal_viewer'][template]['mask']['alpha']
         if mask_alpha is not None:
             _assert.condition.integer_or_float('mask_alpha', mask_alpha)
             self._mask_alpha = mask_alpha
 
-        self._mask_color = rcparams['orthogonal_viewer'][template]['mask']['color']
+        self._mask_color = config['orthogonal_viewer'][template]['mask']['color']
         if mask_color is not None:
             self._mask_color = mask_color
 
-        self._guide_line_dict = copy.deepcopy(rcparams['orthogonal_viewer'][template]['guide_lines'])
+        self._guide_line_dict = copy.deepcopy(config['orthogonal_viewer'][template]['guide_lines'])
         if guide_line_dict is not None:
             _assert.dictionary('guide_line_dict', guide_line_dict)
             self._guide_line_dict.update(**guide_line_dict)
 
-        self._histogram_line_dict = copy.deepcopy(rcparams['orthogonal_viewer'][template]['histogram_lines'])
+        self._histogram_line_dict = copy.deepcopy(config['orthogonal_viewer'][template]['histogram_lines'])
         if histogram_line_dict is not None:
             _assert.dictionary('histogram_line_dict', histogram_line_dict)
             for key in ('full', 'phases', 'clim'):
                 if key in histogram_line_dict:
                     self._histogram_line_dict[key].update(**histogram_line_dict[key])
 
-        self._figure_dict = copy.deepcopy(rcparams['orthogonal_viewer'][template]['figure'])
+        self._figure_dict = copy.deepcopy(config['orthogonal_viewer'][template]['figure'])
         if figure_dict is not None:
             _assert.dictionary('figure_dict', figure_dict)
             self._figure_dict.update(**figure_dict)

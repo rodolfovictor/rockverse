@@ -1,9 +1,16 @@
 "Manages runtime settings for the RockVerse library."
 
+import copy
 from mpi4py import MPI
 from numba import cuda
 from rockverse import _assert
 from rockverse.errors import collective_raise
+from rockverse.configure.orthogonal_viewer import ORTHOGONAL_VIEWER as _ORTHOGONAL_VIEWER
+from rockverse.configure.latex_strings import LATEX_STRINGS as _LATEX_STRINGS
+
+def _split_key(key):
+    return key.split('.')
+
 
 class Config():
     """
@@ -21,13 +28,42 @@ class Config():
         self._mpi_rank = MPI.COMM_WORLD.Get_rank()
         self._mpi_nprocs = MPI.COMM_WORLD.Get_size()
         self._processor_name = MPI.Get_processor_name()
+        self._dict = {}
 
         if not cuda.is_available():
             self._gpus = []
-            self._selected_gpus = []
+            self._dict['selected_gpus'] = []
         else:
             self._gpus = cuda.gpus
-            self._selected_gpus = list(range(len(self._gpus)))
+            self._dict['selected_gpus'] = list(range(len(self._gpus)))
+
+        self._dict['latex.strings'] = copy.deepcopy(_LATEX_STRINGS)
+        self._dict['orthogonal_viewer'] = copy.deepcopy(_ORTHOGONAL_VIEWER)
+
+
+    def reset(self):
+        self.__init__()
+
+
+    def __getitem__(self, item):
+        return self._dict.__getitem__(item)
+
+    def __setitem__(self, key, value):
+
+        if key == 'selected_gpus':
+            _assert.iterable.any_iterable_non_negative_integers('device selection', value)
+            if any(k not in range(len(self._gpus)) for k in value):
+                if len(self._gpus) == 0:
+                    collective_raise(RuntimeError(f'GPU devices are not available.'))
+                collective_raise(RuntimeError(
+                    f'GPU device indices must be less than {len(self._gpus)}.'))
+            self._dict['selected_gpus'] = sorted(set(value))
+
+        else:
+            raise ValueError('NO')
+
+
+
 
     @property
     def mpi_rank(self):
@@ -80,32 +116,26 @@ class Config():
             >>> current_selected = config.selected_gpus
 
             >>> # Set the selected GPUs to the first and second GPUs available
-            >>> config.selected_gpus = [0, 1]
+            >>> config['selected_gpus'] = [0, 1]
 
             >>> # You can use any iterable
-            >>> config.selected_gpus = (0, 1, 2)
-            >>> config.selected_gpus = {0, 1, 2}
-            >>> config.selected_gpus = range(2)
+            >>> config['selected_gpus'] = (0, 1, 2)
+            >>> config['selected_gpus'] = {0, 1, 2}
+            >>> config['selected_gpus'] = range(2)
 
 
             >>> # Attempting to set selected GPUs to an invalid index will raise an error
             >>> try:
-            >>>     config.selected_gpus = [0, 5]  # Assuming only 3 GPUs are available
+            >>>     config['selected_gpus'] = [0, 5]  # Assuming only 3 GPUs are available
             >>> except RuntimeError as e:
             >>>    print(e)  # Output: GPU device indices must be less than 3.
 
             >>> # Setting selected GPUs to an empty list means no GPU will be used
-            >>> config.selected_gpus = []
+            >>> config['selected_gpus'] = []
         """
-        return self._selected_gpus
+        return self['selected_gpus']
 
-    @selected_gpus.setter
-    def selected_gpus(self, v):
-        _assert.iterable.any_iterable_non_negative_integers('device selection', v)
-        if any(k not in range(len(self._gpus)) for k in v):
-            collective_raise(RuntimeError(
-                f'GPU device indices must be less than {len(self._gpus)}.'))
-        self._selected_gpus = sorted(v)
+
 
     def print_available_gpus(self):
         """Prints the list of available GPUs.
@@ -130,7 +160,7 @@ class Config():
             print("GPUs not available.")
         else:
             for g, gpu in enumerate(self._gpus):
-                if g in self._selected_gpus:
+                if g in self['selected_gpus']:
                     print(f'GPU {g}: {gpu.name.decode()} (UUID: {gpu._device.uuid})')
 
     def rank_select_gpu(self):
@@ -141,10 +171,10 @@ class Config():
         Returns:
             The index of the selected GPU, or None if no GPUs are available.
         """
-        if not self._selected_gpus:
+        if not self['selected_gpus']:
             return None
-        ind = self._mpi_rank % len(self._selected_gpus)
-        gpu_ind = self._selected_gpus[ind]
+        ind = self._mpi_rank % len(self['selected_gpus'])
+        gpu_ind = self['selected_gpus'][ind]
         return gpu_ind
 
     def print_rank_selected_gpu(self):

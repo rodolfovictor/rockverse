@@ -15,7 +15,7 @@ For details about the methods used in this module, please see reference:
     Name changed to `rockverse.dect`
 
 .. todo:
-    - Get processing parameters from rcparams
+    - Get processing parameters from config
 
 """
 
