@@ -1,8 +1,8 @@
 .. _config module:
 
-==========================
-:mod:`rockverse.configure`
-==========================
+===================
+rockverse.configure
+===================
 
 .. automodule:: rockverse.configure
   :no-members:

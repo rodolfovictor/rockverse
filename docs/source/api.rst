@@ -40,7 +40,7 @@ Digital Rock Modules
 
   rockverse.voxel_image
   rockverse.region
-  rockverse.dualenergyct
+  rockverse.dect
   rockverse.histogram
 
 
@@ -63,10 +63,11 @@ Runtime configuration
 
 .. toctree::
   :hidden:
+  :maxdepth: 2
 
   api/voxel_image
   api/region
-  api/dualenergyct
+  api/dect
   api/viz
   api/config
   api/histogram

@@ -12,6 +12,7 @@
     --pst-font-size-h4: 22px;
     --pst-font-size-h5: 18px;
     --pst-font-size-h6: 15px;
+    --pst-font-weight-heading: 450;
   }
 
 /* --- Remove the default underline in links --- */

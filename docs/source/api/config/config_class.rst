@@ -1,7 +1,7 @@
 .. _Config class:
 
-:class:`rockverse.configure.Config`
-===================================
+rockverse.configure.Config
+==========================
 
 .. currentmodule:: rockverse.configure
 

@@ -63,13 +63,13 @@ __all__ = [
     "voxel_image",
     "region",
     "OrthogonalViewer",
-    "dualenergyct",
+    "dect",
 ]
 
 from rockverse import voxel_image
 from rockverse import region
 from rockverse.viz import OrthogonalViewer
-from rockverse import dualenergyct
+from rockverse import dect
 from rockverse.errors import collective_only_rank0_runs, collective_raise
 
 def open(store, *, path=None, **kwargs):
@@ -116,7 +116,7 @@ def open(store, *, path=None, **kwargs):
     if rv_data_type == 'VoxelImage':
         return voxel_image.VoxelImage(z)
 
-    if rv_data_type == 'DualEnergyCTGroup':
-        return dualenergyct.DualEnergyCTGroup(z)
+    if rv_data_type in ('DECTGroup', 'DualEnergyCTGroup'):
+        return dect.DECTGroup(z)
 
     collective_raise(ValueError(f"{store} does not contain valid RockVerse data."))

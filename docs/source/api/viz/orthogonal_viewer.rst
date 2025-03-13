@@ -1,7 +1,7 @@
 .. _OrthogonalViewer class:
 
-:class:`rockverse.viz.OrthogonalViewer`
-=======================================
+rockverse.viz.OrthogonalViewer
+==============================
 
 .. currentmodule:: rockverse.viz
 

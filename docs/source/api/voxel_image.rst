@@ -1,6 +1,6 @@
-============================
-:mod:`rockverse.voxel_image`
-============================
+=====================
+rockverse.voxel_image
+=====================
 
 .. automodule:: rockverse.voxel_image
    :no-members:
