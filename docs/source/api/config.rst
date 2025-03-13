@@ -17,6 +17,14 @@ Classes
 
   Config
 
+Context managers
+================
+
+.. autosummary::
+  :toctree: _autogen
+
+  config_context
+
 .. toctree::
   :hidden:
 

@@ -79,7 +79,7 @@ def open(store, *, path=None, **kwargs):
         Path or zarr store object containing RockVerse data.
     path : str | None, optional
         The path within the store to open.
-    **kwargs : dict
+    kwargs : dict
         Additional arguments passed to zarr.open.
 
     Returns:

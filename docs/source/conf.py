@@ -138,6 +138,9 @@ tutorials = [
     ['Miscellaneous', [
         ['miscellaneous/logo.ipynb', 'using_logo.png'],
     ]],
+    ['Runtime Configuration', [
+        ['configuration/selecting_gpu_devices.ipynb', 'configuration-gears.png'],
+    ]],
 ]
 
 tutorials_page = '.. _rockverse_docs_tutorials:\n'

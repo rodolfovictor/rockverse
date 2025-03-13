@@ -18,7 +18,6 @@ Attributes
    ~Config.processor_name
    ~Config.mpi_comm
    ~Config.available_gpus
-   ~Config.selected_gpus
 
 Methods
 -------
