@@ -2,6 +2,8 @@
 
 ## Tasks to be completed
 
+- Introduce well logs
+
 - Fine-tune threads per block GPU
   - Adjust GPU thread configurations for optimized performance in parallel computing tasks.
   - Investigate the best thread-per-block configuration for varying workloads.
