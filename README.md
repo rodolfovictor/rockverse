@@ -3,8 +3,10 @@
 RockVerse: Python tools for Computational Petrophysics
 ======================================================
 
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/rockverse)
 [![PyPI Version](https://img.shields.io/pypi/v/rockverse.svg)](https://pypi.org/project/rockverse/)
 [![conda](https://img.shields.io/conda/v/conda-forge/rockverse)](https://anaconda.org/conda-forge/rockverse)
+![Conda Platform](https://img.shields.io/conda/p/conda-forge/rockverse)
 [![License](https://img.shields.io/pypi/l/rockverse.svg)](https://github.com/rodolfovictor/rockverse/blob/main/LICENSE.md)
 
 

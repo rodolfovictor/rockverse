@@ -23,6 +23,8 @@
   - Export raw complex data into real and imaginary components.
   - Modify the copy function to implement a fast chunk-by-chunk method if the chunk shapes are the same.
   - Implement hashing.
+  - Import raw boolean
+  - Export raw boolean to Fiji as 0-255 uint8
 
 - Orthogonal slices
   - Add scale bar.
@@ -74,5 +76,7 @@
 - Miscelaneous
   - Review prints to collective print
   - Advance Matplotlib version
+  - Replace "raise Exception"s for more specific exceptions
+  - tqdm remove special characters when printing to file
 
 > Note: These tasks are subject to change based on project needs and priorities.
