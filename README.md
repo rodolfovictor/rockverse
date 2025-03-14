@@ -4,7 +4,8 @@ RockVerse: Python tools for Computational Petrophysics
 ======================================================
 
 [![PyPI Version](https://img.shields.io/pypi/v/rockverse.svg)](https://pypi.org/project/rockverse/)
-[![License](https://img.shields.io/pypi/l/rockverse.svg)](https://github.com/rodolfovictor/rockverse/blob/master/LICENSE.md)
+[![License](https://img.shields.io/pypi/l/rockverse.svg)](https://github.com/rodolfovictor/rockverse/blob/main/LICENSE.md)
+[![Anaconda](https://anaconda.org/conda-forge/rockverse/badges/version.svg)](https://anaconda.org/conda-forge/rockverse)
 
 
 RockVerse is an open-source Python library designed to support high-performance
