@@ -17,7 +17,7 @@ Classes
 
 .. autosummary::
 
-  OrthogonalViewer
+  ~OrthogonalViewer
 
 .. toctree::
   :hidden:

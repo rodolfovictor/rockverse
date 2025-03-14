@@ -24,13 +24,13 @@ Objects
    :header-rows: 0
    :widths: auto
 
-   * - ``rockverse.mpi_comm``
+   * - ``mpi_comm``
      - The runtime Message Passing Interface (MPI) communicator.
-   * - ``rockverse.mpi_rank``
+   * - ``mpi_rank``
      - The rank of the calling process in the MPI communicator.
-   * - ``rockverse.mpi_nprocs``
+   * - ``mpi_nprocs``
      - The total number of processes in the MPI communicator.
-   * - ``rockverse.config``
+   * - ``config``
      - The lib-wide instance of the :class:`configuration class <rockverse.configure.Config>`
        containing the configuration settings and parameters.
 
@@ -40,25 +40,23 @@ Functions
 .. autosummary::
   :toctree: _autogen
 
-  rockverse.open
+  ~rockverse.open
 
 Digital Rock Modules
 ====================
 
 .. autosummary::
 
-  rockverse.voxel_image
-  rockverse.region
-  rockverse.dect
-  rockverse.histogram
-
+  ~rockverse.voxel_image
+  ~rockverse.region
+  ~rockverse.dect
 
 Visualization Modules
 =====================
 
 .. autosummary::
 
-  rockverse.viz
+  ~rockverse.viz
 
 
 Runtime configuration
@@ -66,7 +64,7 @@ Runtime configuration
 
 .. autosummary::
 
-  rockverse.configure
+  ~rockverse.configure
 
 
 
@@ -79,4 +77,3 @@ Runtime configuration
   api/dect
   api/viz
   api/config
-  api/histogram

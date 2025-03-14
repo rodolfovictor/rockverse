@@ -17,8 +17,8 @@ Classes
 
 .. autosummary::
 
-  Sphere
-  Cylinder
+  ~Sphere
+  ~Cylinder
 
 .. toctree::
   :hidden:

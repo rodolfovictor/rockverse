@@ -1,8 +1,10 @@
-<img src="https://github.com/rodolfovictor/rockverse/blob/main/docs/source/_static/RockVerse_logo_model1_for_white_background_facecolor_transparent_False.png"><br>
-
+<img src="https://raw.githubusercontent.com/rodolfovictor/rockverse/blob/main/docs/source/_static/RockVerse_logo_model3_for_white_background_facecolor_transparent_False.png"><br>
 
 RockVerse: Python tools for Computational Petrophysics
 ======================================================
+
+[![PyPI Version](https://img.shields.io/pypi/v/rockverse.svg)](https://pypi.org/project/rockverse/)
+
 
 RockVerse is an open-source Python library designed to support high-performance
 computational petrophysics workflows. It is optimized for large-scale simulations

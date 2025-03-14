@@ -15,17 +15,21 @@ Classes
 
 .. autosummary::
 
-  Config
+  ~Config
 
 Context managers
 ================
 
 .. autosummary::
-  :toctree: _autogen
 
-  config_context
+  ~config_context
 
 .. toctree::
   :hidden:
 
   config/config_class
+  config/config_context
+
+.. seealso::
+
+   :ref:`Tutorials on using runtime configurations <tutorials_section_Runtime Configuration>`.

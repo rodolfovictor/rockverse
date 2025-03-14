@@ -148,7 +148,8 @@ tutorials_page = f'{tutorials_page}\n\n=========\nTutorials\n=========\n'
 main_toctree = []
 for section in tutorials:
     section_name = section[0]
-    tutorials_page = f'{tutorials_page}\n\n\n{section_name}\n{'='*len(section_name)}\n'
+    tutorials_page = f'{tutorials_page}\n\n\n.. _tutorials_section_{section_name}:\n\n'
+    tutorials_page = f'{tutorials_page}{section_name}\n{'='*len(section_name)}\n'
     section_tutorials = section[1]
     #Extract all tutorials in this section
     for tutorial_name, thumbnail in section_tutorials:

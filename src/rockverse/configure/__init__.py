@@ -16,11 +16,6 @@ def _split_key(key):
 class Config():
     """
     Manages runtime settings.
-
-    This class encapsulates the configuration parameters related to
-    MPI (Message Passing Interface) and GPU (Graphics Processing Unit)
-    availability. It provides properties to access the current MPI rank,
-    total number of processes, processor name, available GPUs, and selected GPUs.
     """
 
     def __init__(self):
@@ -167,7 +162,7 @@ class config_context():
 
     Parameters:
     -----------
-    kwargs : dict
+    params : dict
         A dictionary of configuration parameters to update.
 
     Example:
@@ -177,13 +172,17 @@ class config_context():
 
     >>> with config_context({'selected_gpus': [2, 4, 6]}):
     >>>     # Do stuff using these 3 devices
+    >>>     my_awesome_function_that_uses_gpu()
+    >>>     .
+    >>>     .
+    >>>     .
     >>> # After the with block, the original configuration is restored.
     """
 
-    def __init__(self, kwargs):
+    def __init__(self, params):
         self.backup_dict = {}
         self.update_dict = {}
-        self.update_dict.update(**kwargs)
+        self.update_dict.update(**params)
 
     def __enter__(self):
 

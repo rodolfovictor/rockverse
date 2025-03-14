@@ -13,9 +13,9 @@ Classes
 
 .. autosummary::
 
-   DECTGroup
-   CalibrationMaterial
-   PeriodicTable
+   ~DECTGroup
+   ~CalibrationMaterial
+   ~PeriodicTable
 
 Functions
 ---------
@@ -23,7 +23,7 @@ Functions
 .. autosummary::
    :toctree: _autogen
 
-   create_group
+   ~create_group
 
 .. toctree::
    :hidden:

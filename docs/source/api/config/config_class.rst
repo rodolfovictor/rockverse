@@ -1,4 +1,4 @@
-.. _Config class:
+.. _Config context class:
 
 rockverse.configure.Config
 ==========================

@@ -71,9 +71,6 @@ def _block_update_histogram(hist, block_data, block_segm, skip, bins, phases):
 
 class Histogram():
     '''
-    :bdg-info:`Parallel`
-    :bdg-info:`CPU`
-
     Compute and manage histograms, probability density functions (PDFs),
     cumulative distribution functions (CDFs), and percentiles for VoxelImage data.
 

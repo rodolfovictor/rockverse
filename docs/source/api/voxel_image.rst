@@ -14,12 +14,17 @@ Classes
 =======
 
 .. autosummary::
-  VoxelImage
+
+  ~VoxelImage
+  ~histogram.Histogram
+
 
 .. toctree::
   :hidden:
 
   voxel_image/VoxelImage
+  voxel_image/histogram
+
 
 
 .. _voxel image creation functions:
@@ -30,16 +35,16 @@ Basic creation functions
 .. autosummary::
     :toctree: _autogen
 
-    create
-    empty
-    zeros
-    ones
-    full
-    empty_like
-    zeros_like
-    ones_like
-    full_like
-    from_array
+    ~create
+    ~empty
+    ~zeros
+    ~ones
+    ~full
+    ~empty_like
+    ~zeros_like
+    ~ones_like
+    ~full_like
+    ~from_array
 
 
 Creating from other formats
@@ -48,5 +53,5 @@ Creating from other formats
 .. autosummary::
     :toctree: _autogen
 
-    sphere_pack
-    import_raw
+    ~sphere_pack
+    ~import_raw
