@@ -97,7 +97,9 @@ html_theme_options = {
             "icon": "fa-brands fa-linkedin",
         },
     ],
+    "google_analytics_id": "G-C40D5JMHPZ",
 }
+
 
 html_context = {
     "github_user": "rodolfovictor",

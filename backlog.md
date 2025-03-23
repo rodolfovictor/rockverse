@@ -79,4 +79,7 @@
   - Replace "raise Exception"s for more specific exceptions
   - tqdm remove special characters when printing to file
 
+- Documentation
+  - install/troubleshooting  conda git
+
 > Note: These tasks are subject to change based on project needs and priorities.
