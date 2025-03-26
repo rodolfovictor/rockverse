@@ -32,8 +32,8 @@ if scipy_version > (1, 13, 1):
 
 import matplotlib
 matplotlib_version = _extract_version(matplotlib)
-if matplotlib_version >= (3, 10):
-    msg = ("RockVerse requires Matplotlib version <3.10. Got Matplotlib "
+if matplotlib_version < (3, 10):
+    msg = ("RockVerse requires Matplotlib version >=3.10. Got Matplotlib "
            f"{matplotlib.__version__}.")
     raise ImportError(msg)
 
@@ -104,7 +104,7 @@ def open(store, *, path=None, **kwargs):
         for k in range(mpi_nprocs):
             if k == mpi_rank:
                 z = zarr.open(store=store, path=path, **kwargs)
-            comm.barrier()
+            mpi_comm.barrier()
 
     rv_data_type = z.attrs['_ROCKVERSE_DATATYPE']
 

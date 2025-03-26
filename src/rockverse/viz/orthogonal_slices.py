@@ -677,17 +677,18 @@ class OrthogonalViewer():
             self._slices[plane]['ax'] = None
             return
         self._slices[plane]['ax'] = self._fig.add_subplot(self._slices[plane]['gridspec'])
-        ax = self.ax_histogram
-        self._plot_histogram_full()
-        self._plot_histogram_seg_phases()
+        self._plot_histogram_full(first_build=True)
 
-    def _plot_histogram_full(self):
+    def _plot_histogram_full(self, first_build=False):
         """
         Clear the histogram axes and plot the full line.
         """
         if not self.show_histogram:
             return
         ax = self.ax_histogram
+        if not first_build:
+            xlim = ax.get_xlim()
+            ylim = ax.get_ylim()
         ax.cla()
         ax.grid(True, alpha=0.5)
         x = self.histogram.bin_centers
@@ -706,33 +707,30 @@ class OrthogonalViewer():
             self._image_dict['clim'][0], **self._histogram_line_dict['clim'])
         self._slices['histogram']['lines']['cmax'] = ax.axvline(
             self._image_dict['clim'][1], **self._histogram_line_dict['clim'])
+        if not first_build:
+            ax.set_xlim(xlim)
+            ax.set_ylim(ylim)
+        self._plot_histogram_seg_phases()
 
     def _plot_histogram_seg_phases(self):
         """
         Plot the histogram for the segmentation phases.
         """
-        if not self.show_histogram:
+        if self._delay_update or not self.show_histogram:
             return
-        phases = self.histogram.phases
-        lines = self._slices['histogram']['lines']
-        to_pop = []
-        for k, v in lines.items():
-            if k not in ['cmin', 'cmax', 'full']:
-                v.remove()
-                to_pop.append(k)
-        for k in to_pop:
-            _ = lines.pop(k)
         ax = self.ax_histogram
+        phases = self.histogram.phases
         if len(phases)>0:
             cmap = self._slices['xy']['mpl_seg'].get_cmap()
             for k in sorted(phases):
-                lines[str(k)], = ax.plot(self.histogram.bin_centers,
-                                        self.histogram.count[k],
-                                        color=cmap(Normalize(vmin=min(self.histogram.phases),
-                                                             vmax=max(self.histogram.phases))
-                                                             (k)),
-                                        label=f'{k}',
-                                        **self._histogram_line_dict['phases'])
+                self._slices['histogram']['lines'][str(k)], = ax.plot(
+                    self.histogram.bin_centers,
+                    self.histogram.count[k],
+                    color=cmap(Normalize(vmin=min(self.histogram.phases),
+                                         vmax=max(self.histogram.phases))
+                                         (k)),
+                                         label=f'{k}',
+                                         **self._histogram_line_dict['phases'])
         ax.legend()
 
     def _build_planes(self):
@@ -840,7 +838,7 @@ class OrthogonalViewer():
 
         self._slices['histogram']['lines']['full'].set(**self._histogram_line_dict['full'])
 
-        self._plot_histogram_seg_phases()
+        self._plot_histogram_full()
         self.figure.canvas.draw()
 
 
@@ -1036,7 +1034,7 @@ class OrthogonalViewer():
                                     region=self._region)
         self._build_segmentation_colormap(self._segmentation_colors)
         self._update_plots()
-        self._plot_histogram_seg_phases()
+        self._plot_histogram_full()
 
     @property
     def segmentation_colors(self):

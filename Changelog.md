@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Bug fix in MPI communicator for general ``open`` function.
+- Updated to use Matplotlib version >= 3.10
 
 ## [1.1.1]
 

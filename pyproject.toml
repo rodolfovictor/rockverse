@@ -41,7 +41,7 @@ dependencies = [
     "ipywidgets",
     "jupyter",
     "jupyterlab",
-    "matplotlib<3.10",
+    "matplotlib>=3.10",
     "mpi4py",
     "myst-parser",
     "nbsphinx",
