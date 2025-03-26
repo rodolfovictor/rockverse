@@ -71,11 +71,6 @@
 
 - Miscellaneous
   - Review print statements for collective print.
-  - Upgrade Matplotlib version.
-
-- Miscelaneous
-  - Review prints to collective print
-  - Advance Matplotlib version
   - Replace "raise Exception"s for more specific exceptions
   - tqdm remove special characters when printing to file
 
