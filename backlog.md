@@ -28,7 +28,7 @@
 
 - Orthogonal slices
   - Add scale bar.
-  - Add calibration bar.
+  - Add calibration bar (MAtplotlib AnchoredSizeBar)
   - Add contour lines to scalar fields.
   - Add chunk limit lines.
   - Introduce "over black" and "over white" options for segmentation colors.

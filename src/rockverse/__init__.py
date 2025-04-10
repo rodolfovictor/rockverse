@@ -1,6 +1,6 @@
 import sys
 
-__version__ = "1.1.2d"
+__version__ = "1.1.2"
 
 #----------------------------------------------------------------------
 # Make sure the main depencies are present with the supported versions.
