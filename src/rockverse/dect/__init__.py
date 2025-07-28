@@ -27,12 +27,17 @@ import numpy as np
 import pandas as pd
 import zarr
 import hashlib
+import shutil
 from datetime import datetime
+from scipy.special import erf
 from mpi4py import MPI
 from rockverse._utils import rvtqdm, datetimenow
 from rockverse.configure import config
+from rockverse.optimize import gaussian_fit, gaussian_val
 
-from rockverse.configure import config
+import matplotlib.pyplot as plt
+from matplotlib.gridspec import GridSpec
+
 comm = config.mpi_comm
 mpi_rank = config.mpi_rank
 mpi_nprocs = config.mpi_nprocs
@@ -474,6 +479,15 @@ class CalibrationMaterial():
 
 
     def _set_pdf(self, name, value):
+        if value is None:
+            with collective_only_rank0_runs():
+                if mpi_rank == 0:
+                    array_name = f'{name}_standard{self.index}_pdf'
+                    if array_name in self.zgroup:
+                        path = self.zgroup.store.root / array_name
+                        shutil.rmtree(path)
+            return
+
         if (not isinstance(value, (tuple, list))
             or len(value) != 2
             or not isinstance(value[0], (list, tuple, np.ndarray))
@@ -507,15 +521,23 @@ class CalibrationMaterial():
                 z[:, 1] = y[ind]/sum
 
     def _get_cdf(self, name):
-        x, y = self._get_pdf(name)
+        xy = self._get_pdf(name)
+        if xy is None:
+            return None
+        x, y = xy
         sum = 0*x
-        for k in range(1, len(x)):
-            sum[k] += sum[k-1] + (y[k]+y[k-1])*(x[k]-x[k-1])*0.5
+        sum[0] = y[0] * (x[1]-x[0])
+        for k in range(1, len(x)-1):
+            sum[k] += sum[k-1] + y[k]*(x[k+1]-x[k-1])/2
+        sum[-1] = sum[-2] + y[-1] * (x[-1]-x[-2])
+        sum /= sum[-1]
         return np.ascontiguousarray(x), np.ascontiguousarray(sum)
 
     @property
     def lowE_pdf(self):
         """
+        .. _dect_calibrationy_lowE:
+
         Low energy CT attenuation probability density function (PDF).
 
         This property is a two-element tuple containing:
@@ -534,6 +556,10 @@ class CalibrationMaterial():
         To set a new lowE PDF:
 
             >>> calibration_material.lowE_pdf = (new_x_values, new_y_values)
+
+        Set to None to remove:
+
+            >>> calibration_material.lowE_pdf = None
 
         """
         return self._get_pdf('lowE')
@@ -576,13 +602,17 @@ class CalibrationMaterial():
 
         Examples
         --------
-        To get the current lowE PDF:
+        To get the current highE PDF:
 
             >>> x, y = calibration_material.highE_pdf
 
-        To set a new lowE PDF:
+        To set a new highE PDF:
 
             >>> calibration_material.highE_pdf = (new_x_values, new_y_values)
+
+        Set to None to remove:
+
+            >>> calibration_material.highE_pdf = None
 
         """
         return self._get_pdf('highE')
@@ -611,6 +641,90 @@ class CalibrationMaterial():
         """
         return self._get_cdf('highE')
 
+    def _check_gaussian_pdf_setter(self, v):
+        conditions = [v is None,
+                      isinstance(v, tuple) and len(v) == 2 and all(isinstance(k, (int, float)) for k in v)]
+        if not any(conditions):
+            collective_raise(ValueError(
+                f"Gaussian pdf must be set as None or a two-element tuple of int for float."))
+
+    @property
+    def lowE_gaussian_pdf(self):
+        """
+        Low energy CT attenuation Gaussian probability density function (PDF).
+
+        A tuple :math:`(\mu, \sigma)` with the mean and standard deviation values
+        for a Gaussian (normal) probability density function model for
+        low energy attenuation values:
+
+        .. math::
+
+            y(x) = \\frac{1}{\sqrt{2\pi\sigma^2}}e^{-\\frac{1}{2}\left(\\frac{x-\mu}{\sigma}\\right)^2}.
+
+
+        When set, gets precedence over the :obj:`lowE_pdf <rockverse.dect.CalibrationMaterial.lowE_pdf>` attribute.
+
+
+        Examples
+        --------
+        To get the current lowE Gaussian PDF:
+
+            >>> mean, std = calibration_material.lowE_gaussian_pdf
+
+        To set a new lowE Gaussian PDF:
+
+            >>> calibration_material.lowE_gaussian_pdf = (new_mean, new_std)
+
+        To unset the lowE Gaussian PDF model:
+
+            >>> calibration_material.lowE_pdf = None
+        """
+        return self._get_attribute('lowE_gaussian_pdf')
+
+    @lowE_gaussian_pdf.setter
+    def lowE_gaussian_pdf(self, v):
+        self._check_gaussian_pdf_setter(v)
+        self._set_attribute('lowE_gaussian_pdf', v)
+
+    @property
+    def highE_gaussian_pdf(self):
+        """
+        High energy CT attenuation Gaussian probability density function (PDF).
+
+
+        A tuple :math:`(\mu, \sigma)` with the mean and standard deviation values
+        for a Gaussian (normal) probability density function model for
+        high energy attenuation values:
+
+        .. math::
+
+            y(x) = \\frac{1}{\sqrt{2\pi\sigma^2}}e^{-\\frac{1}{2}\left(\\frac{x-\mu}{\sigma}\\right)^2}.
+
+
+        When set, gets precedence over the :obj:`highE_pdf <rockverse.dect.CalibrationMaterial.highE_pdf>` attribute.
+
+        Examples
+        --------
+        To get the current highE Gaussian PDF:
+
+            >>> mean, std = calibration_material.highE_gaussian_pdf
+
+        To set a new highE Gaussian PDF:
+
+            >>> calibration_material.highE_gaussian_pdf = (new_mean, new_std)
+
+        To unset the highE Gaussian PDF model:
+
+            >>> calibration_material.lowE_pdf = None
+        """
+        return self._get_attribute('highE_gaussian_pdf')
+
+    @highE_gaussian_pdf.setter
+    def highE_gaussian_pdf(self, v):
+        self._check_gaussian_pdf_setter(v)
+        self._set_attribute('highE_gaussian_pdf', v)
+
+
     def as_dict(self):
         """
         Outputs a dictionary containing the class attributes:
@@ -629,7 +743,42 @@ class CalibrationMaterial():
         items['lowE_cdf'] = self.lowE_cdf
         items['highE_pdf'] = self.highE_pdf
         items['highE_cdf'] = self.highE_cdf
+        items['lowE_gaussian_pdf'] = self.lowE_gaussian_pdf
+        items['highE_gaussian_pdf'] = self.highE_gaussian_pdf
         return items
+
+
+    def fit_lowE_gaussian_pdf(self, order=1):
+        '''
+        Fit a Gaussian distribution to the PDF values provided in the
+        :obj:`lowE_pdf <rockverse.dect.CalibrationMaterial.lowE_pdf>` attribute.
+
+        Parameters
+        ----------
+        order : {int, float, inf, -inf}, optional
+            The order of the error norm to be minimized (e.g., 2 for least squares, 1 for L1 norm).
+        '''
+        if self.lowE_pdf is None:
+            collective_raise(Exception('You need to set the lowE_pdf attribute before calling fit_lowE_gaussian_pdf.'))
+        c = gaussian_fit(*self.lowE_pdf, order=order)
+        self.lowE_gaussian_pdf = tuple(c[1:])
+
+
+    def fit_highE_gaussian_pdf(self, order=1):
+        '''
+        Fit a Gaussian distribution to the PDF values provided in the
+        :obj:`highE_pdf <rockverse.dect.CalibrationMaterial.highE_pdf>` attribute.
+
+        Parameters
+        ----------
+        order : {int, float, inf, -inf}, optional
+            The order of the error norm to be minimized (e.g., 2 for least squares, 1 for L1 norm).
+        '''
+        if self.highE_pdf is None:
+            collective_raise(Exception('You need to set the highE_pdf attribute before calling fit_highE_gaussian_pdf.'))
+        c = gaussian_fit(*self.highE_pdf, order=order)
+        self.highE_gaussian_pdf = tuple(c[1:])
+
 
     def hash(self):
         """
@@ -657,11 +806,21 @@ class CalibrationMaterial():
             for k in sorted(composition.keys()):
                 md5.update(k.encode('ascii'))
                 md5.update(np.array([float(composition[k]),], dtype=float))
-        for pdf in (self.lowE_pdf, self.highE_pdf):
-            if pdf is not None:
-                x, y = self.lowE_pdf
-                md5.update(np.array(x, dtype=float))
-                md5.update(np.array(y, dtype=float))
+
+        if self.lowE_gaussian_pdf is not None:
+            md5.update(np.array(self.lowE_gaussian_pdf, dtype=float))
+        elif self.lowE_pdf is not None:
+            x, y = self.lowE_pdf
+            md5.update(np.array(x, dtype=float))
+            md5.update(np.array(y, dtype=float))
+
+        if self.highE_gaussian_pdf is not None:
+            md5.update(np.array(self.highE_gaussian_pdf, dtype=float))
+        elif self.highE_pdf is not None:
+            x, y = self.highE_pdf
+            md5.update(np.array(x, dtype=float))
+            md5.update(np.array(y, dtype=float))
+
         return md5.hexdigest()
 
     def check(self):
@@ -675,12 +834,16 @@ class CalibrationMaterial():
             If all properties are valid, returns an empty string.
         """
         msg = ""
-        keys = ['description', 'lowE_pdf', 'highE_pdf']
+        keys = ['description',]
         if self.index != '0':
             keys += ['bulk_density', 'composition']
         for key in keys:
             if self.__getattribute__(key) is None:
                 msg = msg + f"\n    - =====> Missing {key}."
+        if self.lowE_pdf is None and self.lowE_gaussian_pdf is None:
+            msg = msg + f"\n    - =====> Needs lowE_pdf or lowE_gaussian_pdf"
+        if self.highE_pdf is None and self.highE_gaussian_pdf is None:
+            msg = msg + f"\n    - =====> Needs highE_pdf or highE_gaussian_pdf"
         if msg:
             return f"Calibration material {self.index}:" + msg
         return msg
@@ -1026,9 +1189,11 @@ class DECTGroup():
     @property
     def lowE_inversion_coefficients(self):
         """
-        Pandas DataFrame with the realization sets for low energy inversion
-        coefficients. Returns ``None`` if not calculated.
+        Pandas DataFrame with the valid realization sets for low energy inversion
+        coefficients. Returns ``None`` if not calculated. Can be set to None
+        to delete previous calculations.
         """
+        tol = self.tol
         matrix = None
         with collective_only_rank0_runs():
             if mpi_rank == 0:
@@ -1037,15 +1202,36 @@ class DECTGroup():
         matrix = comm.bcast(matrix, root=0)
         if matrix is None:
             return None
+        ind = matrix[:, -1]<=tol
+        if not any(ind):
+            return None
+        matrix = matrix[ind, :]
         columns = ['CT_0', 'CT_1', 'CT_2', 'CT_3', 'Z_1', 'Z_2', 'Z_3', 'A', 'B', 'n', 'err']
         return pd.DataFrame(data=matrix, index=None, columns=columns, dtype='f8', copy=True)
+
+
+    @lowE_inversion_coefficients.setter
+    def lowE_inversion_coefficients(self, v):
+        if v is not None:
+            collective_raise(ValueError(
+                "lowE_inversion_coefficients can only be directly set to None to delete previous calculations."
+                " Use preprocess() or run() methods if you want to update the values."))
+        with collective_only_rank0_runs():
+            if mpi_rank == 0:
+                array_name = 'matrixl'
+                if array_name in self.zgroup:
+                    path = self.zgroup.store.root / array_name
+                    shutil.rmtree(path)
+
 
     @property
     def highE_inversion_coefficients(self):
         """
-        Pandas DataFrame with the realization sets for high energy inversion
-        coefficients. Returns ``None`` if not calculated.
+        Pandas DataFrame with the valid realization sets for high energy inversion
+        coefficients. Returns ``None`` if not calculated. Can be set to None
+        to delete previous calculations.
         """
+        tol = self.tol
         matrix = None
         with collective_only_rank0_runs():
             if mpi_rank == 0:
@@ -1054,8 +1240,27 @@ class DECTGroup():
         matrix = comm.bcast(matrix, root=0)
         if matrix is None:
             return None
+        ind = matrix[:, -1]<=tol
+        if not any(ind):
+            return None
+        matrix = matrix[ind, :]
         columns = ['CT_0', 'CT_1', 'CT_2', 'CT_3', 'Z_1', 'Z_2', 'Z_3', 'A', 'B', 'n', 'err']
         return pd.DataFrame(data=matrix, index=None, columns=columns, dtype='f8', copy=True)
+
+
+    @highE_inversion_coefficients.setter
+    def highE_inversion_coefficients(self, v):
+        if v is not None:
+            collective_raise(ValueError(
+                "highE_inversion_coefficients can only be directly set to None to delete previous calculations."
+                " Use preprocess() or run() methods if you want to update the values."))
+        with collective_only_rank0_runs():
+            if mpi_rank == 0:
+                array_name = 'matrixh'
+                if array_name in self.zgroup:
+                    path = self.zgroup.store.root / array_name
+                    shutil.rmtree(path)
+
 
     @property
     def threads_per_block(self):
@@ -1329,18 +1534,59 @@ class DECTGroup():
         """
         Generate the calibration coefficient sets for low and high energy.
         """
-        # Processing parameters
+        # Processing parameters -------------------------------------
         maximum, tol = self.maximum_iterations, self.tol
-        cdfxl0, cdfyl0 = self.calibration_material[0].lowE_cdf
-        cdfxh0, cdfyh0 = self.calibration_material[0].highE_cdf
-        cdfxl1, cdfyl1 = self.calibration_material[1].lowE_cdf
-        cdfxh1, cdfyh1 = self.calibration_material[1].highE_cdf
-        cdfxl2, cdfyl2 = self.calibration_material[2].lowE_cdf
-        cdfxh2, cdfyh2 = self.calibration_material[2].highE_cdf
-        cdfxl3, cdfyl3 = self.calibration_material[3].lowE_cdf
-        cdfxh3, cdfyh3 = self.calibration_material[3].highE_cdf
 
-        # Init matrices ----------------------------------------------
+        # If Gaussian model, get mean and variance. Else, get cdf for interpolation
+        if self.calibration_material[0].lowE_gaussian_pdf is not None:
+            cdfxl0 = self.calibration_material[0].lowE_gaussian_pdf
+            cdfyl0 = [0., 0.]
+        else:
+            cdfxl0, cdfyl0 = self.calibration_material[0].lowE_cdf
+
+        if self.calibration_material[0].highE_gaussian_pdf is not None:
+            cdfxh0 = self.calibration_material[0].highE_gaussian_pdf
+            cdfyh0 = [0., 0.]
+        else:
+            cdfxh0, cdfyh0 = self.calibration_material[0].highE_cdf
+
+        if self.calibration_material[1].lowE_gaussian_pdf is not None:
+            cdfxl1 = self.calibration_material[1].lowE_gaussian_pdf
+            cdfyl1 = [0., 0.]
+        else:
+            cdfxl1, cdfyl1 = self.calibration_material[1].lowE_cdf
+
+        if self.calibration_material[1].highE_gaussian_pdf is not None:
+            cdfxh1 = self.calibration_material[1].highE_gaussian_pdf
+            cdfyh1 = [0., 0.]
+        else:
+            cdfxh1, cdfyh1 = self.calibration_material[1].highE_cdf
+
+        if self.calibration_material[2].lowE_gaussian_pdf is not None:
+            cdfxl2 = self.calibration_material[2].lowE_gaussian_pdf
+            cdfyl2 = [0., 0.]
+        else:
+            cdfxl2, cdfyl2 = self.calibration_material[2].lowE_cdf
+
+        if self.calibration_material[2].highE_gaussian_pdf is not None:
+            cdfxh2 = self.calibration_material[2].highE_gaussian_pdf
+            cdfyh2 = [0., 0.]
+        else:
+            cdfxh2, cdfyh2 = self.calibration_material[2].highE_cdf
+
+        if self.calibration_material[3].lowE_gaussian_pdf is not None:
+            cdfxl3 = self.calibration_material[3].lowE_gaussian_pdf
+            cdfyl3 = [0., 0.]
+        else:
+            cdfxl3, cdfyl3 = self.calibration_material[3].lowE_cdf
+
+        if self.calibration_material[3].highE_gaussian_pdf is not None:
+            cdfxh3 = self.calibration_material[3].highE_gaussian_pdf
+            cdfyh3 = [0., 0.]
+        else:
+            cdfxh3, cdfyh3 = self.calibration_material[3].highE_cdf
+
+        # Init matrices ---------------------------------------------
         matrixl = None
         matrixh = None
         with collective_only_rank0_runs():
@@ -1783,49 +2029,50 @@ class DECTGroup():
                 'Calibration coefficient matrices are outdated. '
                 'Run with restart=True to restart the simulations from scratch.'))
 
-        if restart or need_coefficient_matrices(self):
-            maximum = self.maximum_iterations
-            with collective_only_rank0_runs():
-                if mpi_rank == 0:
-                    _ = self.zgroup.create_array(name='matrixl',
-                                                 shape=(maximum, 11),
-                                                 chunks=(maximum, 11),
-                                                 dtype='f8',
-                                                 fill_value=1,
-                                                 overwrite=True,
-                                                 attributes={'md5sum': ''})
-                    _ = self.zgroup.create_array(name='matrixh',
-                                                 shape=(maximum, 11),
-                                                 chunks=(maximum, 11),
-                                                 dtype='f8',
-                                                 fill_value=1,
-                                                 overwrite=True,
-                                                 attributes={'md5sum': ''})
-            self._draw_coefficients()
-            bar = rvtqdm(total=2*self.maximum_iterations,
-                         desc='Generating inversion coefficients',
-                         unit='',
-                         bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}]')
-            current = 0
-            for t in range(30):
-                comm.barrier()
-                self._draw_coefficients()
-                new = self._purge_coefficients()
-                bar.update(sum(new)-current)
-                current = sum(new)
-                if sum(new) >= 2*self.maximum_iterations:
-                    break
-            bar.close()
-            comm.barrier()
-            hexdigest = hash_coefficient_matrices(self)
-            with collective_only_rank0_runs():
-                if mpi_rank == 0:
-                    self.zgroup['matrixl'].attrs['md5sum'] = hexdigest
-                    self.zgroup['matrixh'].attrs['md5sum'] = hexdigest
-            comm.barrier()
-        else:
-            collective_print('Calibration matrices up to date.')
+        if not (restart or need_coefficient_matrices(self)):
+            collective_print('Calibration coefficient matrices up to date.')
+            return
 
+        maximum = self.maximum_iterations
+        with collective_only_rank0_runs():
+            if mpi_rank == 0:
+                _ = self.zgroup.create_array(name='matrixl',
+                                                shape=(maximum, 11),
+                                                chunks=(maximum, 11),
+                                                dtype='f8',
+                                                fill_value=1,
+                                                overwrite=True,
+                                                attributes={'md5sum': ''})
+                _ = self.zgroup.create_array(name='matrixh',
+                                                shape=(maximum, 11),
+                                                chunks=(maximum, 11),
+                                                dtype='f8',
+                                                fill_value=1,
+                                                overwrite=True,
+                                                attributes={'md5sum': ''})
+
+        # fill in coefficients for new or incomplete matrices
+        bar = rvtqdm(total=2*self.maximum_iterations,
+                    desc='Generating inversion coefficients',
+                    unit='',
+                    bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}]')
+        current = 0
+        for t in range(30):
+            comm.barrier()
+            self._draw_coefficients()
+            new = self._purge_coefficients()
+            bar.update(sum(new)-current)
+            current = sum(new)
+            if sum(new) >= 2*self.maximum_iterations:
+                break
+        bar.close()
+        comm.barrier()
+        hexdigest = hash_coefficient_matrices(self)
+        with collective_only_rank0_runs():
+            if mpi_rank == 0:
+                self.zgroup['matrixl'].attrs['md5sum'] = hexdigest
+                self.zgroup['matrixh'].attrs['md5sum'] = hexdigest
+        comm.barrier()
 
 
     def run(self, restart=False):
@@ -1893,6 +2140,242 @@ class DECTGroup():
         comm.barrier()
 
         self._calc_rho_Z()
+
+
+    def view_pdfs(self, figsize=(8, 9), bins=30, percentile_interval=(0.1, 99.9), plot_pdfs=True, plot_cdfs=True):
+        '''
+        Convenience function for visualizing the probability density functions (PDFs) and cumulative
+        density functions (CDFs) of calibration materials.
+
+        Parameters
+        ----------
+        figsize : tuple of float, optional
+            Size of the figure in inches, specified as `(width, height)`. Default is `(8, 9)`.
+
+        bins : int, optional
+            Number of bins used to create histograms for Monte Carlo PDFs. Default is `30`.
+
+        percentile_interval : tuple of float, optional
+            Percentile interval to adjust the x-axis limits, specified as `(percentile_min, percentile_max)`.
+            Default is `(0.1, 99.9)`.
+
+        plot_pdfs : bool, optional
+            If `True`, the PDFs will be plotted on the graphs. Default is `True`.
+
+        plot_cdfs : bool, optional
+            If `True`, the CDFs will be plotted on the graphs. Default is `True`.
+
+        Returns
+        -------
+        fig : matplotlib.figure.Figure
+            The `Figure` object containing the generated plots.
+
+        axes : dict
+            A dictionary containing the plot axes:
+            - `'ax_pdf'`: The axes for the PDFs.
+            - `'ax_cdf'`: The axes for the CDFs.
+            - `'ax_legend'`: The axis containing the legend.
+
+        Examples
+        --------
+        To visualize the PDFs and CDFs of the calibration materials:
+
+        >>> dectgroup.view_pdfs()
+
+        To customize the number of bins and disable the CDF plots:
+
+        >>> dectgroup.view_pdfs(bins=50, plot_cdfs=False)
+        '''
+
+        def gaussfunc(m, s, x):
+            return 1/np.sqrt(2*np.pi*s*s)*np.exp(-0.5*(((x-m)/s)**2))
+
+        def cumgauss(m, s, x):
+            return 0.5*(1+erf((x-m)/s/np.sqrt(2)))
+
+        fig = plt.figure(figsize=figsize, layout='tight')
+        gs = GridSpec(5, 2, fig, height_ratios=[0.2, 1, 1, 1, 1])
+        ax_legend = fig.add_subplot(gs[0, :])
+        ax_legend.set_axis_off()
+        ax_pdf = np.empty((4, 2), dtype='object')
+        ax_cdf = np.empty((4, 2), dtype='object')
+        for i in range(4):
+            for j in range(2):
+                ax_pdf[i, j] = fig.add_subplot(gs[i+1, j])
+                ax_cdf[i, j] = ax_pdf[i, j].twinx()
+
+        mc_hist_plot = None
+        mc_cum_hist_plot = None
+        array_plot = None
+        model_plot = None
+        cum_model_plot = None
+
+        for k in range(4):
+            ax_pdf[k, 0].set_xlabel(f'Low E {self.calibration_material[k-1].description}')
+            ax_pdf[k, 1].set_xlabel(f'High E {self.calibration_material[k-1].description}')
+            if plot_pdfs:
+                ax_pdf[k, 0].set_ylabel(f'PDF')
+                ax_pdf[k, 1].set_ylabel(f'PDF')
+            if plot_cdfs:
+                ax_cdf[k, 0].set_ylabel(f'CDF')
+                ax_cdf[k, 1].set_ylabel(f'CDF')
+            for E in range(2):
+                if E == 0:
+                    pdfxy = self.calibration_material[k].lowE_pdf
+                    cdfxy = self.calibration_material[k].lowE_cdf
+                    gauss = self.calibration_material[k].lowE_gaussian_pdf
+                    coefs = self.lowE_inversion_coefficients
+                else:
+                    pdfxy = self.calibration_material[k].highE_pdf
+                    cdfxy = self.calibration_material[k].highE_cdf
+                    gauss = self.calibration_material[k].highE_gaussian_pdf
+                    coefs = self.highE_inversion_coefficients
+
+                # Drawings
+                if coefs is not None:
+                    hy, hx = np.histogram(coefs[f'CT_{k}'], bins=bins, density=True)
+                    hz = np.cumsum(hy*(hx[1:]-hx[:-1]))
+                    if plot_pdfs:
+                        mc_hist_plot = ax_pdf[k, E].hist(coefs[f'CT_{k}'], bins=bins, density=True,
+                                                        facecolor='lightsteelblue', edgecolor='slategrey',
+                                                        label='MC PDF')[2]
+                    if plot_cdfs:
+                        mc_cum_hist_plot = ax_cdf[k, E].step(hx[:-1], hz, color='purple', where='post', label='MC CDF')[0]
+
+                pdfx, pdfy = None, None
+                cdfx, cdfy = None, None
+                if pdfxy is not None:
+                    pdfx, pdfy = pdfxy
+                    cdfx, cdfy = cdfxy
+
+                # Array
+                if gauss is None:
+                    if pdfxy is not None:
+                        if plot_pdfs:
+                            array_plot = ax_pdf[k, E].plot(pdfx, pdfy, color='brown', marker='.', linestyle='', alpha=0.75, label='Array PDF')[0]
+                            model_plot = ax_pdf[k, E].plot(pdfx, pdfy, color='brown', marker='', linestyle='-', alpha=0.75, label='Model PDF')[0]
+                        if plot_cdfs:
+                            cum_model_plot = ax_cdf[k, E].plot(cdfx, cdfy, color='orangered', marker='', linestyle='-', alpha=0.75, label='CDF model')[0]
+                else:
+                    m, s = gauss
+                    x = np.linspace(m-4*s, m+4*s, 500)
+                    y = gaussfunc(m, s, x)
+                    if pdfxy is not None:
+                        #Iterative reweighted least squares to set best amplitude match
+                        ypdf = gaussfunc(m, s, pdfx)
+                        f = ypdf.dot(pdfy) / pdfy.dot(pdfy)
+                        for _ in range(10):
+                            misfit = np.abs(f*pdfy-ypdf)
+                            max_misfit = np.max(misfit)
+                            misfit[misfit<0.01*max_misfit] = 0.01*max_misfit
+                            w = 1/misfit
+                            newf = (ypdf).dot(pdfy*w) / pdfy.dot(pdfy*w)
+                            if abs(newf-f)/f < 1e-6:
+                                break
+                            f = newf
+                        if plot_pdfs:
+                            array_plot = ax_pdf[k, E].plot(pdfx, f*pdfy, color='brown', marker='.', linestyle='', alpha=0.75, label='Array PDF')[0]
+                            ax_pdf[k, E].plot(pdfx, f*pdfy, color='darkblue', marker='', linestyle='-', alpha=0.25)[0]
+
+                    if plot_pdfs:
+                        model_plot = ax_pdf[k, E].plot(x, y, color='orangered', marker='', linestyle='-', label='Model PDF')[0]
+                    if plot_cdfs:
+                        cum_model_plot = ax_cdf[k, E].plot(x, cumgauss(m, s, x), color='green', marker='', linestyle='-', alpha=0.75, label='Model CDF')[0]
+
+                if gauss is None and pdfxy is None:
+                    xmin, xmax = 0, 1
+                elif gauss is None:
+                    xmin = np.max(cdfx[cdfy<=percentile_interval[0]/100])
+                    xmax = np.min(cdfx[cdfy>=percentile_interval[1]/100])
+                else:
+                    xmin, xmax = m-4*s, m+4*s
+                ax_pdf[k, E].set_xlim(xmin, xmax)
+                ax_pdf[k, E].set_ylim(0, max(ax_pdf[k, E].get_ylim()))
+                ax_cdf[k, E].set_ylim(0, 1.05)
+
+        plots = [array_plot, model_plot, mc_hist_plot, cum_model_plot, mc_cum_hist_plot]
+        labels = ['Array PDF', 'Model PDF', 'MC PDF', 'Model CDF', 'MC CDF']
+        if plots:
+            ax_legend.legend([k for k in plots if k is not None],
+                            [v for k, v in zip(plots, labels) if k is not None],
+                            loc='center', ncol=5)
+
+        return fig, {'ax_pdf': ax_pdf, 'ax_cdf': ax_cdf, 'ax_legend': ax_legend}
+
+
+    def view_inversion_coefs(self, figsize=(8, 5), **kwargs):
+        '''
+        Convenience function for visualizing the probability density functions (PDFs) for the
+        Monte Carlo invertion coefficients.
+
+        Parameters
+        ----------
+        figsize : tuple of float, optional
+            Size of the figure in inches, specified as `(width, height)`. Default is `(8, 5)`.
+
+        kwargs :
+            Additional keyword arguments to be passed to the underlying Matplotlib hist function.
+
+        Returns
+        -------
+        fig : matplotlib.figure.Figure
+            The `Figure` object containing the generated plots.
+
+        ax : numpy.ndarray
+            The axes for the PDFs.
+
+        '''
+        internal_kwargs = dict(bins=30, density=True, facecolor='lightsteelblue', edgecolor='slategrey')
+        internal_kwargs.update(**kwargs)
+        fig, ax = plt.subplots(2, 3, layout='constrained', figsize=figsize)
+        fig.suptitle('Monte Carlo Inversion parameters')
+
+        for i, (coef, mode) in enumerate(zip((self.lowE_inversion_coefficients,
+                                              self.highE_inversion_coefficients),
+                                              ('low', 'high'))):
+            for j, xlb in enumerate(('A', 'B', 'n')):
+                ax[i, j].hist(coef[f'{xlb}'], **internal_kwargs)
+                ax[i, j].set_xlabel(f'{mode} $E$ ${xlb}$')
+                ax[i, j].set_ylabel('PDF')
+        return fig, ax
+
+
+    def view_inversion_Zeff(self, figsize=(8, 5), **kwargs):
+        '''
+        Convenience function for visualizing the probability density functions (PDFs) for the
+        Monte Carlo resulting effective atomic number for the calibration materials.
+
+        Parameters
+        ----------
+        figsize : tuple of float, optional
+            Size of the figure in inches, specified as `(width, height)`. Default is `(8, 5)`.
+
+        kwargs :
+            Additional keyword arguments to be passed to the underlying Matplotlib hist function.
+
+        Returns
+        -------
+        fig : matplotlib.figure.Figure
+            The `Figure` object containing the generated plots.
+
+        ax : numpy.ndarray
+            The axes for the PDFs.
+
+        '''
+        internal_kwargs = dict(bins=30, density=True, facecolor='lightsteelblue', edgecolor='slategrey')
+        internal_kwargs.update(**kwargs)
+        fig, ax = plt.subplots(2, 3, layout='constrained', figsize=figsize)
+        fig.suptitle('Monte Carlo effective atomic numbers')
+
+        for i, (coef, mode) in enumerate(zip((self.lowE_inversion_coefficients,
+                                              self.highE_inversion_coefficients),
+                                              ('low', 'high'))):
+            for j, xlb in enumerate(('Z_1', 'Z_2', 'Z_3')):
+                ax[i, j].hist(coef[f'{xlb}'], **internal_kwargs)
+                ax[i, j].set_xlabel(f'{mode} $E$ $Z_{{eff}}$')
+                ax[i, j].set_title(f'{self.calibration_material[j+1].description}')
+                ax[i, j].set_ylabel('PDF')
+        return fig, ax
 
 
 def create_group(store, *, path=None, overwrite=False, **kwargs):

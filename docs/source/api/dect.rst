@@ -17,6 +17,13 @@ Classes
    ~CalibrationMaterial
    ~PeriodicTable
 
+.. toctree::
+   :hidden:
+
+   dect/group
+   dect/calibrationmaterial
+   dect/periodictable
+
 Functions
 ---------
 
@@ -24,13 +31,6 @@ Functions
    :toctree: _autogen
 
    ~create_group
-
-.. toctree::
-   :hidden:
-
-   dect/group
-   dect/calibrationmaterial
-   dect/periodictable
 
 
 Related tutorials
