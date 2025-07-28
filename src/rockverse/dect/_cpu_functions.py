@@ -46,21 +46,37 @@ def fill_coeff_matrix_cpu(matrix, Z1v, Z2v, Z3v, args, cdfx0, cdfy0, cdfx1, cdfy
         return err
 
     rho1, rho2, rho3, maxA, maxB, maxn, tol = args
-
     #Broad random search
     for k in range(matrix.shape[0]):
         CT0, CT1, CT2, CT3, Z1, Z2, Z3, A, B, n, err = matrix[k, :]
         matrix[k, -1] = error_value(A, B, n, CT0, CT1, CT2, CT3, rho1, rho2, rho3, Z1v, Z2v, Z3v)
         if matrix[k, -1] < tol:
             continue
-        for _ in range(1000):
+        for _ in range(100):
             if matrix[k, -1] < tol:
                 break
-            CT0 = draw_pdf(cdfx0, cdfy0, np.random.rand())
-            CT1 = draw_pdf(cdfx1, cdfy1, np.random.rand())
-            CT2 = draw_pdf(cdfx2, cdfy2, np.random.rand())
-            CT3 = draw_pdf(cdfx3, cdfy3, np.random.rand())
-            for _ in range(1000):
+
+            if len(cdfx0) == 2:
+                CT0 = np.random.randn()*cdfx0[1] + cdfx0[0]
+            else:
+                CT0 = draw_pdf(cdfx0, cdfy0, np.random.rand())
+
+            if len(cdfx1) == 2:
+                CT1 = np.random.randn()*cdfx1[1] + cdfx1[0]
+            else:
+                CT1 = draw_pdf(cdfx1, cdfy1, np.random.rand())
+
+            if len(cdfx2) == 2:
+                CT2 = np.random.randn()*cdfx2[1] + cdfx2[0]
+            else:
+                CT2 = draw_pdf(cdfx2, cdfy2, np.random.rand())
+
+            if len(cdfx3) == 2:
+                CT3 = np.random.randn()*cdfx3[1] + cdfx3[0]
+            else:
+                CT3 = draw_pdf(cdfx3, cdfy3, np.random.rand())
+
+            for _ in range(100):
                 A0 = np.random.rand()*maxA + 1e-10
                 B0 = np.random.rand()*maxB + 1e-10
                 n0 = np.random.rand()*maxn + 1e-10

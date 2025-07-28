@@ -226,41 +226,46 @@ To enable GPU support, ensure that:
 
 1. **You have CUDA-capable hardware and drivers installed**.
    Refer to Numba's `CUDA documentation <https://numba.readthedocs.io/en/stable/cuda/overview.html#supported-gpus>`_ for hardware compatibility.
+   Check the version of your CUDA compilation tools:
+
+   .. code-block:: sh
+
+      nvcc --version
 
 2. **Install the appropriate CUDA toolkit**:
 
-.. tab-set::
+   .. tab-set::
 
-   .. tab-item:: Conda (CUDA 12)
+      .. tab-item:: Conda (CUDA 12)
 
-      Install CUDA 12 support:
+         Install CUDA 12 support:
 
-      .. code-block:: sh
+         .. code-block:: sh
 
-         conda install -c conda-forge cuda-nvcc cuda-nvrtc "cuda-version>=12.0"
+            conda install -c conda-forge cuda-nvcc cuda-nvrtc "cuda-version>=12.0"
 
-   .. tab-item:: Conda (CUDA 11)
+      .. tab-item:: Conda (CUDA 11)
 
-      Install CUDA 11 toolkit:
+         Install CUDA 11 toolkit:
 
-      .. code-block:: sh
+         .. code-block:: sh
 
-         conda install -c conda-forge cudatoolkit "cuda-version>=11.2,<12.0"
+            conda install -c conda-forge cudatoolkit "cuda-version>=11.2,<12.0"
 
-   .. tab-item:: Pip
+      .. tab-item:: Pip
 
-      Install NVIDIA bindings:
+         Install NVIDIA bindings:
 
-      .. code-block:: sh
+         .. code-block:: sh
 
-         pip install cuda-python
+            pip install cuda-python
 
-      Set environment variables:
+         Set environment variables:
 
-      .. code-block:: sh
+         .. code-block:: sh
 
-         export NUMBA_CUDA_USE_NVIDIA_BINDING="1"  # Linux
-         set NUMBA_CUDA_USE_NVIDIA_BINDING="1"     # Windows
+            export NUMBA_CUDA_USE_NVIDIA_BINDING="1"  # Linux
+            set NUMBA_CUDA_USE_NVIDIA_BINDING="1"     # Windows
 
 Test Numba's GPU detection:
 
@@ -268,11 +273,13 @@ Test Numba's GPU detection:
 
    python -c "from numba import cuda; print(cuda.is_available())"
 
-If the output is ``True``, you can list the devices running
+If the output is ``True``, you can list your devices running
 
 .. code-block:: sh
 
-   python -c "from numba import cuda; print([d.name for d in cuda.gpus])"
+   python -c "from numba import cuda; print('\n'.join([f'{k}: {d.name.decode()} ({d._device.uuid})' for k, d in enumerate(cuda.gpus)]))"
+
+
 
 
 Updating RockVerse

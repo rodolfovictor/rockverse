@@ -93,8 +93,10 @@ def hash_coefficient_matrices(group):
             matrixh = group.zgroup['matrixh'][...]
     matrixl = comm.bcast(matrixl, root=0)
     matrixh = comm.bcast(matrixh, root=0)
-    md5.update(matrixl)
-    md5.update(matrixh)
+    if matrixl is not None:
+        md5.update(matrixl)
+    if matrixh is not None:
+        md5.update(matrixh)
     return md5.hexdigest()
 
 

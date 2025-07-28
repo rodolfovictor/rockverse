@@ -19,6 +19,8 @@ Attributes
    ~CalibrationMaterial.lowE_cdf
    ~CalibrationMaterial.highE_pdf
    ~CalibrationMaterial.highE_cdf
+   ~CalibrationMaterial.lowE_gaussian_pdf
+   ~CalibrationMaterial.highE_gaussian_pdf
 
 Methods
 =======
@@ -29,3 +31,5 @@ Methods
    ~CalibrationMaterial.as_dict
    ~CalibrationMaterial.hash
    ~CalibrationMaterial.check
+   ~CalibrationMaterial.fit_lowE_gaussian_pdf
+   ~CalibrationMaterial.fit_highE_gaussian_pdf

@@ -50,13 +50,30 @@ def coeff_matrix_broad_search_gpu(rng_states, matrix, Z1v, Z2v, Z3v, args, cdfx0
     matrix[k, -1] = error_value(A, B, n, CT0, CT1, CT2, CT3, rho1, rho2, rho3, Z1v, Z2v, Z3v)
     if matrix[k, -1]<tol:
         return
+
     for _ in range(100):
         if matrix[k, -1] < tol:
             return
-        CT0 = draw_pdf(cdfx0, cdfy0, xoroshiro128p_uniform_float64(rng_states, k))
-        CT1 = draw_pdf(cdfx1, cdfy1, xoroshiro128p_uniform_float64(rng_states, k))
-        CT2 = draw_pdf(cdfx2, cdfy2, xoroshiro128p_uniform_float64(rng_states, k))
-        CT3 = draw_pdf(cdfx3, cdfy3, xoroshiro128p_uniform_float64(rng_states, k))
+        if len(cdfx0) == 2:
+            CT0 = xoroshiro128p_normal_float64(rng_states, k)*cdfx0[1] + cdfx0[0]
+        else:
+            CT0 = draw_pdf(cdfx0, cdfy0, xoroshiro128p_uniform_float64(rng_states, k))
+
+        if len(cdfx1) == 2:
+            CT1 = xoroshiro128p_normal_float64(rng_states, k)*cdfx1[1] + cdfx1[0]
+        else:
+            CT1 = draw_pdf(cdfx1, cdfy1, xoroshiro128p_uniform_float64(rng_states, k))
+
+        if len(cdfx2) == 2:
+            CT2 = xoroshiro128p_normal_float64(rng_states, k)*cdfx2[1] + cdfx2[0]
+        else:
+           CT2 = draw_pdf(cdfx2, cdfy2, xoroshiro128p_uniform_float64(rng_states, k))
+
+        if len(cdfx3) == 2:
+            CT3 = xoroshiro128p_normal_float64(rng_states, k)*cdfx3[1] + cdfx3[0]
+        else:
+            CT3 = draw_pdf(cdfx3, cdfy3, xoroshiro128p_uniform_float64(rng_states, k))
+
         for _ in range(100):
             A0 = xoroshiro128p_uniform_float64(rng_states, k)*maxA + 1e-10
             B0 = xoroshiro128p_uniform_float64(rng_states, k)*maxB + 1e-10

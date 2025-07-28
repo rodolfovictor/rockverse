@@ -84,3 +84,13 @@ Monte Carlo Inversion
    ~DECTGroup.check
    ~DECTGroup.preprocess
    ~DECTGroup.run
+
+Visualization
+~~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: _autogen
+
+   ~DECTGroup.view_pdfs
+   ~DECTGroup.view_inversion_coefs
+   ~DECTGroup.view_inversion_Zeff
