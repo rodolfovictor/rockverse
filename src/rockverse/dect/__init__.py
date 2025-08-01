@@ -2211,8 +2211,8 @@ class DECTGroup():
         cum_model_plot = None
 
         for k in range(4):
-            ax_pdf[k, 0].set_xlabel(f'Low E {self.calibration_material[k-1].description}')
-            ax_pdf[k, 1].set_xlabel(f'High E {self.calibration_material[k-1].description}')
+            ax_pdf[k, 0].set_xlabel(f'Low E {self.calibration_material[k].description}')
+            ax_pdf[k, 1].set_xlabel(f'High E {self.calibration_material[k].description}')
             if plot_pdfs:
                 ax_pdf[k, 0].set_ylabel(f'PDF')
                 ax_pdf[k, 1].set_ylabel(f'PDF')

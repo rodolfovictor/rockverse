@@ -1,6 +1,6 @@
 import sys
 
-__version__ = "1.2.1d"
+__version__ = "1.3.0d"
 
 #----------------------------------------------------------------------
 # Make sure the main depencies are present with the supported versions.
@@ -61,12 +61,14 @@ __all__ = [
     "region",
     "OrthogonalViewer",
     "dect",
+    "seismic",
 ]
 
 from rockverse import voxel_image
 from rockverse import region
 from rockverse.viz import OrthogonalViewer
 from rockverse import dect
+from rockverse import seismic
 from rockverse.errors import collective_only_rank0_runs, collective_raise
 
 def open(store, *, path=None, **kwargs):
@@ -113,5 +115,8 @@ def open(store, *, path=None, **kwargs):
 
     if rv_data_type in ('DECTGroup', 'DualEnergyCTGroup'):
         return dect.DECTGroup(z)
+
+    if rv_data_type == ('SeismicData'):
+        return seismic.SeismicData(z)
 
     collective_raise(ValueError(f"{store} does not contain valid RockVerse data."))

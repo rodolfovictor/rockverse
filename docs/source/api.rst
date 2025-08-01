@@ -51,6 +51,15 @@ Digital Rock Modules
   ~rockverse.region
   ~rockverse.dect
 
+
+Seismic Module
+==============
+
+.. autosummary::
+
+  ~rockverse.seismic
+
+
 Visualization Modules
 =====================
 
@@ -75,5 +84,6 @@ Runtime configuration
   api/voxel_image
   api/region
   api/dect
+  api/seismic
   api/viz
   api/config

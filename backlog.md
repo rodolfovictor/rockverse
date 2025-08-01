@@ -25,6 +25,7 @@
   - Implement hashing.
   - Import raw boolean
   - Export raw boolean to Fiji as 0-255 uint8
+  - Add warning for overwrite=True deleting the whole directory content.
 
 - Orthogonal slices
   - Add scale bar.
@@ -76,5 +77,6 @@
 
 - Documentation
   - install/troubleshooting  conda git
+  - Replace `>>>` by `.. code-block:: python`
 
 > Note: These tasks are subject to change based on project needs and priorities.

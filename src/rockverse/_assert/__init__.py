@@ -136,9 +136,10 @@ def same_voxel_unit(message, varlist):
 def zarr_array(varname, var):
     if not isinstance(var, zarr.core.Array):
         collective_raise(ValueError(f'Expected Zarr array for {varname}'))
-    for n in ('voxel_origin', 'voxel_length', 'voxel_unit'):
-        if n not in var.attrs:
-            collective_raise(KeyError(f"'{n}' not found in zarr array attributes"))
+
+def zarr_group(varname, var):
+    if not isinstance(var, zarr.Group):
+        collective_raise(ValueError(f'Expected Zarr group for {varname}'))
 
 def zarr_localstore(varname, var):
     if mpi_nprocs > 1 and not isinstance(var, (str, zarr.storage.LocalStore)):
