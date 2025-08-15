@@ -1,0 +1,330 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!--Created by yFiles for HTML 3.0.0.2-->
+<graphml xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns http://www.yworks.com/xml/schema/graphml.html/2.0/ygraphml.xsd " xmlns="http://graphml.graphdrawing.org/xmlns" xmlns:yca="http://www.yworks.com/xml/yfiles-compat-arrows/1.0" xmlns:ycns="http://www.yworks.com/xml/yfiles-compat-node-styles/1.0" xmlns:yjs2="http://www.yworks.com/xml/yfiles-for-html/2.0/xaml" xmlns:template-styles="http://www.yworks.com/demos/template-node-style/3.0" xmlns:demostyle2="http://www.yworks.com/yFilesHTML/demos/FlatDemoStyle/2.0" xmlns:demostyle="http://www.yworks.com/yFilesHTML/demos/FlatDemoStyle/1.0" xmlns:icon-style="http://www.yworks.com/yed-live/icon-style/1.0" xmlns:bpmn="http://www.yworks.com/xml/yfiles-bpmn/2.0" xmlns:demotablestyle="http://www.yworks.com/yFilesHTML/demos/FlatDemoTableStyle/1.0" xmlns:uml="http://www.yworks.com/yFilesHTML/demos/UMLDemoStyle/1.0" xmlns:GraphvizNodeStyle="http://www.yworks.com/yFilesHTML/graphviz-node-style/1.0" xmlns:Vue3jsNodeStyle="http://www.yworks.com/demos/yfiles-vue-node-style/3.0" xmlns:explorer-style="http://www.yworks.com/data-explorer/1.0" xmlns:yx="http://www.yworks.com/xml/yfiles-common/4.0" xmlns:y="http://www.yworks.com/xml/yfiles-common/3.0" xmlns:x="http://www.yworks.com/xml/yfiles-common/markup/3.0" xmlns:yjs="http://www.yworks.com/xml/yfiles-for-html/3.0/xaml" xmlns:x0="http://www.yworks.com/yFilesHTML/demos/EntityRelationship/1.0" xmlns:sys="http://www.yworks.com/xml/yfiles-common/markup/primitives/2.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+	<key id="d0" for="node" attr.type="int" attr.name="zOrder" y:attr.uri="http://www.yworks.com/xml/yfiles-z-order/1.0/zOrder"/>
+	<key id="d1" for="node" attr.type="boolean" attr.name="Expanded" y:attr.uri="http://www.yworks.com/xml/yfiles-common/2.0/folding/Expanded">
+		<default>true</default>
+	</key>
+	<key id="d2" for="node" attr.type="string" attr.name="url"/>
+	<key id="d3" for="node" attr.type="string" attr.name="description"/>
+	<key id="d4" for="node" attr.name="NodeLabels" y:attr.uri="http://www.yworks.com/xml/yfiles-common/2.0/NodeLabels"/>
+	<key id="d5" for="node" attr.name="NodeGeometry" y:attr.uri="http://www.yworks.com/xml/yfiles-common/2.0/NodeGeometry"/>
+	<key id="d6" for="all" attr.name="UserTags" y:attr.uri="http://www.yworks.com/xml/yfiles-common/2.0/UserTags"/>
+	<key id="d7" for="node" attr.name="NodeStyle" y:attr.uri="http://www.yworks.com/xml/yfiles-common/2.0/NodeStyle"/>
+	<key id="d8" for="node" attr.name="NodeViewState" y:attr.uri="http://www.yworks.com/xml/yfiles-common/2.0/folding/1.1/NodeViewState"/>
+	<key id="d9" for="edge" attr.type="string" attr.name="url"/>
+	<key id="d10" for="edge" attr.type="string" attr.name="description"/>
+	<key id="d11" for="edge" attr.name="EdgeLabels" y:attr.uri="http://www.yworks.com/xml/yfiles-common/2.0/EdgeLabels"/>
+	<key id="d12" for="edge" attr.name="EdgeGeometry" y:attr.uri="http://www.yworks.com/xml/yfiles-common/2.0/EdgeGeometry"/>
+	<key id="d13" for="edge" attr.name="EdgeStyle" y:attr.uri="http://www.yworks.com/xml/yfiles-common/2.0/EdgeStyle"/>
+	<key id="d14" for="edge" attr.name="EdgeViewState" y:attr.uri="http://www.yworks.com/xml/yfiles-common/2.0/folding/1.1/EdgeViewState"/>
+	<key id="d15" for="port" attr.name="PortLabels" y:attr.uri="http://www.yworks.com/xml/yfiles-common/2.0/PortLabels"/>
+	<key id="d16" for="port" attr.name="PortLocationParameter" y:attr.uri="http://www.yworks.com/xml/yfiles-common/2.0/PortLocationParameter">
+		<default>
+			<x:Static Member="y:FreeNodePortLocationModel.NodeCenterAnchored"/>
+		</default>
+	</key>
+	<key id="d17" for="port" attr.name="PortStyle" y:attr.uri="http://www.yworks.com/xml/yfiles-common/2.0/PortStyle">
+		<default>
+			<x:Static Member="y:VoidPortStyle.Instance"/>
+		</default>
+	</key>
+	<key id="d18" for="port" attr.name="PortViewState" y:attr.uri="http://www.yworks.com/xml/yfiles-common/2.0/folding/1.1/PortViewState"/>
+	<key id="d19" attr.name="SharedData" y:attr.uri="http://www.yworks.com/xml/yfiles-common/2.0/SharedData"/>
+	<data key="d19">
+		<y:SharedData>
+			<yx:InteriorNodeLabelModel x:Key="1"/>
+			<yjs:Font x:Key="2" fontSize="12" fontFamily="Roboto" lineSpacing="0.2"/>
+			<yjs:Color x:Key="3" value="#FFE8EEF7"/>
+			<yjs:Color x:Key="4" value="#FFB7C9E3"/>
+			<yjs:Color x:Key="5" value="#FF663800"/>
+		</y:SharedData>
+	</data>
+	<graph id="G" edgedefault="directed">
+		<data key="d6">
+			<y:Json>{"version":"2.0.0","origin":"yed-live","theme":{"name":"light","version":"1.0.0"},"layout":"layout-smart","config":{}}</y:Json>
+		</data>
+		<node id="n0">
+			<data key="d0">1</data>
+			<data key="d4">
+				<x:List>
+					<y:Label Text="store (Zarr group)">
+						<y:Label.LayoutParameter>
+							<yx:GroupNodeLabelModelParameter PlaceOnTab="false">
+								<yx:GroupNodeLabelModelParameter.Model>
+									<yx:GroupNodeLabelModel/>
+								</yx:GroupNodeLabelModelParameter.Model>
+							</yx:GroupNodeLabelModelParameter>
+						</y:Label.LayoutParameter>
+						<y:Label.Style>
+							<yjs:LabelStyle verticalTextAlignment="CENTER" horizontalTextAlignment="CENTER" wrapping="WRAP_CHARACTER_ELLIPSIS" font="{y:GraphMLReference 2}">
+								<yjs:LabelStyle.textFill>
+									<yjs:CssFill cssString="#EEE"/>
+								</yjs:LabelStyle.textFill>
+							</yjs:LabelStyle>
+						</y:Label.Style>
+					</y:Label>
+				</x:List>
+			</data>
+			<data key="d5">
+				<y:RectD X="-80.87838458764367" Y="-51.861426511468835" Width="333.2499999999999" Height="292"/>
+			</data>
+			<data key="d7">
+				<yjs:GroupNodeStyle tabWidth="30" tabHeight="20" tabPadding="3" iconOffset="2" minimumContentAreaSize="0,0" hitTransparentContentArea="true" cssClass="y-group-node">
+					<yjs:GroupNodeStyle.iconForegroundFill>
+						<yjs:CssFill cssString="#0b7189"/>
+					</yjs:GroupNodeStyle.iconForegroundFill>
+					<yjs:GroupNodeStyle.contentAreaFill>
+						<yjs:CssFill cssString="#FFF"/>
+					</yjs:GroupNodeStyle.contentAreaFill>
+					<yjs:GroupNodeStyle.tabFill>
+						<yjs:CssFill cssString="#0b7189"/>
+					</yjs:GroupNodeStyle.tabFill>
+					<yjs:GroupNodeStyle.stroke>
+						<yjs:Stroke lineCap="SQUARE" thickness="2">
+							<yjs:Stroke.fill>
+								<yjs:CssFill cssString="#0b7189"/>
+							</yjs:Stroke.fill>
+						</yjs:Stroke>
+					</yjs:GroupNodeStyle.stroke>
+				</yjs:GroupNodeStyle>
+			</data>
+			<graph id="n0:" edgedefault="directed">
+				<node id="n0::n0">
+					<data key="d0">7</data>
+					<data key="d4">
+						<x:List>
+							<y:Label Text="Metadata">
+								<y:Label.LayoutParameter>
+									<yx:CompositeLabelModelParameter>
+										<yx:CompositeLabelModelParameter.Parameter>
+											<yx:InteriorNodeLabelModelParameter Position="Center" Model="{y:GraphMLReference 1}"/>
+										</yx:CompositeLabelModelParameter.Parameter>
+										<yx:CompositeLabelModelParameter.Model>
+											<yx:CompositeLabelModel>
+												<yx:CompositeLabelModel.Models>
+													<yx:CompositeLabelModelModelPair>
+														<yx:CompositeLabelModelModelPair.Model>
+															<yx:ExteriorNodeLabelModel Margins="5"/>
+														</yx:CompositeLabelModelModelPair.Model>
+													</yx:CompositeLabelModelModelPair>
+													<yx:CompositeLabelModelModelPair Model="{y:GraphMLReference 1}"/>
+													<yx:CompositeLabelModelModelPair Model="{x:Static yx:FreeNodeLabelModel.Instance}"/>
+												</yx:CompositeLabelModel.Models>
+											</yx:CompositeLabelModel>
+										</yx:CompositeLabelModelParameter.Model>
+									</yx:CompositeLabelModelParameter>
+								</y:Label.LayoutParameter>
+								<y:Label.Style>
+									<yjs:LabelStyle verticalTextAlignment="CENTER" horizontalTextAlignment="CENTER" font="{y:GraphMLReference 2}">
+										<yjs:LabelStyle.textFill>
+											<yjs:CssFill cssString="black"/>
+										</yjs:LabelStyle.textFill>
+									</yjs:LabelStyle>
+								</y:Label.Style>
+							</y:Label>
+						</x:List>
+					</data>
+					<data key="d5">
+						<y:RectD X="-17.89543471785908" Y="-17.611426511468835" Width="206.75" Height="30"/>
+					</data>
+					<data key="d7">
+						<yjs:RectangleNodeStyle fill="#FFD6D6E0">
+							<yjs:RectangleNodeStyle.stroke>
+								<yjs:Stroke>
+									<yjs:Stroke.fill>
+										<yjs:CssFill cssString="#663800"/>
+									</yjs:Stroke.fill>
+								</yjs:Stroke>
+							</yjs:RectangleNodeStyle.stroke>
+						</yjs:RectangleNodeStyle>
+					</data>
+					<data key="d8">
+						<y:ViewState>
+							<y:FolderNodeState x:Key="c|view" Layout="-84.75,151.5,206.75,60"/>
+						</y:ViewState>
+					</data>
+				</node>
+				<node id="n0::n1">
+					<data key="d0">8</data>
+					<data key="d5">
+						<y:RectD X="-67.56" Y="22.138573488531165" Width="149" Height="60"/>
+					</data>
+					<data key="d7">
+						<x0:EntityNodeStyle fill="{y:GraphMLReference 3}" insetFill="{y:GraphMLReference 4}" stroke="BLACK">
+							<x0:EntityNodeStyle.model>
+								<x0:EntityRelationshipModel title="ilines (Zarr array)">
+									<x0:EntityRelationshipModel.attributes>
+										<x:Array>
+											<sys:String>shape=(Nil,)</sys:String>
+											<sys:String>dtype=int</sys:String>
+										</x:Array>
+									</x0:EntityRelationshipModel.attributes>
+								</x0:EntityRelationshipModel>
+							</x0:EntityNodeStyle.model>
+						</x0:EntityNodeStyle>
+					</data>
+				</node>
+				<node id="n0::n2">
+					<data key="d0">9</data>
+					<data key="d5">
+						<y:RectD X="-67.56" Y="91.88857348853116" Width="149" Height="60"/>
+					</data>
+					<data key="d7">
+						<x0:EntityNodeStyle fill="{y:GraphMLReference 3}" insetFill="{y:GraphMLReference 4}" stroke="BLACK">
+							<x0:EntityNodeStyle.model>
+								<x0:EntityRelationshipModel title="xlines (Zarr array)">
+									<x0:EntityRelationshipModel.attributes>
+										<x:Array>
+											<sys:String>shape=(Nxl,)</sys:String>
+											<sys:String>dtype=int</sys:String>
+										</x:Array>
+									</x0:EntityRelationshipModel.attributes>
+								</x0:EntityRelationshipModel>
+							</x0:EntityNodeStyle.model>
+						</x0:EntityNodeStyle>
+					</data>
+				</node>
+				<node id="n0::n3">
+					<data key="d0">10</data>
+					<data key="d5">
+						<y:RectD X="-67.56" Y="161.63857348853116" Width="149" Height="60"/>
+					</data>
+					<data key="d7">
+						<x0:EntityNodeStyle fill="{y:GraphMLReference 3}" insetFill="{y:GraphMLReference 4}" stroke="BLACK">
+							<x0:EntityNodeStyle.model>
+								<x0:EntityRelationshipModel title="samples (Zarr array)">
+									<x0:EntityRelationshipModel.attributes>
+										<x:Array>
+											<sys:String>shape=(Ns,)</sys:String>
+											<sys:String>dtype=float</sys:String>
+										</x:Array>
+									</x0:EntityRelationshipModel.attributes>
+								</x0:EntityRelationshipModel>
+							</x0:EntityNodeStyle.model>
+						</x0:EntityNodeStyle>
+					</data>
+				</node>
+				<node id="n0::n4">
+					<data key="d0">11</data>
+					<data key="d5">
+						<y:RectD X="89.44" Y="22.138573488531165" Width="149" Height="60"/>
+					</data>
+					<data key="d7">
+						<x0:EntityNodeStyle fill="{y:GraphMLReference 3}" insetFill="{y:GraphMLReference 4}" stroke="BLACK">
+							<x0:EntityNodeStyle.model>
+								<x0:EntityRelationshipModel title="cdp_x_map (Zarr array)">
+									<x0:EntityRelationshipModel.attributes>
+										<x:Array>
+											<sys:String><![CDATA[shape=(Nil, Nxl)]]></sys:String>
+											<sys:String>dtype=float</sys:String>
+										</x:Array>
+									</x0:EntityRelationshipModel.attributes>
+								</x0:EntityRelationshipModel>
+							</x0:EntityNodeStyle.model>
+						</x0:EntityNodeStyle>
+					</data>
+				</node>
+				<node id="n0::n5">
+					<data key="d0">12</data>
+					<data key="d5">
+						<y:RectD X="89.44" Y="91.88857348853116" Width="149" Height="60"/>
+					</data>
+					<data key="d7">
+						<x0:EntityNodeStyle fill="{y:GraphMLReference 3}" insetFill="{y:GraphMLReference 4}" stroke="BLACK">
+							<x0:EntityNodeStyle.model>
+								<x0:EntityRelationshipModel title="cdp_y_map (Zarr array)">
+									<x0:EntityRelationshipModel.attributes>
+										<x:Array>
+											<sys:String><![CDATA[shape=(Nil, Nxl)]]></sys:String>
+											<sys:String>dtype=float</sys:String>
+										</x:Array>
+									</x0:EntityRelationshipModel.attributes>
+								</x0:EntityRelationshipModel>
+							</x0:EntityNodeStyle.model>
+						</x0:EntityNodeStyle>
+					</data>
+				</node>
+				<node id="n0::n6">
+					<data key="d0">13</data>
+					<data key="d5">
+						<y:RectD X="89.44" Y="161.63857348853116" Width="149" Height="60"/>
+					</data>
+					<data key="d7">
+						<x0:EntityNodeStyle fill="{y:GraphMLReference 3}" insetFill="{y:GraphMLReference 4}" stroke="BLACK">
+							<x0:EntityNodeStyle.model>
+								<x0:EntityRelationshipModel title="data (Zarr array)">
+									<x0:EntityRelationshipModel.attributes>
+										<x:Array>
+											<sys:String><![CDATA[shape=(Nil, Nxl, Ns)]]></sys:String>
+											<sys:String>dtype=float</sys:String>
+										</x:Array>
+									</x0:EntityRelationshipModel.attributes>
+								</x0:EntityRelationshipModel>
+							</x0:EntityNodeStyle.model>
+						</x0:EntityNodeStyle>
+					</data>
+				</node>
+			</graph>
+			<port name="p0">
+				<data key="d16">
+					<y:FreeNodePortLocationModelParameter Ratio="0.5,0.003076923076923088"/>
+				</data>
+			</port>
+		</node>
+		<node id="n1">
+			<data key="d0">2</data>
+			<data key="d5">
+				<y:RectD X="-39.47999359176754" Y="-323.85773018616646" Width="250" Height="214"/>
+			</data>
+			<data key="d7">
+				<uml:UMLNodeStyle fill="#FF607D8B">
+					<uml:UMLNodeStyle.highlightFill>
+						<yjs:CssFill cssString="#a3f1bb"/>
+					</uml:UMLNodeStyle.highlightFill>
+					<uml:UMLNodeStyle.model>
+						<uml:UMLClassModel stereotype="" constraint="" className="SeismicData" attributesOpen="true" operationsOpen="true">
+							<uml:UMLClassModel.attributes>
+								<x:Array>
+									<sys:String><![CDATA[+ ilines]]></sys:String>
+									<sys:String><![CDATA[+ xlines]]></sys:String>
+									<sys:String><![CDATA[+ samples]]></sys:String>
+									<sys:String>.</sys:String>
+									<sys:String>.</sys:String>
+									<sys:String>.</sys:String>
+								</x:Array>
+							</uml:UMLClassModel.attributes>
+							<uml:UMLClassModel.operations>
+								<x:Array>
+									<sys:String><![CDATA[+ plot_section()]]></sys:String>
+								</x:Array>
+							</uml:UMLClassModel.operations>
+						</uml:UMLClassModel>
+					</uml:UMLNodeStyle.model>
+				</uml:UMLNodeStyle>
+			</data>
+			<port name="p0">
+				<data key="d16">
+					<y:FreeNodePortLocationModelParameter Ratio="0.996031746031746,0.5"/>
+				</data>
+			</port>
+			<port name="p1">
+				<data key="d16">
+					<y:FreeNodePortLocationModelParameter Ratio="0.5,0.9953703703703703"/>
+				</data>
+			</port>
+		</node>
+		<edge id="e0" source="n1" target="n0" sourceport="p1" targetport="p0">
+			<data key="d13">
+				<yjs:PolylineEdgeStyle sourceArrow="None">
+					<yjs:PolylineEdgeStyle.stroke>
+						<yjs:Stroke fill="{y:GraphMLReference 5}" lineCap="SQUARE" dashStyle="Dash"/>
+					</yjs:PolylineEdgeStyle.stroke>
+					<yjs:PolylineEdgeStyle.targetArrow>
+						<yjs:Arrow stroke="#FF663800" fill="{y:GraphMLReference 5}" lengthScale="0.75" widthScale="0.75" type="NONE"/>
+					</yjs:PolylineEdgeStyle.targetArrow>
+				</yjs:PolylineEdgeStyle>
+			</data>
+		</edge>
+	</graph>
+</graphml>

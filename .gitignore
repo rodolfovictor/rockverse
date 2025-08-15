@@ -1,5 +1,5 @@
 docs/build/
-docs/.ipynb_checkpoints/
+**/.ipynb_checkpoints/
 docs/source/_tutorials_autogen.rst
 __pycache__
 *.egg-info

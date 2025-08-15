@@ -1,0 +1,230 @@
+#%%
+import datetime
+import numpy as np
+from rockverse._utils.text import load_text_file
+
+from rockverse.las.exceptions import LasImportError
+from rockverse.las.las2 import break_las2_line, assemble_las2_dict
+from rockverse.las.las3 import break_las3_line, convert_value_from_las3, assemble_las3_section_trio
+
+def split_sections(lines):
+
+    """
+    Split sections into dictionaries
+    """
+
+    las_version = None
+    las_wrap = None
+    las_delimiter = ' '
+    break_las_line = None
+
+    current_section = None
+    sections = []
+    data = []
+    imported_sections = {}
+    for line_number, line_original in enumerate(lines):
+        line = line_original.strip()
+        if not line:
+            continue
+
+        # Comment line
+        if line.startswith("#"):
+            continue
+
+        # Section start ----------------------------------------
+        if line.startswith("~"):
+
+            # Flush accumulated data to the corresponding section and reset the accumulator
+            if len(data)>0:
+                imported_sections[sections[-1]] = data.copy()
+                data = []
+
+            sections.append(line)
+            imported_sections[line] = []
+            current_section = imported_sections[line]
+
+            # If starting the second section, version and wrap must have been already defined.
+            if len(sections)>1 and las_version is None:
+                raise LasImportError("LAS version must be defined in the first file section.")
+
+            if len(sections)>1 and las_wrap is None:
+                raise LasImportError("LAS wrap mode must be defined in the first file section.")
+
+            # Version must be the first section
+            if len(sections)>0 and not sections[0].upper().startswith('~V'):
+                raise LasImportError("The ~Version section must be the first section of a LAS file", line_number)
+
+            # Only one ~Version section allowed
+            if len([s for s in sections if s.upper().startswith('~V')]) > 1:
+                raise LasImportError("LAS file can only have one ~VERSION section.", line_number)
+
+            # Well must be the second section
+            if len(sections)>1 and not sections[1].upper().startswith('~W') and las_version==3:
+                raise LasImportError("The ~Well section must be the second section of a LAS 3.0 file", line_number)
+
+            # Only one ~Well section allowed
+            if len([s for s in sections if s.upper().startswith('~W')]) > 1:
+                raise LasImportError("LAS file can only have one ~Well section.", line_number)
+
+            # Only one ascii section in LAS 2.0
+            if las_version == 2 and len([s for s in sections if s.upper().startswith('~A')]) > 1:
+                raise LasImportError("LAS file can only have one ~ASCII section.", line_number)
+
+            continue
+
+        # Version information section --------------------------
+        if sections[-1].upper().startswith('~V'):
+
+            brline = break_las2_line(line_number, line, las_delimiter)
+            current_section.append(brline)
+
+            if brline['mnem'].upper() == 'VERS':
+                if all(k in '023.' for k in brline['value']):
+                    if abs(float(brline['value']) - 2.0) < 1e-10:
+                        las_version = 2
+                        break_las_line = break_las2_line
+                    elif abs(float(brline['value']) - 3.0) < 1e-10:
+                        las_version = 3
+                        break_las_line = break_las3_line
+                    else:
+                        raise LasImportError("invalid LAS file version.", line_number)
+                else:
+                    raise LasImportError("invalid LAS file version.", line_number)
+
+            elif brline['mnem'].upper() == 'WRAP':
+                if brline['value'].upper() == 'YES':
+                    las_wrap = True
+                elif brline['value'].upper() == 'NO':
+                    las_wrap = False
+                else:
+                    raise LasImportError("~Version WRAP value must be 'YES' or 'NO'.", line_number)
+
+                if las_version == 3 and las_wrap:
+                    raise LasImportError("'NO' is the only legal LAS 3.0 value for WRAP.", line_number)
+
+            elif brline['mnem'].upper() == 'DLM':
+                if brline['value'].upper() == 'SPACE':
+                    las_delimiter = ' '
+                elif brline['value'].upper() == 'COMMA':
+                    las_delimiter = ','
+                elif brline['value'].upper() == 'TAB':
+                    las_delimiter = '\t'
+                else:
+                    raise LasImportError("~Version DLM value must be 'SPACE', 'COMMA', or 'TAB'.", line_number)
+
+            if len(current_section)>0 and current_section[0]['mnem'] != 'VERS':
+                raise LasImportError("VERS must be the first line in ~Version section.", line_number)
+
+            if len(current_section)>1 and current_section[1]['mnem'] != 'WRAP':
+                raise LasImportError("WRAP must be the second line in ~Version section.", line_number)
+
+            if len(current_section)>2 and current_section[2]['mnem'] != 'DLM' and las_version == 3:
+                raise LasImportError("DLM must be the thrird line in ~Version section.", line_number)
+
+            continue
+
+        sec = sections[-1].split('|')[0].split('[')[0].strip().upper()
+
+        # Parameter or curve type section ----------------------
+        condition = [
+            las_version == 2 and sec.startswith('~W'), # Well information LAS 2.0
+            sec.startswith('~WELL'),                   # Well information LAS 3.0
+            las_version == 2 and sec.startswith('~P'), # Parameter section LAS 2.0
+            sec.startswith('~PARAMETER'),              # Parameter section LAS 3.0
+            sec.startswith('~LOG_PARAMETER'),          # Parameter section LAS 3.0
+            las_version == 2 and sec.startswith('~C'), # Curve definition section LAS 2.0
+            sec.startswith('~CURVE'),                  # Curve definition section LAS 3.0
+            sec.startswith('~LOG_DEFINITION'),         # Curve definition section LAS 3.0
+            sec.endswith('_PARAMETER'),                # Parameter section LAS 3.0
+            sec.endswith('_DEFINITION'),               # Data definition section LAS 3.0
+        ]
+
+        if any(condition):
+            brline = break_las_line(line_number, line, las_delimiter)
+            current_section.append(brline)
+            continue
+
+        # Data section -----------------------------------------
+        condition = [
+            las_version == 2 and sec.startswith('~A'), # ASCII section LAS 2.0
+            sec.startswith('~ASCII'),                  # Data values LAS 3.0
+            sec.endswith('_DATA'),                     # Data values section LAS 3.0
+            las_version == 2 and sec.startswith('~O'), # Legacy LAS 2.0 ~Other section
+        ]
+        if any(condition):
+            data.append(line)
+            continue
+
+        # If the execution gets here, something bad happened...
+        raise LasImportError("This line does not fit the LAS standards.", line_number)
+
+    # Final data flush
+    if len(data)>0:
+        imported_sections[sections[-1]] = data.copy()
+
+    section_order = sections
+    return imported_sections, section_order, las_version, las_wrap, las_delimiter
+
+
+#filename='/togp/GOB7/Pseudowell/Buzios2023/pocos/Basicos/CurvasFinais_BUZ-3.las'
+#filename='/u/gob7/rockverse/tests/LAS2_example_1.las'
+#filename='/u/gob7/rockverse/tests/LAS2_example_2.las'
+#filename='/u/gob7/rockverse/tests/LAS2_example_3.las'
+#filename='/u/gob7/rockverse/tests/LAS2_example_4.las'
+#filename='/u/gob7/rockverse/tests/LAS2_example_5.las'
+filename='/u/gob7/rockverse/tests/LAS3_example_1.las'
+encoding=None
+
+#def import_las(filename, encoding=None, load_data=True):
+if True:
+
+    lines = load_text_file(filename, encoding=encoding)
+    imported_sections, section_order, las_version, las_wrap, las_delimiter = split_sections(lines)
+    if las_version == 2:
+        final_data = assemble_las2_dict(imported_sections, las_wrap)
+    elif las_version == 3:
+
+        final_data = {}
+
+        # Well section
+        key = [k for k in imported_sections if k.upper().startswith('~WELL')]
+        if len(key) == 0:
+            raise LasImportError("I didn't find the LAS ~Well section.")
+        if len(key) > 1:
+            raise LasImportError("Only one LAS ~Well section is allowed.")
+        key = key[0]
+        well_section = imported_sections[key]
+        for parameter in well_section:
+            parameter['value'] = convert_value_from_las3(value=parameter['value'], format=parameter['format'])
+        null_value = [v['value'] for v in well_section if v['mnem'] == 'NULL']
+        if not null_value:
+            raise LasImportError("I didn't find NULL parameter in ~Well section.")
+        null_value = null_value[0]
+        final_data['Well'] = well_section
+
+        # Legacy ~Parameter, ~Curve, ~Ascii
+        final_data['default_log'] = assemble_las3_section_trio(
+            section_keys=('~Parameter', '~Curve', '~Ascii'), imported_sections=imported_sections, las_delimiter=las_delimiter)
+
+        # Remaining sections
+        section_names = [name for name in section_order if "_DATA" in name.upper()]
+        for section_name in section_names:
+            section_keys = ['None', 'None', section_name]
+            definition = section_name.split('|')
+            if len(definition) != 2:
+                raise LasImportError(f"{section_name} has no associated definition section.")
+            definition = '~'+definition[1].strip()
+            pos = [k for k, name in enumerate(section_order) if name.upper().strip() == definition.upper().strip()]
+            if len(pos) == 0:
+                raise LasImportError(f"Missing {definition} section associated to {section_name} section.")
+            if len(pos) == 0:
+                raise LasImportError(f"Duplicate {definition} section.")
+            pos = pos[0]
+            section_keys[1] = section_order[pos]
+            if section_order[pos-1].upper() == definition.upper().replace('_DEFINITION', '_PARAMETER'):
+                section_keys[0] = section_order[pos-1]
+
+            final_data[section_name.split('|')[0].strip().replace('~', '')] = assemble_las3_section_trio(section_keys, imported_sections, las_delimiter)
+
+    else: # Maybe another version in the future?...
+        raise NotImplementedError(f"I don't know how to read LAS version {las_version}.")

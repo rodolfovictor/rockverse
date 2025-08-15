@@ -62,8 +62,10 @@ __all__ = [
     "OrthogonalViewer",
     "dect",
     "seismic",
+    "Group",
 ]
 
+from rockverse.group import Group, create_group
 from rockverse import voxel_image
 from rockverse import region
 from rockverse.viz import OrthogonalViewer
@@ -118,5 +120,8 @@ def open(store, *, path=None, **kwargs):
 
     if rv_data_type == ('SeismicData'):
         return seismic.SeismicData(z)
+
+    if rv_data_type == ('Group'):
+        return Group(z)
 
     collective_raise(ValueError(f"{store} does not contain valid RockVerse data."))

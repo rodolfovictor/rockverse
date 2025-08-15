@@ -55,6 +55,7 @@ dependencies = [
     "sphinx-copybutton",
     "sphinx-design",
     "sphinx-gallery",
+    "sphinx-graphml",
     "tqdm",
     "zarr>=3,<4",
 ]
