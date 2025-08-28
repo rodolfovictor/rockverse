@@ -6,6 +6,14 @@ from rockverse.errors import collective_raise
 #     if not hasattr(var, "__iter__"):
 #         collective_raise(ValueError(f"Expected iterable for {varname}."))
 
+def tuple_or_list(varname, var):
+    if not isinstance(var, (tuple, list)):
+        collective_raise(ValueError(f"Expected tuple or list for {varname}."))
+
+def tuple_list_or_1d_nparray(varname, var):
+    if not isinstance(var, (tuple, list, np.ndarray)):
+        collective_raise(ValueError(f"Expected tuple, list, or 1D Numpy array for {varname}."))
+
 def any_iterable_non_negative_integers(varname, var):
     if (not hasattr(var, "__iter__")
         or any(np.dtype(type(k)).kind not in 'iu' for k in var)
@@ -25,9 +33,9 @@ def length(varname, var, length):
 #     if any(k not in group for k in var):
 #         collective_raise(ValueError(f"{varname} entries must be one of {tuple(group)}."))
 
-# def ordered_iterable(varname, var):
-#     if not (hasattr(var, '__iter__') and hasattr(var, '__getitem__')):
-#         collective_raise(ValueError(f"Expected ordered iterable for {varname}."))
+def ordered_iterable(varname, var):
+    if not (hasattr(var, '__iter__') and hasattr(var, '__getitem__')):
+        collective_raise(ValueError(f"Expected ordered iterable for {varname}."))
 
 # def ordered_integers(varname, var):
 #     if not (hasattr(var, '__iter__')
@@ -54,3 +62,9 @@ def ordered_numbers_positive(varname, var):
             and all(np.dtype(type(k)).kind in 'uif' for k in var)
             and all(k>0 for k in var)):
         collective_raise(ValueError(f'Expected ordered iterable with positive numerical values for {varname}.'))
+
+def ordered_string_or_none(varname, var):
+    if not (hasattr(var, '__iter__')
+            and hasattr(var, '__getitem__')
+            and all(isinstance(k, str) for k in var)):
+        collective_raise(ValueError(f'Expected ordered iterable with string or None elements in {varname}.'))

@@ -64,6 +64,10 @@ def boolean(varname, var):
     if not isinstance(var, bool):
         collective_raise(ValueError(f"Expected boolean for {varname}."))
 
+def string(varname, var):
+    if not isinstance(var, str):
+        collective_raise(ValueError(f"Expected string for {varname}."))
+
 def dictionary(varname, var):
     if not isinstance(var, dict):
         collective_raise(ValueError(f"Expected dict for {varname}."))
@@ -150,3 +154,7 @@ def zarr_or_none_iterable(varname, var):
             and all(k is None or isinstance(k, zarr.core.Array) for k in var)
             ):
         collective_raise(ValueError(f'Expected list of None or Zarr arrays for {varname}.'))
+
+def array_like(varname, var):
+    if not hasattr(var, '__array__'):
+        collective_raise(ValueError(f'{varname} must be an array-like object.'))

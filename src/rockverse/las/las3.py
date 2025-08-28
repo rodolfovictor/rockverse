@@ -2,6 +2,7 @@ import datetime
 import numpy as np
 from rockverse.las.exceptions import LasImportError
 from rockverse.las.las2 import convert_value_from_las2
+from rockverse.las.las import LAS
 
 def break_las3_line(line_number, line, las_delimiter):
 
@@ -253,3 +254,50 @@ def assemble_las3_section_trio(section_keys, imported_sections, las_delimiter):
         final_group['data'] = sections[1]
 
         return final_group
+
+def assemble_las3_dict(imported_sections, section_order, las_delimiter):
+
+    final_data = LAS()
+
+    # Well section
+    key = [k for k in imported_sections if k.upper().startswith('~WELL')]
+    if len(key) == 0:
+        raise LasImportError("I didn't find the LAS ~Well section.")
+    if len(key) > 1:
+        raise LasImportError("Only one LAS ~Well section is allowed.")
+    key = key[0]
+    well_section = imported_sections[key]
+    for parameter in well_section:
+        parameter['value'] = convert_value_from_las3(value=parameter['value'], format=parameter['format'])
+    null_value = [v['value'] for v in well_section if v['mnem'] == 'NULL']
+    if not null_value:
+        raise LasImportError("I didn't find NULL parameter in ~Well section.")
+    null_value = null_value[0]
+    final_data['Well'] = well_section
+
+    # Legacy ~Parameter, ~Curve, ~Ascii
+    final_data['Curve'] = assemble_las3_section_trio(section_keys=('~Parameter', '~Curve', '~Ascii'),
+                                                     imported_sections=imported_sections,
+                                                     las_delimiter=las_delimiter)
+
+    # Remaining sections
+    section_names = [name for name in section_order if "_DATA" in name.upper()]
+    for section_name in section_names:
+        section_keys = ['None', 'None', section_name]
+        definition = section_name.split('|')
+        if len(definition) != 2:
+            raise LasImportError(f"{section_name} has no associated definition section.")
+        definition = '~'+definition[1].strip()
+        pos = [k for k, name in enumerate(section_order) if name.upper().strip() == definition.upper().strip()]
+        if len(pos) == 0:
+            raise LasImportError(f"Missing {definition} section associated to {section_name} section.")
+        if len(pos) == 0:
+            raise LasImportError(f"Duplicate {definition} section.")
+        pos = pos[0]
+        section_keys[1] = section_order[pos]
+        if section_order[pos-1].upper() == definition.upper().replace('_DEFINITION', '_PARAMETER'):
+            section_keys[0] = section_order[pos-1]
+
+        final_data[section_name.split('|')[0].strip().replace('~', '')] = assemble_las3_section_trio(section_keys, imported_sections, las_delimiter)
+
+    return final_data

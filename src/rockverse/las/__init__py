@@ -1,11 +1,12 @@
 #%%
+import copy
 import datetime
 import numpy as np
 from rockverse._utils.text import load_text_file
 
 from rockverse.las.exceptions import LasImportError
 from rockverse.las.las2 import break_las2_line, assemble_las2_dict
-from rockverse.las.las3 import break_las3_line, convert_value_from_las3, assemble_las3_section_trio
+from rockverse.las.las3 import break_las3_line, assemble_las3_dict
 
 def split_sections(lines):
 
@@ -172,59 +173,33 @@ def split_sections(lines):
 #filename='/u/gob7/rockverse/tests/LAS2_example_3.las'
 #filename='/u/gob7/rockverse/tests/LAS2_example_4.las'
 #filename='/u/gob7/rockverse/tests/LAS2_example_5.las'
-filename='/u/gob7/rockverse/tests/LAS3_example_1.las'
+#filename='/u/gob7/rockverse/tests/LAS3_example_1.las'
+filename=r'C:\Users\GOB7\Downloads\rockverse\tests\LAS3_example_1.las'
+filename=r'C:\Users\GOB7\Downloads\rockverse\tests\LAS2_example_5.las'
 encoding=None
 
-#def import_las(filename, encoding=None, load_data=True):
+#def import_las(filename, encoding=None):
 if True:
-
     lines = load_text_file(filename, encoding=encoding)
     imported_sections, section_order, las_version, las_wrap, las_delimiter = split_sections(lines)
     if las_version == 2:
         final_data = assemble_las2_dict(imported_sections, las_wrap)
     elif las_version == 3:
-
-        final_data = {}
-
-        # Well section
-        key = [k for k in imported_sections if k.upper().startswith('~WELL')]
-        if len(key) == 0:
-            raise LasImportError("I didn't find the LAS ~Well section.")
-        if len(key) > 1:
-            raise LasImportError("Only one LAS ~Well section is allowed.")
-        key = key[0]
-        well_section = imported_sections[key]
-        for parameter in well_section:
-            parameter['value'] = convert_value_from_las3(value=parameter['value'], format=parameter['format'])
-        null_value = [v['value'] for v in well_section if v['mnem'] == 'NULL']
-        if not null_value:
-            raise LasImportError("I didn't find NULL parameter in ~Well section.")
-        null_value = null_value[0]
-        final_data['Well'] = well_section
-
-        # Legacy ~Parameter, ~Curve, ~Ascii
-        final_data['default_log'] = assemble_las3_section_trio(
-            section_keys=('~Parameter', '~Curve', '~Ascii'), imported_sections=imported_sections, las_delimiter=las_delimiter)
-
-        # Remaining sections
-        section_names = [name for name in section_order if "_DATA" in name.upper()]
-        for section_name in section_names:
-            section_keys = ['None', 'None', section_name]
-            definition = section_name.split('|')
-            if len(definition) != 2:
-                raise LasImportError(f"{section_name} has no associated definition section.")
-            definition = '~'+definition[1].strip()
-            pos = [k for k, name in enumerate(section_order) if name.upper().strip() == definition.upper().strip()]
-            if len(pos) == 0:
-                raise LasImportError(f"Missing {definition} section associated to {section_name} section.")
-            if len(pos) == 0:
-                raise LasImportError(f"Duplicate {definition} section.")
-            pos = pos[0]
-            section_keys[1] = section_order[pos]
-            if section_order[pos-1].upper() == definition.upper().replace('_DEFINITION', '_PARAMETER'):
-                section_keys[0] = section_order[pos-1]
-
-            final_data[section_name.split('|')[0].strip().replace('~', '')] = assemble_las3_section_trio(section_keys, imported_sections, las_delimiter)
-
+        final_data = assemble_las3_dict(imported_sections, section_order, las_delimiter)
     else: # Maybe another version in the future?...
         raise NotImplementedError(f"I don't know how to read LAS version {las_version}.")
+
+    # Change "value" to "code" and "data" to "value" in data entries
+    sections = [k for k in final_data.keys() if k not in ('Well', 'Other')]
+    for sec in sections:
+        for k in final_data[sec]['data']:
+            k['code'] = k.pop('value')
+            k['value'] = k.pop('data')
+
+    self=final_data
+    final_data.tree()
+
+
+
+
+# %%

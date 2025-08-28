@@ -1,5 +1,6 @@
 import numpy as np
 from rockverse.las.exceptions import LasImportError
+from rockverse.las.las import LAS
 
 def break_las2_line(line_number, line, las_delimiter):
 
@@ -150,12 +151,14 @@ def assemble_las2_dict(imported_sections, las_wrap):
     for k, curve in enumerate(curve_section):
         curve['data'] = np.array([v[k] for v in conv_data])
 
-    final_data = {}
+    final_data = LAS()
     final_data['Well'] = [k for k in well_section if k['mnem'] not in ('NULL', 'STRT', 'STOP', 'STEP')]
+    final_data['Curve'] = {}
     if parameter_section is not None:
-        final_data['Parameter'] = parameter_section
+        final_data['Curve']['parameters'] = parameter_section
+    final_data['Curve']['data'] = curve_section
     if other_section is not None:
         final_data['Other'] = other_section
-    final_data['Curve'] = curve_section
+
 
     return final_data

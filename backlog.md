@@ -4,6 +4,9 @@
 
 - Introduce well logs
 
+- LAS 3.0
+  - Assemble 2D, 3D log curves
+
 - Fine-tune threads per block GPU
   - Adjust GPU thread configurations for optimized performance in parallel computing tasks.
   - Investigate the best thread-per-block configuration for varying workloads.
@@ -78,5 +81,6 @@
 - Documentation
   - install/troubleshooting  conda git
   - Replace `>>>` by `.. code-block:: python`
+  - Add multi-CPU/multi-GPU
 
 > Note: These tasks are subject to change based on project needs and priorities.

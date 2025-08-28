@@ -7,7 +7,6 @@ mpi_comm = config.mpi_comm
 mpi_rank = config.mpi_rank
 mpi_nprocs = config.mpi_nprocs
 
-
 from rockverse.voxel_image import VoxelImage
 from rockverse.dect import DECTGroup
 from rockverse.seismic import SeismicData, import_segy
@@ -17,6 +16,7 @@ _DATA_CLASS_MAP = {'VoxelImage': VoxelImage,
                    'DECTGroup': DECTGroup,
                    'DualEnergyCTGroup': DECTGroup,
                    'SeismicData': SeismicData}
+
 
 class Group():
 

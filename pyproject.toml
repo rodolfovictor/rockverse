@@ -51,6 +51,7 @@ dependencies = [
     "pip",
     "pydata-sphinx-theme",
     "scipy<=1.13.1",
+    "segyio",
     "sphinx",
     "sphinx-copybutton",
     "sphinx-design",
