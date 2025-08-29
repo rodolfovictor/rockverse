@@ -66,5 +66,5 @@ def ordered_numbers_positive(varname, var):
 def ordered_string_or_none(varname, var):
     if not (hasattr(var, '__iter__')
             and hasattr(var, '__getitem__')
-            and all(isinstance(k, str) for k in var)):
+            and all(k is None or isinstance(k, str) for k in var)):
         collective_raise(ValueError(f'Expected ordered iterable with string or None elements in {varname}.'))

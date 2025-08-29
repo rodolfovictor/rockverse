@@ -42,6 +42,12 @@ Functions
 
   ~rockverse.open
 
+Core Module
+===========
+
+.. autosummary::
+  ~rockverse.core
+
 Digital Rock Modules
 ====================
 
@@ -81,6 +87,7 @@ Runtime configuration
   :hidden:
   :maxdepth: 2
 
+  api/core
   api/voxel_image
   api/region
   api/dect
