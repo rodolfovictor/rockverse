@@ -20,10 +20,14 @@ Classes
 
    core/array
 
-Functions
----------
+
+.. _core module creation functions:
+
+Creation functions
+------------------
 
 .. autosummary::
    :toctree: _autogen
 
    ~create_array
+   ~load_array_from_h5_file
