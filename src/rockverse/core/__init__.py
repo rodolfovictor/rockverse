@@ -2,7 +2,7 @@
 Provides the basic variable classes and creation functions
 for all data types handled in RockVerse.
 
-It includes the `Array` class, which represents generic N-dimensional arrays with
+It includes the `Tensor` class, which represents generic N-dimensional arbitrary order tensors with
 coordinates and associated metadata (similar to the
 `Xarray project <https://docs.xarray.dev/en/stable/>`_, for example),
 and the `Group` class, which facilitates generic data grouping and hierarchization.
@@ -20,8 +20,11 @@ from rockverse.errors import collective_raise
 
 # TODO PARALELLIZE EVERYTHING
 # TODO WRITE PLOT_FRIENDLY FUNCTIONS (labels, etc)
-# TODO ARRAY PROPERTY ATTRS
-# TODO ARRAY INTERFACE FOR DATA
+# TODO TENSOR PROPERTY ATTRS
+# TODO TENSOR INTERFACE FOR DATA
+# TODO Attributes I/O must be only through rank 0
+# Create: allocate zarr group and arrays; only rank 0 fill in the attrs,
+# rank0 reads data and send chunk to MPI process
 
 from rockverse.configure import config
 comm = config.mpi_comm
@@ -29,13 +32,124 @@ mpi_rank = config.mpi_rank
 mpi_nprocs = config.mpi_nprocs
 
 
-class Array:
+class Coordinate:
+
+    def __init__(self, zgroup, index):
+        self._zgroup = zgroup
+        self._array_name = f'coord_{index}'
+
+    @property
+    def zgroup(self):
+        return self._zgroup
+
+    @property
+    def array(self):
+        return self.zgroup[self._array_name]
+
+    def _get_attribute(self, name):
+        value = None
+        if mpi_rank == 0:
+            value = self.array.attrs[name] if name in self.array.attrs else None
+        value = comm.bcast(value, root=0)
+        return value
+
+    def _set_attribute(self, name, value):
+        _assert.string(name, value)
+        if mpi_rank == 0:
+            self.array.attrs[name] = value
+        comm.barrier()
+        return
+
+    @property
+    def name(self):
+        return self._get_attribute('name')
+
+    @property
+    def unit(self):
+        return self._get_attribute('unit')
+
+    @property
+    def latex_name(self):
+        return self._get_attribute('latex_name')
+
+    @property
+    def latex_unit(self):
+        return self._get_attribute('latex_unit')
+
+    @property
+    def description(self):
+        return self._get_attribute('description')
+
+    @name.setter
+    def name(self, value):
+        return self._set_attribute('name', value)
+
+    @unit.setter
+    def unit(self, value):
+        return self._set_attribute('unit', value)
+
+    @latex_name.setter
+    def latex_name(self, value):
+        return self._set_attribute('latex_name', value)
+
+    @latex_unit.setter
+    def latex_unit(self, value):
+        return self._set_attribute('latex_unit', value)
+
+    @description.setter
+    def description(self, value):
+        return self._set_attribute('description', value)
+
+
+class Coordinates:
+
+    def __init__(self, zgroup):
+        self.zgroup = zgroup
+
+    @property
+    def array_keys(self):
+        return tuple(sorted(k for k in self.zgroup.array_keys() if k.startswith('coord_')))
+
+    @property
+    def names(self):
+        return tuple(self.zgroup[k].attrs['name'] if 'name' in self.zgroup[k].attrs else None for k in self.array_keys)
+
+    @property
+    def units(self):
+        return tuple(self.zgroup[k].attrs['unit'] if 'unit' in self.zgroup[k].attrs else None for k in self.array_keys)
+
+    @property
+    def descriptions(self):
+        return tuple(self.zgroup[k].attrs['description'] if 'description' in self.zgroup[k].attrs else None for k in self.array_keys)
+
+    @property
+    def latex_names(self):
+        return tuple(self.zgroup[k].attrs['latex_name'] if 'latex_name' in self.zgroup[k].attrs else None for k in self.array_keys)
+
+    @property
+    def latex_units(self):
+        return tuple(self.zgroup[k].attrs['latex_unit'] if 'latex_unit' in self.zgroup[k].attrs else None for k in self.array_keys)
+
+    def _exit_error(self):
+        collective_raise(KeyError(f'Expected key in range({len(self.names)}) or {self.names}.'))
+
+    def __getitem__(self, index):
+        if index in range(len(self.names)):
+            return Coordinate(self.zgroup, index=index)
+        if index in self.names:
+            return Coordinate(self.zgroup, index=[k for k, v in enumerate(self.names) if v == index][0])
+        self._exit_error()
+
+
+class TensorField:
 
     """
-    A class representing a generic N-dimensional array with coordinates and associated metadata.
+    A class representing a generic N-dimensional, arbitrary order tensor fields
+    with coordinates and associated metadata.
 
-    This class serves as the basis for all array-like variables in RockVerse, tailored for optimized
-    multi-process memory usage and high-performance read and write access.
+    This class serves as the basis for all tensor-like variables in RockVerse,
+    (scalar fields, vector fields, etc), and is tailored for optimized
+    multi-process memory usage and high-performance read and write disk access.
     It builds upon `Zarr <https://zarr.readthedocs.io>`_ arrays and groups, and is adapted for MPI
     (Message Passing Interface) processing, enabling parallel computation across multiple CPUs or GPUs.
 
@@ -52,340 +166,19 @@ class Array:
 
     def __init__(self, zgroup):
         """
-        Initializes the Array instance with the Zarr group with the corresponding organized data.
+        Initializes the Tensor instance with the Zarr group with the corresponding organized data.
 
         Parameters
         ----------
 
         zgroup : zarr.group.Group
-            A Zarr group that contains the data and associated attributes for this array.
+            A Zarr group that contains the data and associated attributes for this tensor.
         """
         _assert.zarr_group('zgroup', zgroup)
         self._zgroup = zgroup
+        self.validate()
+        self.coordinates = Coordinates(zgroup)
 
-    @property
-    def zgroup(self):
-        """
-        The Zarr group containing the data.
-        """
-        return self._zgroup
-
-    def _get_array(self, dim=None):
-        """
-        Retrieves the Zarr array for the specified dimension.
-        """
-        if dim is None:
-            return self.zgroup['data']
-        if f'dim_{dim}' in self.zgroup:
-            return self.zgroup[f'dim_{dim}']
-        dim_names = self.dim_names
-        pos = [k for k, v in enumerate(dim_names) if v == dim]
-        if pos:
-            return self.zgroup[f'dim_{pos[0]}']
-        # Error from here...
-        msg = f"dim='{dim}'" if isinstance(dim, str) else f"dim={dim}"
-        collective_raise(KeyError(
-            f"{msg} is not a valid dimension index for this array. "
-            f"Expected non negative integer < {len(self.zgroup['data'].shape)} or "
-            f"one of the dim names {tuple(dim_names)}."))
-
-
-    def _get_attribute(self, attr_name, dim=None):
-        """
-        Gets a specified attribute from the array for a given dimension.
-        """
-        array = self._get_array(dim)
-        attr_value = None
-        if mpi_rank == 0:
-            if attr_name in array.attrs:
-                attr_value = array.attrs[attr_name]
-        attr_value = comm.bcast(attr_value, root=0)
-        return attr_value
-
-
-    def _set_attribute(self, attr_name, attr_value, attr_type, dim=None):
-        """
-        Sets a specified attribute for the array for a given dimension.
-        """
-        _assert.condition.non_negative_integer('dim', dim)
-        array = self._get_array(dim)
-        str_type = 'string' if attr_type == str else attr_type
-        if not isinstance(attr_value, attr_type):
-            collective_raise(ValueError(f"Expected {str_type} for {attr_name}."))
-        if mpi_rank == 0:
-            array.attrs[attr_name] = attr_value
-        comm.barrier()
-
-
-    def get_name(self, dim=None):
-        """
-        Retrieves the name of the data or a specified dimension.
-
-        Parameters
-        ----------
-        dim : None, int, or str, optional
-            The dimension specifier. Use ``None`` to retrieve the name of the main data,
-            a non-negative integer `i` to retrieve the i-th dimension, or a string
-            representing the dimension name.
-
-        Returns
-        -------
-        str
-            The name of the data or the specified dimension.
-        """
-
-        return self._get_attribute('name', dim=dim)
-
-    def set_name(self, v, dim=None):
-        """
-        Sets the name of the data or a specified dimension.
-
-        Parameters
-        ----------
-        v : str
-            The name to be set for the data or the specified dimension.
-
-        dim : None, int, or str, optional
-            The dimension specifier. Use ``None`` to set the unit of the main data,
-            a non-negative integer `i` to set the unit for the i-th dimension, or a
-            string representing the dimension name.
-        """
-        self._set_attribute(attr_name='name', attr_value=v, attr_type=str, dim=dim)
-
-    def get_unit(self, dim=None):
-        """
-        Retrieves the unit of the data or a specified dimension.
-
-        Parameters
-        ----------
-        dim : None, int, or str, optional
-            The dimension specifier. Use ``None`` to retrieve the name of the main data,
-            a non-negative integer `i` to retrieve the i-th dimension, or a string
-            representing the dimension name.
-
-        Returns
-        -------
-        str
-            The unit of the data or the specified dimension.
-        """
-
-        return self._get_attribute('unit', dim=dim)
-
-    def set_unit(self, v, dim=None):
-        """
-        Sets the unit of the data or a specified dimension.
-
-        Parameters
-        ----------
-        v : str
-            The unit to be set for the data or the specified dimension.
-
-        dim : None, int, or str, optional
-            The dimension specifier. Use ``None`` to set the unit of the main data,
-            a non-negative integer `i` to set the unit for the i-th dimension, or a
-            string representing the dimension name.
-        """
-        self._set_attribute(attr_name='unit', attr_value=v, attr_type=str, dim=dim)
-
-    def get_description(self, dim=None):
-        """
-        Retrieves the description of the data or a specified dimension.
-
-        Parameters
-        ----------
-        dim : None, int, or str, optional
-            The dimension specifier. Use ``None`` to retrieve the name of the main data,
-            a non-negative integer `i` to retrieve the i-th dimension, or a string
-            representing the dimension name.
-
-        Returns
-        -------
-        str
-            The description of the data or the specified dimension.
-        """
-        return self._get_attribute('description', dim=dim)
-
-    def set_description(self, v, dim=None):
-        """
-        Sets the description of the data or a specified dimension.
-
-        Parameters
-        ----------
-        v : str
-            The description to be set for the data or the specified dimension.
-
-        dim : None, int, or str, optional
-            The dimension specifier. Use ``None`` to set the unit of the main data,
-            a non-negative integer `i` to set the unit for the i-th dimension, or a
-            string representing the dimension name.
-        """
-        self._set_attribute(attr_name='description', attr_value=v, attr_type=str, dim=dim)
-
-    def get_latex_name(self, dim=None):
-        """
-        Retrieves the LaTeX name representation for the data or a specified dimension.
-
-        Parameters
-        ----------
-        dim : None, int, or str, optional
-            The dimension specifier. Use ``None`` to retrieve the name of the main data,
-            a non-negative integer `i` to retrieve the i-th dimension, or a string
-            representing the dimension name.
-
-        Returns
-        -------
-        str
-            The LaTeX name representation of the data or the specified dimension.
-        """
-        return self._get_attribute('latex_name', dim=dim)
-
-    def set_latex_name(self, v, dim=None):
-        """
-        Sets the LaTeX name representation for the data or a specified dimension.
-
-        Parameters
-        ----------
-        v : str
-            The LaTeX name representation to be set for the data or the specified dimension.
-
-        dim : None, int, or str, optional
-            The dimension specifier. Use ``None`` to set the unit of the main data,
-            a non-negative integer `i` to set the unit for the i-th dimension, or a
-            string representing the dimension name.
-        """
-        self._set_attribute(attr_name='latex_name', attr_value=v, attr_type=str, dim=dim)
-
-    def get_latex_unit(self, dim=None):
-        """
-        Retrieves the LaTeX unit representation for the data or a specified dimension.
-
-        Parameters
-        ----------
-        dim : None, int, or str, optional
-            The dimension specifier. Use ``None`` to retrieve the name of the main data,
-            a non-negative integer `i` to retrieve the i-th dimension, or a string
-            representing the dimension name.
-
-        Returns
-        -------
-        str
-            The LaTeX unit representation of the data or the specified dimension.
-        """
-        return self._get_attribute('latex_unit', dim=dim)
-
-    def set_latex_unit(self, v, dim=None):
-        """
-        Sets the LaTeX unit representation for the data or a specified dimension.
-
-        Parameters
-        ----------
-        v : str
-            The LaTeX unit representation to be set for the data or the specified dimension.
-
-        dim : None, int, or str, optional
-            The dimension specifier. Use ``None`` to set the unit of the main data,
-            a non-negative integer `i` to set the unit for the i-th dimension, or a
-            string representing the dimension name.
-        """
-        self._set_attribute(attr_name='latex_unit', attr_value=v, attr_type=str, dim=dim)
-
-    @property
-    def ndim(self):
-        """
-        Number of data array dimensions.
-        """
-        return self.zgroup['data'].ndim
-
-    @property
-    def shape(self):
-        """
-        The data array shape.
-        """
-        return self.zgroup['data'].shape
-
-    @property
-    def data(self):
-        """
-        A view for the underlying data array as a Zarr array.
-        """
-        return self.zgroup['data']
-
-    @property
-    def values(self):
-        """
-        The data array as a Numpy array.
-        """
-        return self.zgroup['data'][...]
-
-    @property
-    def name(self):
-        """
-        The array name.
-        """
-        return self.get_name()
-
-    @property
-    def unit(self):
-        """
-        The array data unit.
-        """
-        return self.get_unit()
-
-    @property
-    def description(self):
-        """
-        The array description.
-        """
-        return self.get_description()
-
-    @property
-    def latex_name(self):
-        """
-        The LaTeX representation for the array name.
-        """
-        return self.get_latex_name()
-
-    @property
-    def latex_unit(self):
-        """
-        The LaTeX representation for array data units.
-        """
-        return self.get_latex_unit()
-
-    @property
-    def dim_names(self):
-        """
-        Tuple containing the ordered dimension names.
-        """
-        return tuple(self.get_name(dim=k) for k in range(len(self.zgroup['data'].shape)))
-
-    @property
-    def dim_units(self):
-        """
-        Tuple containing the ordered dimension units.
-        """
-        return tuple(self.get_unit(dim=k) for k in range(len(self.zgroup['data'].shape)))
-
-    @property
-    def dim_descriptions(self):
-        """
-        Tuple containing the ordered dimension descriptions.
-        """
-        return tuple(self.get_description(dim=k) for k in range(len(self.zgroup['data'].shape)))
-
-    @property
-    def dim_latex_names(self):
-        """
-        Tuple containing the ordered LaTeX representation for dimension names.
-        """
-        return tuple(self.get_latex_name(dim=k) for k in range(len(self.zgroup['data'].shape)))
-
-    @property
-    def dim_latex_units(self):
-        """
-        Tuple containing the ordered LaTeX representation for dimension units.
-        """
-        return tuple(self.get_latex_unit(dim=k) for k in range(len(self.zgroup['data'].shape)))
 
     def validate(self):
         """
@@ -407,18 +200,43 @@ class Array:
         KeyError
             If any expected attributes are missing from the data structure.
         """
+
         zgroup = self.zgroup
 
         # Data type identifier
         if "_ROCKVERSE_DATATYPE" not in zgroup.attrs:
             collective_raise(KeyError(f"Missing '_ROCKVERSE_DATATYPE' identifier in the zarr group attrs."))
 
-        # data array must exist
-        if 'data' not in zgroup:
-            collective_raise(KeyError(f"Missing 'data' array in the zarr group."))
+        # data arrays must exist
+        data_arrays = [k for k in zgroup.array_keys() if k.startswith('data_')]
+        if not data_arrays:
+            collective_raise(KeyError(f"Missing data arrays in the zarr group."))
 
-        # Every dimension array must exist
-        missing_dims = [f"'dim_{k}'" for k in range(self.ndim) if f"dim_{k}" not in zgroup]
+        # array indices must have same length
+        data_indices = [tuple(int(i) for i in k.replace('data_', '').split('_')) for k in data_arrays]
+        order = [len(k) for k in data_indices]
+        if not all(k==order[0] for k in order):
+            collective_raise(ValueError(f'Inconsistent component indices: {data_indices}.'))
+
+        # array shapes must be the same
+        shapes = [zgroup[k].shape for k in data_arrays]
+        if not all(k==shapes[0] for k in shapes):
+            collective_raise(KeyError(f"Data array shapes must be the same."))
+        shape = shapes[0]
+        ndim = len(shapes[0])
+
+        # array chunks must be the same
+        chunks = [zgroup[k].chunks for k in data_arrays]
+        if not all(k==chunks[0] for k in chunks):
+            collective_raise(KeyError(f"Data arrays chunk size must be the same."))
+
+        # array data types must be the same
+        dtypes = [zgroup[k].dtype.str for k in data_arrays]
+        if not all(k==dtypes[0] for k in dtypes):
+            collective_raise(KeyError(f"Data array types must be the same."))
+
+        # Every coordinate array must exist
+        missing_dims = [f"'coord_{k}'" for k in range(ndim) if f"coord_{k}" not in zgroup]
         if len(missing_dims) == 1:
             collective_raise(KeyError(f"Missing {missing_dims[0]} array in the zarr group."))
         elif len(missing_dims) == 2:
@@ -426,17 +244,17 @@ class Array:
         elif len(missing_dims) > 2:
             collective_raise(KeyError(f"Missing {', '.join(missing_dims[:-1])}, and {missing_dims[-1]} arrays in the zarr group."))
 
-        # Every dimension array must be 1D
-        not_1D = [f"'dim_{k}'" for k in range(self.ndim) if len(zgroup[f"dim_{k}"].shape) != 1]
+        # Every coordinate array must be 1D
+        not_1D = [f"'coord_{k}'" for k in range(ndim) if len(zgroup[f"coord_{k}"].shape) != 1]
         if len(not_1D) == 1:
-            collective_raise(ValueError(f"Wrong shape in {not_1D[0]} array in the zarr group. Dimension arrays must be 1-D."))
+            collective_raise(ValueError(f"Wrong shape in {not_1D[0]} array in the zarr group. Coordinate arrays must be 1-D."))
         elif len(not_1D) == 2:
-            collective_raise(ValueError(f"Wrong shape in {' and '.join(not_1D)} arrays in the zarr group. Dimension arrays must be 1-D."))
+            collective_raise(ValueError(f"Wrong shape in {' and '.join(not_1D)} arrays in the zarr group. Coordinate arrays must be 1-D."))
         elif len(not_1D) > 2:
-            collective_raise(ValueError(f"Wrong shape in {', '.join(not_1D[:-1])}, and {not_1D[-1]} arrays in the zarr group. Dimension arrays must be 1-D."))
+            collective_raise(ValueError(f"Wrong shape in {', '.join(not_1D[:-1])}, and {not_1D[-1]} arrays in the zarr group. Coordinate arrays must be 1-D."))
 
-        # Shapes must match
-        wrong_size = [f"len(dim_{k})={zgroup[f"dim_{k}"].shape[0]}" for k in range(self.ndim) if zgroup[f"dim_{k}"].shape[0] != self.shape[k]]
+        # Coordinate shapes must match
+        wrong_size = [f"len(coord_{k})={zgroup[f"coord_{k}"].shape[0]}" for k in range(ndim) if zgroup[f"coord_{k}"].shape[0] != shape[k]]
         if len(wrong_size) == 1:
             collective_raise(ValueError(f"{wrong_size[0]} does not match data shape={self.shape}."))
         elif len(wrong_size) == 2:
@@ -445,20 +263,421 @@ class Array:
             collective_raise(ValueError(f"{', '.join(wrong_size[:-1])}, and {wrong_size[-1]} do not match data shape={self.shape}."))
 
         # Array-specific attributes must be string
-        for array in ['data',] + [f"dim_{k}" for k in range(self.ndim)]:
-            for attr in ('name', 'unit', 'description', 'latex_name', 'latex_unit'):
+        for attr in ('name', 'unit', 'description', 'latex_name', 'latex_unit'):
+            if attr in zgroup.attrs and not isinstance(zgroup.attrs[attr], str):
+                collective_raise(ValueError(f"zgroup.attrs['{attr}'] must be a string."))
+            for array in [f"coord_{k}" for k in range(ndim)]:
                 if attr in zgroup[array].attrs and not isinstance(zgroup[array].attrs[attr], str):
                     collective_raise(ValueError(f"zgroup['{array}'].attrs['{attr}'] must be a string."))
 
-        # Not array-specific attributes won't be tested...
+        # Non array-specific attributes won't be tested...
         return
 
 
+    @property
+    def zgroup(self):
+        """
+        The Zarr group containing the data.
+        """
+        return self._zgroup
+
+    @property
+    def data_arrays(self):
+        return tuple(k for k in self.zgroup.array_keys() if k.startswith('data_'))
+
+    @property
+    def dtype(self):
+        """
+        Tensor Numpy data type.
+        """
+        self.validate()
+        return self.zgroup[self.data_arrays[0]].dtype
+
+    @property
+    def shape(self):
+        """
+        The space shape.
+        """
+        self.validate()
+        return self.zgroup[self.data_arrays[0]].shape
+
+    @property
+    def chunks(self):
+        """
+        The space chunk size.
+        """
+        self.validate()
+        return self.zgroup[self.data_arrays[0]].chunks
+
+    @property
+    def order(self):
+        """
+        Tensor order.
+        """
+        self.validate()
+        order = None
+        if mpi_rank == 0:
+            if len(self.data_arrays) == 1 and self.data_arrays[0] == 'data_0':
+                order = 0
+            else:
+                data_indices = [tuple(int(i) for i in k.replace('data_', '').split('_')) for k in self.data_arrays]
+                order = len(data_indices[0])
+        order = comm.bcast(order, root=0)
+        return order
+
+    @property
+    def tensor_shape(self):
+        """
+        Tensor shape.
+        """
+        self.validate()
+        shape = None
+        if mpi_rank == 0:
+            data_indices = [tuple(int(i) for i in k.replace('data_', '').split('_')) for k in self.data_arrays]
+            shape = []
+            for k in range(len(data_indices)):
+                shape.append(max(ind[k] for ind in data_indices)+1)
+        shape = comm.bcast(shape, root=0)
+        return tuple(shape)
+
+    @property
+    def ndim(self):
+        """
+        Number of data coordinates.
+        """
+        return len(self.shape)
+
+    def _get_data_array(self, index):
+        """
+        Retrieves the Zarr array for the specified data component.
+        """
+        ERRADO
+        if dim is None:
+            return self.zgroup['data']
+        if f'coord_{dim}' in self.zgroup:
+            return self.zgroup[f'coord_{dim}']
+        coord_names = self.coord_names
+        pos = [k for k, v in enumerate(coord_names) if v == dim]
+        if pos:
+            return self.zgroup[f'coord_{pos[0]}']
+        # Error from here...
+        msg = f"dim='{dim}'" if isinstance(dim, str) else f"dim={dim}"
+        collective_raise(KeyError(
+            f"{msg} is not a valid coordinate index for this tensor. "
+            f"Expected non negative integer < {len(self.zgroup['data'].shape)} or "
+            f"one of the dim names {tuple(coord_names)}."))
+
+    def _get_array(self, dim=None):
+        """
+        Retrieves the Zarr array for the specified coordinate.
+        """
+        if dim is None:
+            return self.zgroup['data']
+        if f'coord_{dim}' in self.zgroup:
+            return self.zgroup[f'coord_{dim}']
+        coord_names = self.coord_names
+        pos = [k for k, v in enumerate(coord_names) if v == dim]
+        if pos:
+            return self.zgroup[f'coord_{pos[0]}']
+        # Error from here...
+        msg = f"dim='{dim}'" if isinstance(dim, str) else f"dim={dim}"
+        collective_raise(KeyError(
+            f"{msg} is not a valid coordinate index for this tensor. "
+            f"Expected non negative integer < {len(self.zgroup['data'].shape)} or "
+            f"one of the dim names {tuple(coord_names)}."))
+
+
+    def _get_attribute(self, attr_name, dim=None):
+        """
+        Gets a specified attribute from the array for a given coordinate.
+        """
+        array = self._get_array(dim)
+        attr_value = None
+        if mpi_rank == 0:
+            if attr_name in array.attrs:
+                attr_value = array.attrs[attr_name]
+        attr_value = comm.bcast(attr_value, root=0)
+        return attr_value
+
+
+    def _set_attribute(self, attr_name, attr_value, attr_type, dim=None):
+        """
+        Sets a specified attribute for the array for a given coordinate.
+        """
+        _assert.condition.non_negative_integer('dim', dim)
+        array = self._get_array(dim)
+        str_type = 'string' if attr_type == str else attr_type
+        if not isinstance(attr_value, attr_type):
+            collective_raise(ValueError(f"Expected {str_type} for {attr_name}."))
+        if mpi_rank == 0:
+            array.attrs[attr_name] = attr_value
+        comm.barrier()
+
+
+    def get_name(self, dim=None):
+        """
+        Retrieves the name of the data or a specified coordinate.
+
+        Parameters
+        ----------
+        dim : None, int, or str, optional
+            The coordinate specifier. Use ``None`` to retrieve the name of the main data,
+            a non-negative integer `i` to retrieve the i-th coordinate, or a string
+            representing the coordinate name.
+
+        Returns
+        -------
+        str
+            The name of the data or the specified coordinate.
+        """
+
+        return self._get_attribute('name', dim=dim)
+
+    def set_name(self, v, dim=None):
+        """
+        Sets the name of the data or a specified coordinate.
+
+        Parameters
+        ----------
+        v : str
+            The name to be set for the data or the specified coordinate.
+
+        dim : None, int, or str, optional
+            The coordinate specifier. Use ``None`` to set the unit of the main data,
+            a non-negative integer `i` to set the unit for the i-th coordinate, or a
+            string representing the coordinate name.
+        """
+        self._set_attribute(attr_name='name', attr_value=v, attr_type=str, dim=dim)
+
+    def get_unit(self, dim=None):
+        """
+        Retrieves the unit of the data or a specified coordinate.
+
+        Parameters
+        ----------
+        dim : None, int, or str, optional
+            The coordinate specifier. Use ``None`` to retrieve the name of the main data,
+            a non-negative integer `i` to retrieve the i-th coordinate, or a string
+            representing the coordinate name.
+
+        Returns
+        -------
+        str
+            The unit of the data or the specified coordinate.
+        """
+
+        return self._get_attribute('unit', dim=dim)
+
+    def set_unit(self, v, dim=None):
+        """
+        Sets the unit of the data or a specified coordinate.
+
+        Parameters
+        ----------
+        v : str
+            The unit to be set for the data or the specified coordinate.
+
+        dim : None, int, or str, optional
+            The coordinate specifier. Use ``None`` to set the unit of the main data,
+            a non-negative integer `i` to set the unit for the i-th coordinate, or a
+            string representing the coordinate name.
+        """
+        self._set_attribute(attr_name='unit', attr_value=v, attr_type=str, dim=dim)
+
+    def get_description(self, dim=None):
+        """
+        Retrieves the description of the data or a specified coordinate.
+
+        Parameters
+        ----------
+        dim : None, int, or str, optional
+            The coordinate specifier. Use ``None`` to retrieve the name of the main data,
+            a non-negative integer `i` to retrieve the i-th coordinate, or a string
+            representing the coordinate name.
+
+        Returns
+        -------
+        str
+            The description of the data or the specified coordinate.
+        """
+        return self._get_attribute('description', dim=dim)
+
+    def set_description(self, v, dim=None):
+        """
+        Sets the description of the data or a specified coordinate.
+
+        Parameters
+        ----------
+        v : str
+            The description to be set for the data or the specified coordinate.
+
+        dim : None, int, or str, optional
+            The coordinate specifier. Use ``None`` to set the unit of the main data,
+            a non-negative integer `i` to set the unit for the i-th coordinate, or a
+            string representing the coordinate name.
+        """
+        self._set_attribute(attr_name='description', attr_value=v, attr_type=str, dim=dim)
+
+    def get_latex_name(self, dim=None):
+        """
+        Retrieves the LaTeX name representation for the data or a specified coordinate.
+
+        Parameters
+        ----------
+        dim : None, int, or str, optional
+            The coordinate specifier. Use ``None`` to retrieve the name of the main data,
+            a non-negative integer `i` to retrieve the i-th coordinate, or a string
+            representing the coordinate name.
+
+        Returns
+        -------
+        str
+            The LaTeX name representation of the data or the specified coordinate.
+        """
+        return self._get_attribute('latex_name', dim=dim)
+
+    def set_latex_name(self, v, dim=None):
+        """
+        Sets the LaTeX name representation for the data or a specified coordinate.
+
+        Parameters
+        ----------
+        v : str
+            The LaTeX name representation to be set for the data or the specified coordinate.
+
+        dim : None, int, or str, optional
+            The coordinate specifier. Use ``None`` to set the unit of the main data,
+            a non-negative integer `i` to set the unit for the i-th coordinate, or a
+            string representing the coordinate name.
+        """
+        self._set_attribute(attr_name='latex_name', attr_value=v, attr_type=str, dim=dim)
+
+    def get_latex_unit(self, dim=None):
+        """
+        Retrieves the LaTeX unit representation for the data or a specified coordinate.
+
+        Parameters
+        ----------
+        dim : None, int, or str, optional
+            The coordinate specifier. Use ``None`` to retrieve the name of the main data,
+            a non-negative integer `i` to retrieve the i-th coordinate, or a string
+            representing the coordinate name.
+
+        Returns
+        -------
+        str
+            The LaTeX unit representation of the data or the specified coordinate.
+        """
+        return self._get_attribute('latex_unit', dim=dim)
+
+    def set_latex_unit(self, v, dim=None):
+        """
+        Sets the LaTeX unit representation for the data or a specified coordinate.
+
+        Parameters
+        ----------
+        v : str
+            The LaTeX unit representation to be set for the data or the specified coordinate.
+
+        dim : None, int, or str, optional
+            The coordinate specifier. Use ``None`` to set the unit of the main data,
+            a non-negative integer `i` to set the unit for the i-th coordinate, or a
+            string representing the coordinate name.
+        """
+        self._set_attribute(attr_name='latex_unit', attr_value=v, attr_type=str, dim=dim)
+
+
+
+
+    @property
+    def data(self):
+        """
+        A view for the underlying data array as a Zarr array.
+        """
+        return self.zgroup['data']
+
+    @property
+    def values(self):
+        """
+        The data array as a Numpy array.
+        """
+        return self.zgroup['data'][...]
+
+    @property
+    def name(self):
+        """
+        The tensor name.
+        """
+        return self.get_name()
+
+    @property
+    def unit(self):
+        """
+        The tensor data unit.
+        """
+        return self.get_unit()
+
+    @property
+    def description(self):
+        """
+        The tensor description.
+        """
+        return self.get_description()
+
+    @property
+    def latex_name(self):
+        """
+        The LaTeX representation for the tensor name.
+        """
+        return self.get_latex_name()
+
+    @property
+    def latex_unit(self):
+        """
+        The LaTeX representation for tensor data units.
+        """
+        return self.get_latex_unit()
+
+    @property
+    def coord_names(self):
+        """
+        Tuple containing the ordered coordinate names.
+        """
+        return tuple(self.get_name(dim=k) for k in range(len(self.zgroup['data'].shape)))
+
+    @property
+    def coord_units(self):
+        """
+        Tuple containing the ordered coordinate units.
+        """
+        return tuple(self.get_unit(dim=k) for k in range(len(self.zgroup['data'].shape)))
+
+    @property
+    def coord_descriptions(self):
+        """
+        Tuple containing the ordered coordinate descriptions.
+        """
+        return tuple(self.get_description(dim=k) for k in range(len(self.zgroup['data'].shape)))
+
+    @property
+    def coord_latex_names(self):
+        """
+        Tuple containing the ordered LaTeX representation for coordinate names.
+        """
+        return tuple(self.get_latex_name(dim=k) for k in range(len(self.zgroup['data'].shape)))
+
+    @property
+    def coord_latex_units(self):
+        """
+        Tuple containing the ordered LaTeX representation for coordinate units.
+        """
+        return tuple(self.get_latex_unit(dim=k) for k in range(len(self.zgroup['data'].shape)))
+
     def h5_dump(self, file_object, path):
         """
-        Dumps the contents of the RockVerse array into an HDF5 file.
-        This method exports the array data and its associated attributes from the
-        RockVerse array into an HDF5 file at the specified path. It creates a
+        Dumps the contents of the RockVerse tensor into an HDF5 file.
+        This method exports the tensor data and its associated attributes
+        into an HDF5 file at the specified path. It creates a
         group in the HDF5 file and stores the data array along with its metadata.
         The resulting HDF5 group will reflect the underlying zarr group:
 
@@ -466,40 +685,38 @@ class Array:
 
             GROUP "arraypath"
                 |- ATTRIBUTE "_ROCKVERSE_DATATYPE" (string)
-                |- DATASET "data"
+                |- ATTRIBUTE "description" (string)
+                |- ATTRIBUTE "latex_name" (string)
+                |- ATTRIBUTE "latex_unit" (string)
+                |- ATTRIBUTE "name" (string)
+                |- ATTRIBUTE "unit" (string)
+                |- DATASET "data_0"
+                    |- DATA (array)
+                |- DATASET "data_1"
+                    |- DATA (array)
+                .
+                .
+                .
+                |- DATASET "coord_0"
                     |- DATA (array)
                     |- ATTRIBUTE "description" (string)
                     |- ATTRIBUTE "latex_name" (string)
                     |- ATTRIBUTE "latex_unit" (string)
                     |- ATTRIBUTE "name" (string)
                     |- ATTRIBUTE "unit" (string)
-                |- DATASET "dim_0"
+                |- DATASET "coord_1"
                     |- DATA (array)
                     |- ATTRIBUTE "description" (string)
                     |- ATTRIBUTE "latex_name" (string)
                     |- ATTRIBUTE "latex_unit" (string)
                     |- ATTRIBUTE "name" (string)
                     |- ATTRIBUTE "unit" (string)
-                |- DATASET "dim_1"
-                    |- DATA (array)
-                    |- ATTRIBUTE "description" (string)
-                    |- ATTRIBUTE "latex_name" (string)
-                    |- ATTRIBUTE "latex_unit" (string)
-                    |- ATTRIBUTE "name" (string)
-                    |- ATTRIBUTE "unit" (string)
-                |- DATASET "dim_2"
-                    |- DATA (array)
-                    |- ATTRIBUTE "description" (string)
-                    |- ATTRIBUTE "latex_name" (string)
-                    |- ATTRIBUTE "latex_unit" (string)
-                    |- ATTRIBUTE "name" (string)
-                    |- ATTRIBUTE "unit" (string)
-                |- DATASET "dim_3"
-                    .
-                    .
-                    .
+                .
+                .
+                .
 
-        for as many dims as array dimensions. Attributes that are missing in the RockVerse array
+        for as many coordinates as array coordinates. <<<NAO PRECISA, BASTA GERAR UM RANGE(N)>>
+        Attributes that are missing in the RockVerse array
         won't be written. Any extra attribute in the underlying Zarr group will also be dumped to the
         HDF5 file.
 
@@ -527,9 +744,9 @@ class Array:
             import h5py
             import rockverse as rv
 
-            array_instance = rv.create_array(...)  # Create your array...
+            array_instance = rv.create_tensor(...)  # Create your array...
             with h5py.File('filename.h5', 'a') as fobj:
-                array_instance.h5dump(fobj, '/myawesomearray')
+                array_instance.h5dump(fobj, path='/myawesomearray')
 
         Raises
         ------
@@ -545,31 +762,34 @@ class Array:
         for k, v in self.zgroup.attrs.items():
             grp.attrs[k] = v
 
-        # Arrays and corresponding attributes
-        for array in ['data',] + [f"dim_{k}" for k in range(self.ndim)]:
+        # Data arrays
+        for array in [k for k in self.zgroup.array_keys() if k.startswith('data_')]:
+            subgrp = file_object.create_dataset(f"{path}/{array}", data=self.zgroup[array]) #<<<<<<< PARALELIZE!
+
+        # Coordinates and corresponding attributes
+        for array in [k for k in self.zgroup.array_keys() if k.startswith('coord_')]:
             subgrp = file_object.create_dataset(f"{path}/{array}", data=self.zgroup[array]) #<<<<<<< PARALELIZE!
             for k, v in self.zgroup[array].attrs.items():
                 subgrp.attrs[k] = v
 
 
-
-def create_array(data,
-                 store,
-                 path=None,
-                 name=None,
-                 unit=None,
-                 description=None,
-                 latex_name=None,
-                 latex_unit=None,
-                 dim_data=None,
-                 dim_names=None,
-                 dim_units=None,
-                 dim_descriptions=None,
-                 dim_latex_names=None,
-                 dim_latex_units=None,
-                 attrs=None,
-                 overwrite=False,
-                 **kwargs):
+def create_tensor(data,
+                  store,
+                  path=None,
+                  name=None,
+                  unit=None,
+                  description=None,
+                  latex_name=None,
+                  latex_unit=None,
+                  coord_data=None,
+                  coord_names=None,
+                  coord_units=None,
+                  coord_descriptions=None,
+                  coord_latex_names=None,
+                  coord_latex_units=None,
+                  attrs=None,
+                  overwrite=False,
+                  **kwargs):
     """
     Create a RockVerse array from provided data at specified Zarr storage.
 
@@ -592,24 +812,24 @@ def create_array(data,
         The LaTeX representation of the array name.
     latex_unit : str, optional
         The LaTeX representation of the array unit.
-    dim_data : tuple or list, optional
-        Data for dimensions. The number of elements should match the shape of the data array.
-        Each element must be an 1D array-like with the dimension coordinates.
-    dim_names : tuple or list, optional
-        Names for dimensions. The number of elements should match the shape of the data array.
-        Each element must be a string with the dimension names.
-    dim_units : tuple or list, optional
-        Units for dimension data. The number of elements should match the shape of the data array.
-        Each element must be a string with the dimension data unit.
-    dim_descriptions : tuple or list, optional
-        Description for dimension data. The number of elements should match the shape of the data array.
-        Each element must be a string with the dimension description.
-    dim_latex_names : tuple or list, optional
-        LaTeX names for dimension data. The number of elements should match the shape of the data array.
-        Each element must be a string with the LaTeX representation of dimension name.
-    dim_latex_units : tuple or list, optional
-        LaTeX units for dimension data. The number of elements should match the shape of the data array.
-        Each element must be a string with the LaTeX representation of dimension data unit.
+    coord_data : tuple or list, optional
+        Data for coordinates. The number of elements should match the shape of the data array.
+        Each element must be an 1D array-like with the coordinate values.
+    coord_names : tuple or list, optional
+        Names for coordinates. The number of elements should match the shape of the data array.
+        Each element must be a string with the coordinate names.
+    coord_units : tuple or list, optional
+        Units for coordinate data. The number of elements should match the shape of the data array.
+        Each element must be a string with the coordinate data unit.
+    coord_descriptions : tuple or list, optional
+        Description for coordinate data. The number of elements should match the shape of the data array.
+        Each element must be a string with the coordinate description.
+    coord_latex_names : tuple or list, optional
+        LaTeX names for coordinate data. The number of elements should match the shape of the data array.
+        Each element must be a string with the LaTeX representation of coordinate name.
+    coord_latex_units : tuple or list, optional
+        LaTeX units for coordinate data. The number of elements should match the shape of the data array.
+        Each element must be a string with the LaTeX representation of coordinate data unit.
     attrs : dict, optional
         Additional attributes to be stored with the array.
     overwrite : bool, optional
@@ -631,34 +851,65 @@ def create_array(data,
     #NÂO CRIAR DENTRO DE STORE QUE JA CONTENHA ROCKVERSE DATA?
 
     # Check for valid entries ----------------------------------
-    _assert.array_like('data', data)
+
+    # data:
+    # Array-like: order 0 (scalar field)
+    if hasattr(data, '__array__'):
+        components = {0: data}
+
+    # List or tuple of arrays: order 1 (vector field)
+    elif isinstance(data, (list, tuple)):
+        if not all(hasattr(k, '__array__') for k in data):
+            collective_raise(ValueError('Invalid value for data: list or tuple elements must be array-like.'))
+        components = {k: v for k, v in enumerate(data)}
+
+    # Dictionary with tensor positions and arrays: arbitrary order
+    elif isinstance(data, dict):
+        if not all(isinstance(k, int) or (isinstance(k, tuple) and all(isinstance(i, int) for i in k)) for k in data.keys()):
+            collective_raise(ValueError('Invalid value for data: dictionary keys must be integer or tuple of integers with the zero-based component positions.'))
+        if not all(type(k)==type(list(data.keys())[0]) for k in data.keys()):
+            collective_raise(ValueError('Invalid value for data: dictionary keys must be of the same type.'))
+        if not all(hasattr(v, '__array__') for v in data.values()):
+            collective_raise(ValueError('Invalid value for data: dictionary values must be array-like.'))
+        order = [1 if isinstance(k, int) else len(k) for k in data.keys()]
+        if not all(k==order[0] for k in order):
+            collective_raise(ValueError('Invalid value for data: dictionary keys must have same length.'))
+        components = data
+    else:
+        collective_raise(ValueError('Invalid value for data.'))
+
+    # All data arrays must have same shape:
+    shapes = [v.shape for v in components.values()]
+    if not all(s == shapes[0] for s in shapes):
+        collective_raise(ValueError('Data components must have identical shape.'))
+    shape = shapes[0]
+
     for varname, var in zip(('path', 'name', 'unit', 'description', 'latex_name', 'latex_unit'),
                             (path, name, unit, description, latex_name, latex_unit)):
         if var is not None:
             _assert.string(varname, var)
 
-    shape = data.shape
-    for varname, var in zip(('dim_data', 'dim_names', 'dim_units', 'dim_descriptions', 'dim_latex_names', 'dim_latex_units'),
-                            (dim_data, dim_names, dim_units, dim_descriptions, dim_latex_names, dim_latex_units)):
+    for varname, var in zip(('coord_data', 'coord_names', 'coord_units', 'coord_descriptions', 'coord_latex_names', 'coord_latex_units'),
+                            (coord_data, coord_names, coord_units, coord_descriptions, coord_latex_names, coord_latex_units)):
         if var is not None:
             _assert.iterable.tuple_or_list(varname, var)
             _assert.iterable.length(varname, var, len(shape))
-            if varname != 'dim_data':
+            if varname != 'coord_data':
                 _assert.iterable.ordered_string_or_none(varname, var)
-            else: # dim_data
+            else: # coord_data
                 for k, v in enumerate(var):
                     if v is not None and not isinstance(v, (list, tuple, np.ndarray)):
                         collective_raise(ValueError(f'Elements in {varname} must be list, tuple or 1D Numpy arrays.'))
                     if v is not None and isinstance(v, np.ndarray) and len(v.shape) != 1:
                         collective_raise(ValueError(f'Elements in {varname} must be list, tuple or 1D Numpy arrays.'))
                     if v is not None and len(v) != shape[k]:
-                        collective_raise(ValueError(f'len(dim_data[{k}])={len(dim_data[k])} does not match data.shape[{k}]={data.shape[k]}.'))
+                        collective_raise(ValueError(f'len(coord_data[{k}])={len(coord_data[k])} does not match data.shape[{k}]={data.shape[k]}.'))
 
-    # Dimension names must be unique
-    if dim_names:
-        for k1, name1 in enumerate(dim_names):
-            if any(name1 and (name2 == name1) and (k2 != k1) for k2, name2 in enumerate(dim_names)):
-                collective_raise(ValueError(f'Invalid dim_names={dim_names}: dimension names must be unique.'))
+    # Coordinate names must be unique
+    if coord_names:
+        for k1, name1 in enumerate(coord_names):
+            if any(name1 and (name2 == name1) and (k2 != k1) for k2, name2 in enumerate(coord_names)):
+                collective_raise(ValueError(f'Invalid coord_names={coord_names}: coordinate names must be unique.'))
 
     if attrs is not None:
         _assert.dictionary('attrs', attrs)
@@ -666,14 +917,15 @@ def create_array(data,
     _assert.boolean('overwrite', overwrite)
     kwargs['overwrite'] = overwrite
 
+
     # Create the Zarr group and populate the data --------------
+    # Should be done in parallel <<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
     kwargs['store'] = store
     kwargs['path'] = path
     zgroup = zarr.create_group(**kwargs)
-    zgroup.attrs['_ROCKVERSE_DATATYPE'] = 'Array'
 
-    # Should be done in parallel <<<<<<<<<<<<<<<<<<<<<<<<<<<<
-    data_attrs = {}
+    data_attrs = {'_ROCKVERSE_DATATYPE': 'TensorField'}
     if name is not None:
         data_attrs['name'] = name
     if unit is not None:
@@ -684,45 +936,72 @@ def create_array(data,
         data_attrs['latex_name'] = latex_name
     if latex_unit is not None:
         data_attrs['latex_unit'] = latex_unit
+    zgroup.attrs.update(**data_attrs)
 
-    zgroup.create_array(f"data",
-                        shape=data.shape,
-                        chunks=data.shape, # should be possible <<<<<<<<<<
-                        dtype=data.dtype,
-                        overwrite=overwrite,
-                        attributes=data_attrs)
-    zgroup[f"data"][...] = data
+    # Array data types must be numeric or boolean
+    dtypes = [v.dtype.kind for v in components.values()]
+    if not all(k in 'buifc' for k in dtypes):
+        collective_raise(ValueError('Data arrays must be numeric or boolean.'))
+
+    # Data array type
+    dtypes = [v.dtype.str for v in components.values()]
+    dtypes_map = {}
+    for t in 'cfiub':
+        if any(t in type_ for type_ in dtypes):
+            dtypes_map[t] = max(np.dtype(v).itemsize for v in dtypes if np.dtype(v).kind==t)
+    if 'c' in dtypes_map:
+        type_ = np.dtype(f'c{dtypes_map['c']}')
+    elif 'f' in dtypes_map:
+        type_ = np.dtype(f'f{dtypes_map['f']}')
+    elif 'i' in dtypes_map or 'u' in dtypes_map:
+        itemsize = max(v for k, v in dtypes_map.items() if k in 'iu')
+        if 'i' in dtypes_map:
+            type_ = np.dtype(f'i{itemsize}')
+        else:
+            type_ = np.dtype(f'u{itemsize}')
+    else:
+        type_ = np.dtype('bool')
+
+    # Data arrays
+    for k, v in components.items():
+        group_name = f"data_{k}" if isinstance(k, int) else f"data_{'_'.join(str(i) for i in k)}"
+        zgroup.create_array(name=group_name,
+                            shape=v.shape,
+                            chunks=v.shape, # should be possible <<<<<<<<<<
+                            dtype=type_,  # specify in input parameters <<<<<<<<<<
+                            overwrite=overwrite)
+        zgroup[group_name][...] = v
 
     # Should be done by rank 0... <<<<<<<<<<<<<<<<<<<<<<<<<
     for k in range(len(shape)):
-        dim_attrs = {}
-        if dim_names is not None and dim_names[k]:
-            dim_attrs['name'] = dim_names[k]
+        coord_attrs = {}
+        if coord_names is not None and coord_names[k]:
+            coord_attrs['name'] = coord_names[k]
         else:
-            dim_attrs['name'] = f"dim_{k}"
-        if dim_units is not None and dim_units[k]:
-            dim_attrs['unit'] = dim_units[k]
-        if dim_descriptions is not None and dim_descriptions[k]:
-            dim_attrs['description'] = dim_descriptions[k]
-        if dim_latex_names is not None and dim_latex_names[k]:
-            dim_attrs['latex_name'] = dim_latex_names[k]
-        if dim_latex_units is not None and dim_latex_units[k]:
-            dim_attrs['latex_unit'] = dim_latex_units[k]
+            coord_attrs['name'] = f"coord_{k}"
+        if coord_units is not None and coord_units[k]:
+            coord_attrs['unit'] = coord_units[k]
+        if coord_descriptions is not None and coord_descriptions[k]:
+            coord_attrs['description'] = coord_descriptions[k]
+        if coord_latex_names is not None and coord_latex_names[k]:
+            coord_attrs['latex_name'] = coord_latex_names[k]
+        if coord_latex_units is not None and coord_latex_units[k]:
+            coord_attrs['latex_unit'] = coord_latex_units[k]
 
-        if dim_data is not None and dim_data[k] is not None:
-            dim_data_k = np.array(dim_data[k])
+        if coord_data is not None and coord_data[k] is not None:
+            coord_data_k = np.array(coord_data[k])
         else:
-            dim_data_k = np.arange(shape[k])
+            coord_data_k = np.arange(shape[k])
 
-        zgroup.create_array(f"dim_{k}",
-                            shape=dim_data_k.shape,
-                            chunks=dim_data_k.shape, # no chunks in dim data
-                            dtype=dim_data_k.dtype,
+        zgroup.create_array(f"coord_{k}",
+                            shape=coord_data_k.shape,
+                            chunks=coord_data_k.shape, # no chunks in dim data
+                            dtype=coord_data_k.dtype,
                             overwrite=overwrite,
-                            attributes=dim_attrs)
-        zgroup[f"dim_{k}"][...] = dim_data_k
+                            attributes=coord_attrs)
+        zgroup[f"coord_{k}"][...] = coord_data_k
 
-    return Array(zgroup)
+    return TensorField(zgroup)
 
 
 #>>>>>>>>>>>>>> PARALELIZE! READ BY CHUNKS, even when not chunked but large dataset
@@ -739,40 +1018,45 @@ def load_array_from_h5_file(fobj, h5path, store, path=None, overwrite=False, **k
 
             GROUP "arraypath"
                 |- ATTRIBUTE "_ROCKVERSE_DATATYPE" (string)
-                |- DATASET "data"
+                |- ATTRIBUTE "description" (string)
+                |- ATTRIBUTE "latex_name" (string)
+                |- ATTRIBUTE "latex_unit" (string)
+                |- ATTRIBUTE "name" (string)
+                |- ATTRIBUTE "unit" (string)
+                |- DATASET "data_0"
+                    |- DATA (array)
+                |- DATASET "data_1"
+                    |- DATA (array)
+                .
+                .
+                .
+                |- DATASET "coord_0"
                     |- DATA (array)
                     |- ATTRIBUTE "description" (string)
                     |- ATTRIBUTE "latex_name" (string)
                     |- ATTRIBUTE "latex_unit" (string)
                     |- ATTRIBUTE "name" (string)
                     |- ATTRIBUTE "unit" (string)
-                |- DATASET "dim_0"
+                |- DATASET "coord_1"
                     |- DATA (array)
                     |- ATTRIBUTE "description" (string)
                     |- ATTRIBUTE "latex_name" (string)
                     |- ATTRIBUTE "latex_unit" (string)
                     |- ATTRIBUTE "name" (string)
                     |- ATTRIBUTE "unit" (string)
-                |- DATASET "dim_1"
+                |- DATASET "coord_2"
                     |- DATA (array)
                     |- ATTRIBUTE "description" (string)
                     |- ATTRIBUTE "latex_name" (string)
                     |- ATTRIBUTE "latex_unit" (string)
                     |- ATTRIBUTE "name" (string)
                     |- ATTRIBUTE "unit" (string)
-                |- DATASET "dim_2"
-                    |- DATA (array)
-                    |- ATTRIBUTE "description" (string)
-                    |- ATTRIBUTE "latex_name" (string)
-                    |- ATTRIBUTE "latex_unit" (string)
-                    |- ATTRIBUTE "name" (string)
-                    |- ATTRIBUTE "unit" (string)
-                |- DATASET "dim_3"
-                    .
-                    .
-                    .
+                |- DATASET "coord_3"
+                .
+                .
+                .
 
-    for as many dims as array dimensions. Attributes are optional.
+    for as many coord_ as coordinate arrays. Attributes are optional.
     Any extra attribute will also be loaded to the corresponding Zarr arrays.
 
     Parameters
@@ -802,7 +1086,7 @@ def load_array_from_h5_file(fobj, h5path, store, path=None, overwrite=False, **k
         If the specified HDF5 path is not found or if any expected datasets or attributes
         are missing from the HDF5 group.
     ValueError
-        If the loaded data or attributes do not conform to expected formats or dimensions.
+        If the loaded data or attributes do not conform to expected formats or coordinate.
     TypeError
         If the specified HDF5 path does not point to a valid RockVerse array group.
 
@@ -824,7 +1108,6 @@ def load_array_from_h5_file(fobj, h5path, store, path=None, overwrite=False, **k
 
     if h5path not in fobj:
         collective_raise(KeyError(f"'{h5path}' not found in fobj."))
-
     group = fobj[h5path]
 
     # group must be a HDF5 group
@@ -834,20 +1117,27 @@ def load_array_from_h5_file(fobj, h5path, store, path=None, overwrite=False, **k
     # group must contain data type identifier
     if "_ROCKVERSE_DATATYPE" not in group.attrs:
         collective_raise(KeyError(f"Missing '_ROCKVERSE_DATATYPE' identifier in the fobj['{h5path}'] object."))
-    if group.attrs["_ROCKVERSE_DATATYPE"] != "Array":
-        collective_raise(TypeError(f"fobj['{h5path}']: expected RockVerse Array type."))
+    if group.attrs["_ROCKVERSE_DATATYPE"] != "TensorField":
+        collective_raise(TypeError(f"fobj['{h5path}']: expected RockVerse TensorField type."))
 
-    # group['data'] must exist
-    if 'data' not in group:
-        collective_raise(KeyError(f"Missing 'data' dataset in fobj['{h5path}']."))
-    data = group['data']
+    # Data arrays must exist
+    data_arrays = [k for k in group.keys() if k.startswith('data_')]
+    if not data_arrays:
+        collective_raise(KeyError(f"Missing data arrays in fobj['{h5path}']."))
 
-    # data must be a HDF5 dataset
-    if not isinstance(data, h5py.Dataset):
-        collective_raise(TypeError(f"fobj['{h5path}/data'] expected to be a Dataset. Found {type(data)}."))
+    # data arrays must be HDF5 datasets
+    if not all(isinstance(group[k], h5py.Dataset) for k in data_arrays):
+        collective_raise(TypeError(f"fobj['{h5path}'] data arrays expected to be Datasets."))
 
-    # Every dimension array must exist
-    missing_dims = [f"'dim_{k}'" for k in range(data.ndim) if f"dim_{k}" not in group]
+    # data array shapes must be the same
+    shapes = [group[k].shape for k in data_arrays]
+    if not all(k==shapes[0] for k in shapes):
+        collective_raise(KeyError(f"Data array shapes must be the same."))
+    shape = shapes[0]
+    ndim = len(shapes[0])
+
+    # Every coordinate array must exist
+    missing_dims = [f"'coord_{k}'" for k in range(ndim) if f"coord_{k}" not in group]
     if len(missing_dims) == 1:
         collective_raise(KeyError(f"Missing {missing_dims[0]} Dataset in fobj['{h5path}']."))
     elif len(missing_dims) == 2:
@@ -855,17 +1145,17 @@ def load_array_from_h5_file(fobj, h5path, store, path=None, overwrite=False, **k
     elif len(missing_dims) > 2:
         collective_raise(KeyError(f"Missing {', '.join(missing_dims[:-1])}, and {missing_dims[-1]} Datasets in fobj['{h5path}']."))
 
-    # Every dimension array must be 1D
-    not_1D = [f"fobj['{h5path}/dim_{k}']" for k in range(data.ndim) if len(group[f"dim_{k}"].shape) != 1]
+    # Every coordinate array must be 1D
+    not_1D = [f"fobj['{h5path}/coord_{k}']" for k in range(ndim) if len(group[f"coord_{k}"].shape) != 1]
     if len(not_1D) == 1:
-        collective_raise(ValueError(f"Wrong shape in {not_1D[0]} Dataset. Dimension arrays must be 1-D."))
+        collective_raise(ValueError(f"Wrong shape in {not_1D[0]} Dataset. Coordinate arrays must be 1-D."))
     elif len(not_1D) == 2:
-        collective_raise(ValueError(f"Wrong shape in {' and '.join(not_1D)} Datasets. Dimension arrays must be 1-D."))
+        collective_raise(ValueError(f"Wrong shape in {' and '.join(not_1D)} Datasets. Coordinate arrays must be 1-D."))
     elif len(not_1D) > 2:
-        collective_raise(ValueError(f"Wrong shape in {', '.join(not_1D[:-1])}, and {not_1D[-1]} Datasets. Dimension arrays must be 1-D."))
+        collective_raise(ValueError(f"Wrong shape in {', '.join(not_1D[:-1])}, and {not_1D[-1]} Datasets. Coordinate arrays must be 1-D."))
 
     # Shapes must match
-    wrong_size = [f"len(dim_{k})={group[f"dim_{k}"].shape[0]}" for k in range(data.ndim) if group[f"dim_{k}"].shape[0] != data.shape[k]]
+    wrong_size = [f"len(coord_{k})={group[f"coord_{k}"].shape[0]}" for k in range(ndim) if group[f"coord_{k}"].shape[0] != shape[k]]
     if len(wrong_size) == 1:
         collective_raise(ValueError(f"fobj['{h5path}']: {wrong_size[0]} does not match data shape={data.shape}."))
     elif len(wrong_size) == 2:
@@ -874,19 +1164,24 @@ def load_array_from_h5_file(fobj, h5path, store, path=None, overwrite=False, **k
         collective_raise(ValueError(f"fobj['{h5path}']: {', '.join(wrong_size[:-1])}, and {wrong_size[-1]} do not match data shape={self.shape}."))
 
     # Array-specific attributes must be string
-    for array in ['data',] + [f"dim_{k}" for k in range(data.ndim)]:
-        for attr in ('name', 'unit', 'description', 'latex_name', 'latex_unit'):
+    for attr in ('name', 'unit', 'description', 'latex_name', 'latex_unit'):
+        if attr in group.attrs and not isinstance(group.attrs[attr], str):
+            collective_raise(ValueError(f"fobj['{h5path}'].attrs['{attr}'] must be a string."))
+        for array in [f"coord_{k}" for k in range(ndim)]:
             if attr in group[array].attrs and not isinstance(group[array].attrs[attr], str):
                 collective_raise(ValueError(f"fobj['{h5path}/{array}'].attrs['{attr}'] must be a string."))
 
-    # Start importing
-    rvarray = create_array(data=group['data'][...], #<<<<<<<<<<<< PARALELIZE!
+    # Import
+    data = {tuple(int(i) for i in k.replace('data_', '').split('_')): group[k] for k in data_arrays}
+    rvarray = create_tensor(data=data, #<<<<<<<<<<<< PARALELIZE!
                            store=store,
                            path=path,
-                           dim_data=[group[f'dim_{k}'][...] for k in range(data.ndim)],
+                           coord_data=[group[f'coord_{k}'][...] for k in range(ndim)],
                            overwrite=overwrite,
                            **kwargs)
-    for array in ['data',] + [f"dim_{k}" for k in range(data.ndim)]:
+    for k, v in group.attrs.items():
+        rvarray.zgroup.attrs[k] = v
+    for array in [f"coord_{k}" for k in range(ndim)]:
         for k, v in group[array].attrs.items():
             rvarray.zgroup[array].attrs[k] = v
 
@@ -896,34 +1191,41 @@ def load_array_from_h5_file(fobj, h5path, store, path=None, overwrite=False, **k
 if __name__ == "__main__":
     import numpy as np
     import h5py
-    self=create_array(
-        data=np.random.rand(2,2,2),
-        #store=r"C:\Users\GOB7\Downloads\test",
-        store='/u/gob7/test.zarr',
+    self=create_tensor(
+        #data={(0, 0): np.random.rand(2,2,2).astype(bool),
+        #      (1, 0): np.random.rand(2,2,2).astype(bool),
+        #      (3, 1): np.random.rand(2,2,2).astype(bool),
+        #      (2, 1): np.random.rand(2,2,2).astype(bool),
+        #      (3, 0): np.random.rand(2,2,2).astype(bool)},
+        data = np.random.rand(5,2,8),
+        store=r"C:\Users\GOB7\Downloads\test",
+        #store='/u/gob7/test.zarr',
         path="testpath",
         name='test array',
         unit='m/s',
         description="UMA DESC",
         latex_name=r"$ERF$",
         latex_unit="MM",
-        dim_data=([1, 2], [2, 2], None),
-        dim_names=("QQ", 'y','z'),
-        dim_units=('km', "S", "F"),
-        dim_descriptions=("UM", "DOIS", "WW"),
-        dim_latex_names=(r"$r$", r"$i$", r"$p$"),
-        dim_latex_units=('a', '', '.'),
+        coord_data=([1, 2, 4, 7, 9], [2, 2], None),
+        coord_names=("QQ", 'y','z'),
+        coord_units=('km', "S", "F"),
+        coord_descriptions=("UM", "DOIS", "WW"),
+        coord_latex_names=(r"$r$", r"$i$", r"$p$"),
+        coord_latex_units=('a', '', '.'),
         attrs=None,
         overwrite=True)
     self.validate()
 
     filename = '/u/gob7/test.h5'
+    filename = r"C:\Users\GOB7\Downloads\test.h5"
     with h5py.File(filename, 'w') as fobj:
         self.h5_dump(fobj, '/myawesomearray')
 
     store='/u/gob7/test2.zarr'
+    store=r"C:\Users\GOB7\Downloads\test2"
     h5path = '/myawesomearray'
     path=None
     overwrite=True
     kwargs={}
-    with h5py.File(filename, mode='r') as fobj:
-        self2 = load_array_from_h5_file(fobj, h5path, store, path=None, overwrite=True)
+    #with h5py.File(filename, mode='r') as fobj:
+    #    self2 = load_array_from_h5_file(fobj, h5path, store, path=None, overwrite=True)

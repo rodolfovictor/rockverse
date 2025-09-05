@@ -35,6 +35,7 @@ classifiers = [
 
 dependencies = [
     "docutils>=0.17",
+    "h5py",
     "ipympl",
     "ipython",
     "ipyparallel",
