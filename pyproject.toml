@@ -51,6 +51,7 @@ dependencies = [
     "pandas",
     "pip",
     "pydata-sphinx-theme",
+    "rich[jupyter]",
     "scipy<=1.13.1",
     "segyio",
     "sphinx",

@@ -82,5 +82,6 @@
   - install/troubleshooting  conda git
   - Replace `>>>` by `.. code-block:: python`
   - Add multi-CPU/multi-GPU
+  - Author in the tutorials
 
 > Note: These tasks are subject to change based on project needs and priorities.

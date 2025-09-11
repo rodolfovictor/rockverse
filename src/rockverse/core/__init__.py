@@ -1,20 +1,23 @@
 """
-Provides the basic variable classes and creation functions
-for all data types handled in RockVerse.
+Provides the basic variable classes and creation functions for RockVerse data types.
 
-It includes the `Tensor` class, which represents generic N-dimensional arbitrary order tensors with
-coordinates and associated metadata (similar to the
+It includes the `TensorField` class, which represents generic N-dimensional arbitrary order
+tensors with coordinates and associated metadata (similar to the
 `Xarray project <https://docs.xarray.dev/en/stable/>`_, for example),
 and the `Group` class, which facilitates generic data grouping and hierarchization.
 
 These classes are built upon `Zarr <https://zarr.readthedocs.io>`_ arrays and groups,
 and are tailored for high-performance parallel computation across multiple CPUs or GPUs
 using MPI (Message Passing Interface), with optimized I/O operations and memory usage.
+
+Understanding the basics of Zarr groups and chunked arrays is essential for effectively
+working with RockVerse data.
 """
 
 import os
 import h5py
 import zarr
+from itertools import product
 from rockverse import _assert
 from rockverse.errors import collective_raise
 
@@ -25,6 +28,7 @@ from rockverse.errors import collective_raise
 # TODO Attributes I/O must be only through rank 0
 # Create: allocate zarr group and arrays; only rank 0 fill in the attrs,
 # rank0 reads data and send chunk to MPI process
+# TODO COLAPSAR PARA SCALAR FIELD SE data_0_0_0
 
 from rockverse.configure import config
 comm = config.mpi_comm
@@ -32,7 +36,36 @@ mpi_rank = config.mpi_rank
 mpi_nprocs = config.mpi_nprocs
 
 
-class Coordinate:
+
+def _tensor_shape(zgroup):
+    data_arrays = [k for k in zgroup.array_keys() if k.startswith('data_')]
+    if not data_arrays:
+        collective_raise(KeyError(f"Missing data arrays in the zarr group."))
+    data_indices = [k.replace('data_', '') for k in data_arrays]
+    if data_indices[0].find('_') < 0:
+        return max(int(k) for k in data_indices)+1
+    tuple_indices = [tuple(int(i) for i in k.split('_')) for k in data_indices]
+    return tuple(max(ind[k] for ind in tuple_indices)+1 for k in range(len(tuple_indices[0])))
+
+
+class TensorCoordinate:
+
+    """
+    Represents a coordinate of a :class:`TensorField object.
+    This class encapsulates the functionality for managing the attributes and data
+    associated with a specific coordinate in a tensor field.
+
+    .. note::
+        This class should not be instantiated directly. It will be handled by the creation
+        functions when creating a new TensorField instance.
+
+    Parameters
+    ----------
+    zgroup : zarr.group.Group
+        An existing Zarr group that contains the data and attributes for this coordinate.
+    index : int
+        The index of the coordinate within the tensor field.
+    """
 
     def __init__(self, zgroup, index):
         self._zgroup = zgroup
@@ -40,11 +73,24 @@ class Coordinate:
 
     @property
     def zgroup(self):
+        """
+        The Zarr group containing the parent TensorField data.
+        """
         return self._zgroup
 
     @property
     def array(self):
+        """
+        The Zarr array associated with this coordinate.
+        """
         return self.zgroup[self._array_name]
+
+    @property
+    def attrs(self):
+        """
+        The Zarr attribute object associated with the corresponding Zarr array.
+        """
+        return self.array.attrs
 
     def _get_attribute(self, name):
         value = None
@@ -62,22 +108,37 @@ class Coordinate:
 
     @property
     def name(self):
+        """
+        Gets or sets the name of the coordinate.
+        """
         return self._get_attribute('name')
 
     @property
     def unit(self):
+        """
+        Gets or sets the coordinate data unit.
+        """
         return self._get_attribute('unit')
 
     @property
     def latex_name(self):
+        """
+        Gets or sets the LaTeX representation of the coordinate name.
+        """
         return self._get_attribute('latex_name')
 
     @property
     def latex_unit(self):
+        """
+        Gets or sets the LaTeX representation of the coordinate data unit.
+        """
         return self._get_attribute('latex_unit')
 
     @property
     def description(self):
+        """
+        Gets or sets the coordinate description.
+        """
         return self._get_attribute('description')
 
     @name.setter
@@ -101,33 +162,80 @@ class Coordinate:
         return self._set_attribute('description', value)
 
 
-class Coordinates:
+class TensorCoordinateSet:
+    """
+    Represents the collection of tensor coordinates in a :class:`TensorField` object.
+    It allows for easy access to the attributes of each coordinate and
+    facilitates iteration over the coordinate set.
+
+    The `TensorCoordinateSet` can be indexed to retrieve specific :class:`TensorCoordinate`
+    objects by either their index or name. For example:
+
+    .. code-block:: python
+
+        coord0 = tensorfield.coordinates[0] # to get the first coordinate
+        xcomp = tensorfield.coordinates['x-comp'] # to get the coordinate with the name 'x-comp'.
+
+    .. note::
+        This class should not be instantiated directly. It will be handled by the creation
+        functions when creating a new TensorField instance.
+
+    Parameters
+    ----------
+    zgroup : zarr.group.Group
+        An existing Zarr group that contains the coordinates' data and attributes.
+    """
 
     def __init__(self, zgroup):
-        self.zgroup = zgroup
+        self._zgroup = zgroup
+
+    @property
+    def zgroup(self):
+        """
+        The Zarr group containing the data.
+        """
+        return self._zgroup
 
     @property
     def array_keys(self):
+        """
+        A sorted tuple of names for all coordinate arrays in the TensorField Zarr group.
+        """
         return tuple(sorted(k for k in self.zgroup.array_keys() if k.startswith('coord_')))
 
     @property
     def names(self):
+        """
+        A sorted tuple of all coordinate names in the TensorField.
+        """
         return tuple(self.zgroup[k].attrs['name'] if 'name' in self.zgroup[k].attrs else None for k in self.array_keys)
 
     @property
     def units(self):
+        """
+        A sorted tuple of all coordinate data units in the TensorField.
+        """
         return tuple(self.zgroup[k].attrs['unit'] if 'unit' in self.zgroup[k].attrs else None for k in self.array_keys)
 
     @property
     def descriptions(self):
+        """
+        A sorted tuple of all coordinate descriptions in the TensorField.
+        """
         return tuple(self.zgroup[k].attrs['description'] if 'description' in self.zgroup[k].attrs else None for k in self.array_keys)
 
     @property
     def latex_names(self):
+        """
+        A sorted tuple of all LaTeX representations for the coordinate names.
+        """
         return tuple(self.zgroup[k].attrs['latex_name'] if 'latex_name' in self.zgroup[k].attrs else None for k in self.array_keys)
 
     @property
     def latex_units(self):
+        """
+        A sorted tuple of all LaTeX representations for the coordinate data units.
+        """
         return tuple(self.zgroup[k].attrs['latex_unit'] if 'latex_unit' in self.zgroup[k].attrs else None for k in self.array_keys)
 
     def _exit_error(self):
@@ -135,16 +243,56 @@ class Coordinates:
 
     def __getitem__(self, index):
         if index in range(len(self.names)):
-            return Coordinate(self.zgroup, index=index)
+            return TensorCoordinate(self.zgroup, index=index)
         if index in self.names:
-            return Coordinate(self.zgroup, index=[k for k, v in enumerate(self.names) if v == index][0])
+            return TensorCoordinate(self.zgroup, index=[k for k, v in enumerate(self.names) if v == index][0])
         self._exit_error()
+
+
+class TensorComponent:
+
+    def __init__(self, zgroup):
+        _assert.zarr_group('zgroup', zgroup)
+        self._zgroup = zgroup
+
+    @property
+    def zgroup(self):
+        """
+        The Zarr group containing the data.
+        """
+        return self._zgroup
+
+    def __getitem__(self, index):
+
+        data_arrays = [k for k in self.zgroup.array_keys() if k.startswith('data_')]
+        data_indices = [k.replace('data_', '') for k in data_arrays]
+        if data_indices[0].find('_')>=0:
+            data_indices = [tuple(int(i) for i in k.split('_')) for k in data_indices]
+        else:
+            data_indices = [int(k) for k in data_indices]
+
+        # index must be integer or integer array, same as tensor order
+        if all(isinstance(k, int) for k in data_indices): #scalar field or vector field
+            if not isinstance(index, int): #expected integer index
+                if len(data_indices) > 1:
+                    collective_raise(IndexError('expected integer index for order 1 tensor (vector field).'))
+                else:
+                    collective_raise(IndexError('expected index=0 for zero order tensor (scalar field).'))
+        else: #tensor field order>1: expected array of integers
+            if not (hasattr(index, '__getitem__') and all(isinstance(k, int) for k in index)):
+                collective_raise(IndexError('expected integer array for index.'))
+
+        if index not in data_indices:
+            collective_raise(IndexError(f'invalid component index={index} for tensor shape {_tensor_shape(self.zgroup)}.'))
+
+        ind = [k for k, v in enumerate(data_indices) if v == index][0]
+        return self.zgroup[data_arrays[ind]]
 
 
 class TensorField:
 
     """
-    A class representing a generic N-dimensional, arbitrary order tensor fields
+    A class representing generic N-dimensional, arbitrary order tensor fields
     with coordinates and associated metadata.
 
     This class serves as the basis for all tensor-like variables in RockVerse,
@@ -177,7 +325,27 @@ class TensorField:
         _assert.zarr_group('zgroup', zgroup)
         self._zgroup = zgroup
         self.validate()
-        self.coordinates = Coordinates(zgroup)
+        self._coordinates = TensorCoordinateSet(zgroup)
+        self._component = TensorComponent(zgroup)
+
+
+    @property
+    def coordinates(self):
+        """
+        Provides access to the set of coordinates associated with this TensorField.
+        Returns a :class:`TensorCoordinateSet` object that allows indexing by coordinate
+        index or name, which retrieves of individual tensor coordinates as :class:`TensorCoordinate`
+        objects.
+        """
+        return self._coordinates
+
+
+    @property
+    def component(self):
+        """
+        Provides access to the individual tensor component???
+        """
+        return self._component
 
 
     def validate(self):
@@ -186,6 +354,17 @@ class TensorField:
         This method verifies if all data in the underlying Zarr group is
         correctly defined and conforms to expected formats. If any inconsistencies
         or issues are found, the method raises appropriate errors to notify the user.
+        The following must me True for a successful check (let zgroup be the Zarr Group object):
+
+        - The `_ROCKVERSE_DATATYPE` attribute is in zgroup.attrs.
+        - Some data array is in zgroup.
+        - Data array indices must have same length (`data_0`, `data_1`, ..., or `data_0_0`, `data_0_1`, ..., etc).
+        - Data array shapes and chunk sizes must be the same.
+        - Data array data types must be the same.
+        - Every coordinate array must exist and be a 1D array.
+        - Each coordinate array shape must match the correspnding tensor component shape
+        - Attributes `name`, `unit`, `description`, `latex_name`, and `latex_unit`, if defined
+        for the tensor field or its components, must be strings.
 
         Returns
         -------
@@ -201,7 +380,7 @@ class TensorField:
             If any expected attributes are missing from the data structure.
         """
 
-        zgroup = self.zgroup
+        zgroup = self._zgroup
 
         # Data type identifier
         if "_ROCKVERSE_DATATYPE" not in zgroup.attrs:
@@ -273,7 +452,6 @@ class TensorField:
         # Non array-specific attributes won't be tested...
         return
 
-
     @property
     def zgroup(self):
         """
@@ -282,32 +460,40 @@ class TensorField:
         return self._zgroup
 
     @property
-    def data_arrays(self):
+    def _data_arrays(self):
         return tuple(k for k in self.zgroup.array_keys() if k.startswith('data_'))
 
     @property
     def dtype(self):
         """
-        Tensor Numpy data type.
+        Numpy data type for the tensor components.
         """
         self.validate()
-        return self.zgroup[self.data_arrays[0]].dtype
+        return self.zgroup[self._data_arrays[0]].dtype
 
     @property
-    def shape(self):
+    def space_shape(self):
         """
-        The space shape.
+        The shape of the coordinate space. Equivalent to the array shape of each tensor component.
         """
         self.validate()
-        return self.zgroup[self.data_arrays[0]].shape
+        return self.zgroup[self._data_arrays[0]].shape
+
+    @property
+    def tensor_shape(self):
+        """
+        The tensor shape at each point in the coordinate space.
+        """
+        self.validate()
+        return _tensor_shape(self.zgroup)
 
     @property
     def chunks(self):
         """
-        The space chunk size.
+        The chunk size of each tensor component array.
         """
         self.validate()
-        return self.zgroup[self.data_arrays[0]].chunks
+        return self.zgroup[self._data_arrays[0]].chunks
 
     @property
     def order(self):
@@ -317,55 +503,20 @@ class TensorField:
         self.validate()
         order = None
         if mpi_rank == 0:
-            if len(self.data_arrays) == 1 and self.data_arrays[0] == 'data_0':
+            if len(self._data_arrays) == 1 and self._data_arrays[0] == 'data_0':
                 order = 0
             else:
-                data_indices = [tuple(int(i) for i in k.replace('data_', '').split('_')) for k in self.data_arrays]
+                data_indices = [tuple(int(i) for i in k.replace('data_', '').split('_')) for k in self._data_arrays]
                 order = len(data_indices[0])
         order = comm.bcast(order, root=0)
         return order
-
-    @property
-    def tensor_shape(self):
-        """
-        Tensor shape.
-        """
-        self.validate()
-        shape = None
-        if mpi_rank == 0:
-            data_indices = [tuple(int(i) for i in k.replace('data_', '').split('_')) for k in self.data_arrays]
-            shape = []
-            for k in range(len(data_indices)):
-                shape.append(max(ind[k] for ind in data_indices)+1)
-        shape = comm.bcast(shape, root=0)
-        return tuple(shape)
 
     @property
     def ndim(self):
         """
         Number of data coordinates.
         """
-        return len(self.shape)
-
-    def _get_data_array(self, index):
-        """
-        Retrieves the Zarr array for the specified data component.
-        """
-        ERRADO
-        if dim is None:
-            return self.zgroup['data']
-        if f'coord_{dim}' in self.zgroup:
-            return self.zgroup[f'coord_{dim}']
-        coord_names = self.coord_names
-        pos = [k for k, v in enumerate(coord_names) if v == dim]
-        if pos:
-            return self.zgroup[f'coord_{pos[0]}']
-        # Error from here...
-        msg = f"dim='{dim}'" if isinstance(dim, str) else f"dim={dim}"
-        collective_raise(KeyError(
-            f"{msg} is not a valid coordinate index for this tensor. "
-            f"Expected non negative integer < {len(self.zgroup['data'].shape)} or "
-            f"one of the dim names {tuple(coord_names)}."))
+        return len(self.zgroup[self._data_arrays[0]].shape)
 
     def _get_array(self, dim=None):
         """
@@ -744,7 +895,7 @@ class TensorField:
             import h5py
             import rockverse as rv
 
-            array_instance = rv.create_tensor(...)  # Create your array...
+            array_instance = rv.create_tensorfield(...)  # Create your array...
             with h5py.File('filename.h5', 'a') as fobj:
                 array_instance.h5dump(fobj, path='/myawesomearray')
 
@@ -773,84 +924,167 @@ class TensorField:
                 subgrp.attrs[k] = v
 
 
-def create_tensor(data,
-                  store,
-                  path=None,
-                  name=None,
-                  unit=None,
-                  description=None,
-                  latex_name=None,
-                  latex_unit=None,
-                  coord_data=None,
-                  coord_names=None,
-                  coord_units=None,
-                  coord_descriptions=None,
-                  coord_latex_names=None,
-                  coord_latex_units=None,
-                  attrs=None,
-                  overwrite=False,
-                  **kwargs):
+def create_tensorfield(data,
+                       store,
+                       path=None,
+                       chunks=None,
+                       name=None,
+                       unit=None,
+                       description=None,
+                       latex_name=None,
+                       latex_unit=None,
+                       coord_data=None,
+                       coord_names=None,
+                       coord_units=None,
+                       coord_descriptions=None,
+                       coord_latex_names=None,
+                       coord_latex_units=None,
+                       overwrite=False,
+                       zarr_group_args=None,
+                       zarr_array_args=None):
     """
-    Create a RockVerse array from provided data at specified Zarr storage.
+    Create a RockVerse tensor field from provided data at specified Zarr storage.
 
     Parameters
     ----------
 
-    data : array-like
-        The data to be stored in the array.
+    data : array-like | dict
+        The tensor components to be stored in the tensor field. It must be one of the following:
+        an array-like object (for creating scalar fields);
+        a list of arrays with identical shapes (for vector fields);
+        a dictionary where keys are the component zero-based positions and values are the
+        corresponding arrays.
+
+        Examples:
+
+        .. code-block::
+
+            import numpy as np
+            import rockverse as rv
+
+            # Create a scalar field in a 10x10x10 grid
+            field1 = rv.create_tensorfield(data=np.random.rand(10, 10, 10), ...
+
+            # Create a 3-component vector field in a 10x10x10 grid
+            field2 = rv.create_tensorfield(data=[np.random.rand(10, 10, 10),
+                                                 np.random.rand(10, 10, 10),
+                                                 np.random.rand(10, 10, 10)], ...
+
+            # Create a 3x3 second order tensor field in a 10x10x10 grid
+            # Missing components are assumed zero arrays
+            field3 = rv.create_tensorfield(data={(0, 0): np.random.rand(10, 10, 10),
+                                                 (1, 1): np.random.rand(10, 10, 10),
+                                                 (2, 2): np.random.rand(10, 10, 10),
+                                                 (0, 2): np.random.rand(10, 10, 10)}, ...
+
+            # Integer dictionary keys are also valid entries
+            # This is equivalent to field2 above:
+            field4 = rv.create_tensorfield(data={0: np.random.rand(10, 10, 10),
+                                                 1: np.random.rand(10, 10, 10),
+                                                 2: np.random.rand(10, 10, 10)}, ...
+
+            # And this is equivalent to field1 above:
+            field4 = rv.create_tensorfield(data={0: np.random.rand(10, 10, 10)}, ...
+
+            # This will create a 2-component vector, as position 0 will be treated as zero array:
+            field5 = rv.create_tensorfield(data={1: np.random.rand(10, 10, 10)}, ...
+
     store : str or zarr.storage.StoreLike
-        The storage location for the array.
+        The storage location for the underlying Zarr group.
+
     path : str, optional
-        The path within the store where the array will be saved.
+        The path within the store where the data will be saved.
+
+    chunks : iterable of ints | None, optional
+        If iterable of integers, define the chunk shape for each tensor component.
+        Leave as `None` to match the array shape (no chunking).
+
     name : str, optional
-        The name of the array.
+        The name of the tensor field.
+
     unit : str, optional
-        The unit of the array data.
+        The data unit of the tensor field data.
+
     description : str, optional
-        A description of the array.
+        A description of the tensor field.
+
     latex_name : str, optional
-        The LaTeX representation of the array name.
+        The LaTeX representation of the tensor field name.
+
     latex_unit : str, optional
-        The LaTeX representation of the array unit.
+        The LaTeX representation of the tensor field data unit.
+
     coord_data : tuple or list, optional
-        Data for coordinates. The number of elements should match the shape of the data array.
-        Each element must be an 1D array-like with the coordinate values.
+        Data for coordinates. The number of elements should match the shape of the tensor field components.
+        Each element must be an 1D array-like with the coordinate values or ``None``.
+
     coord_names : tuple or list, optional
-        Names for coordinates. The number of elements should match the shape of the data array.
-        Each element must be a string with the coordinate names.
+        Names for coordinates. The number of elements should match the shape of the tensor field components.
+        Each element must be a string with the coordinate names or ``None``.
+
     coord_units : tuple or list, optional
-        Units for coordinate data. The number of elements should match the shape of the data array.
-        Each element must be a string with the coordinate data unit.
+        Units for coordinate data. The number of elements should match the shape of the tensor field components.
+        Each element must be a string with the coordinate data unit or ``None``.
+
     coord_descriptions : tuple or list, optional
-        Description for coordinate data. The number of elements should match the shape of the data array.
-        Each element must be a string with the coordinate description.
+        Description for coordinate data. The number of elements should match the shape of the tensor field components.
+        Each element must be a string with the coordinate description or ``None``.
+
     coord_latex_names : tuple or list, optional
-        LaTeX names for coordinate data. The number of elements should match the shape of the data array.
-        Each element must be a string with the LaTeX representation of coordinate name.
+        LaTeX names for coordinate data. The number of elements should match the shape of the tensor field components.
+        Each element must be a string with the LaTeX representation of coordinate name or ``None``.
+
     coord_latex_units : tuple or list, optional
-        LaTeX units for coordinate data. The number of elements should match the shape of the data array.
-        Each element must be a string with the LaTeX representation of coordinate data unit.
-    attrs : dict, optional
-        Additional attributes to be stored with the array.
+        LaTeX units for coordinate data. The number of elements should match the shape of the tensor field components.
+        Each element must be a string with the LaTeX representation of coordinate data unit or ``None``.
+
     overwrite : bool, optional
         If True, deletes the store/path content before creating the new array.
-    **kwargs
-        Keyword arguments to be passed to the underlying Zarr group creation function.
+
+    zarr_group_args : dict
+        Dictionary with keyword arguments to be passed to the underlying Zarr group creation function.
+
+    zarr_array_args : dict
+        Dictionary with keyword arguments to be passed to the underlying Zarr array creation function.
+
+    Example
+    -------
+
+    Create a tensor field with specified coordinates:
+
+    .. code-block:: python
+
+        import numpy as np
+        import rockverse as rv
+        temperature = rv.create_tensorfield(
+            data=np.random.rand(5, 4, 3)+300,
+            store='/path/to/zarr/store',
+            name='Tr',
+            latex_name='$T_r$',
+            unit='K',
+            description='Random temperature field, in kelvin units',
+            coord_data=([10, 20, 30, 40, 50], [45, 55, 65, 75], [5, 6, 7]),
+            coord_names=('x', 'y', 'z'),
+            coord_units=('m', 'm', 'm')
+        )
 
     Returns
     -------
 
-    Array
-        An instance of the RockVerse Array class representing the created array.
+    TensorField
+        An instance of the RockVerse TensorField class representing the created array.
     """
 
-    #CHUNKS?
     #PARALLEL I/O?
     #PARALLEL __GETITEM__
     #PARALLEL __SETITEM__
     #NÂO CRIAR DENTRO DE STORE QUE JA CONTENHA ROCKVERSE DATA?
 
     # Check for valid entries ----------------------------------
+
+    _assert.boolean('overwrite', overwrite)
+    if zarr_group_args is not None:
+        _assert.dictionary('zarr_group_args', zarr_group_args)
 
     # data:
     # Array-like: order 0 (scalar field)
@@ -884,6 +1118,21 @@ def create_tensor(data,
         collective_raise(ValueError('Data components must have identical shape.'))
     shape = shapes[0]
 
+    # Array data types must be numeric or boolean
+    dtypes = [v.dtype.kind for v in components.values()]
+    if not all(k in 'buifc' for k in dtypes):
+        collective_raise(ValueError('Data arrays must be numeric or boolean.'))
+
+    # Chunk shape length must match array shape length
+    if chunks is None:
+        chunks_ = shape
+    else:
+        _assert.iterable.ordered_integers_positive('chunks', chunks)
+        if len(shape) != len(chunks):
+            collective_raise(ValueError(f'chunks={chunks} not compatible with array shape={shape}.'))
+        chunks_ = chunks
+
+    # String attributes
     for varname, var in zip(('path', 'name', 'unit', 'description', 'latex_name', 'latex_unit'),
                             (path, name, unit, description, latex_name, latex_unit)):
         if var is not None:
@@ -903,7 +1152,7 @@ def create_tensor(data,
                     if v is not None and isinstance(v, np.ndarray) and len(v.shape) != 1:
                         collective_raise(ValueError(f'Elements in {varname} must be list, tuple or 1D Numpy arrays.'))
                     if v is not None and len(v) != shape[k]:
-                        collective_raise(ValueError(f'len(coord_data[{k}])={len(coord_data[k])} does not match data.shape[{k}]={data.shape[k]}.'))
+                        collective_raise(ValueError(f'len(coord_data[{k}])={len(coord_data[k])} does not match data array shape[{k}]={shape[k]}.'))
 
     # Coordinate names must be unique
     if coord_names:
@@ -911,18 +1160,17 @@ def create_tensor(data,
             if any(name1 and (name2 == name1) and (k2 != k1) for k2, name2 in enumerate(coord_names)):
                 collective_raise(ValueError(f'Invalid coord_names={coord_names}: coordinate names must be unique.'))
 
-    if attrs is not None:
-        _assert.dictionary('attrs', attrs)
-        kwargs['attrs'] = attrs
-    _assert.boolean('overwrite', overwrite)
-    kwargs['overwrite'] = overwrite
-
 
     # Create the Zarr group and populate the data --------------
     # Should be done in parallel <<<<<<<<<<<<<<<<<<<<<<<<<<<<
-
+    if zarr_group_args is None:
+        kwargs = {}
+    else:
+        kwargs = dict(**zarr_group_args)
+    kwargs['overwrite'] = overwrite
     kwargs['store'] = store
     kwargs['path'] = path
+    kwargs['zarr_format'] = 3
     zgroup = zarr.create_group(**kwargs)
 
     data_attrs = {'_ROCKVERSE_DATATYPE': 'TensorField'}
@@ -937,11 +1185,6 @@ def create_tensor(data,
     if latex_unit is not None:
         data_attrs['latex_unit'] = latex_unit
     zgroup.attrs.update(**data_attrs)
-
-    # Array data types must be numeric or boolean
-    dtypes = [v.dtype.kind for v in components.values()]
-    if not all(k in 'buifc' for k in dtypes):
-        collective_raise(ValueError('Data arrays must be numeric or boolean.'))
 
     # Data array type
     dtypes = [v.dtype.str for v in components.values()]
@@ -963,14 +1206,31 @@ def create_tensor(data,
         type_ = np.dtype('bool')
 
     # Data arrays
-    for k, v in components.items():
-        group_name = f"data_{k}" if isinstance(k, int) else f"data_{'_'.join(str(i) for i in k)}"
-        zgroup.create_array(name=group_name,
-                            shape=v.shape,
-                            chunks=v.shape, # should be possible <<<<<<<<<<
-                            dtype=type_,  # specify in input parameters <<<<<<<<<<
-                            overwrite=overwrite)
-        zgroup[group_name][...] = v
+    if zarr_array_args is None:
+        kwargs = {}
+    else:
+        kwargs = dict(**zarr_array_args)
+    kwargs['overwrite'] = overwrite
+    kwargs['chunk_key_encoding'] = {"name": "default", "separator": "/"}
+
+    components_keys = list(components.keys())
+    if all(isinstance(k, int) for k in components_keys):
+        data_arrays = tuple([str(k) for k in range(max(components_keys)+1)])
+    else:
+        max_inds = np.zeros(len(components_keys[0])).astype(int)
+        for i in range(len(max_inds)):
+            max_inds[i] = max([k[i] for k in components.keys()])+1
+        ranges = [range(m) for m in max_inds]
+        data_arrays = ["_".join(map(str, combo)) for combo in product(*ranges)]
+    for name in data_arrays:
+        zgroup.zeros(name=f"data_{name}",
+                     shape=shape,
+                     chunks=chunks_,
+                     dtype=type_,  # specify in input parameters? <<<<<<<<<<
+                     **kwargs)
+        ind = tuple(int(i) for i in name.split('_'))
+        if ind in components_keys:
+            zgroup[f"data_{name}"][...] = components[ind]
 
     # Should be done by rank 0... <<<<<<<<<<<<<<<<<<<<<<<<<
     for k in range(len(shape)):
@@ -1008,8 +1268,8 @@ def create_tensor(data,
 def load_array_from_h5_file(fobj, h5path, store, path=None, overwrite=False, **kwargs):
 
     """
-    Loads a RockVerse array from an HDF5 file.
-    This function reads an existing RockVerse array stored in an HDF5 file and
+    Loads a RockVerse TensorField from an HDF5 file.
+    This function reads an existing RockVerse TensorField stored in an HDF5 file and
     creates a corresponding Array object in the specified Zarr storage.
 
     The data in the HDF5 file is expected to be in a particular format:
@@ -1077,8 +1337,8 @@ def load_array_from_h5_file(fobj, h5path, store, path=None, overwrite=False, **k
 
     Returns
     -------
-    Array
-        An instance of the RockVerse Array class representing the loaded array.
+    TensorField
+        An instance of the RockVerse TensorField class.
 
     Raises
     ------
@@ -1099,11 +1359,11 @@ def load_array_from_h5_file(fobj, h5path, store, path=None, overwrite=False, **k
         import h5py
         import rockverse as rv
         with h5py.File('filename.h5', 'r') as fobj:
-            array_instance = rv.core.load_array_from_h5_file(
+            field1 = rv.core.load_array_from_h5_file(
                 fobj, h5path='/myawesomearray', store='/path/to/zarr/store')
 
     This will load the contents in '/myawesomearray' from the HDF5 file and store it
-    in the specified Zarr storage as a RockVerse Array.
+    in the specified Zarr storage as a RockVerse TensorField.
     """
 
     if h5path not in fobj:
@@ -1173,12 +1433,12 @@ def load_array_from_h5_file(fobj, h5path, store, path=None, overwrite=False, **k
 
     # Import
     data = {tuple(int(i) for i in k.replace('data_', '').split('_')): group[k] for k in data_arrays}
-    rvarray = create_tensor(data=data, #<<<<<<<<<<<< PARALELIZE!
-                           store=store,
-                           path=path,
-                           coord_data=[group[f'coord_{k}'][...] for k in range(ndim)],
-                           overwrite=overwrite,
-                           **kwargs)
+    rvarray = create_tensorfield(data=data, #<<<<<<<<<<<< PARALELIZE!
+                                 store=store,
+                                 path=path,
+                                 coord_data=[group[f'coord_{k}'][...] for k in range(ndim)],
+                                 overwrite=overwrite,
+                                 **kwargs)
     for k, v in group.attrs.items():
         rvarray.zgroup.attrs[k] = v
     for array in [f"coord_{k}" for k in range(ndim)]:
@@ -1191,13 +1451,12 @@ def load_array_from_h5_file(fobj, h5path, store, path=None, overwrite=False, **k
 if __name__ == "__main__":
     import numpy as np
     import h5py
-    self=create_tensor(
-        #data={(0, 0): np.random.rand(2,2,2).astype(bool),
-        #      (1, 0): np.random.rand(2,2,2).astype(bool),
-        #      (3, 1): np.random.rand(2,2,2).astype(bool),
-        #      (2, 1): np.random.rand(2,2,2).astype(bool),
-        #      (3, 0): np.random.rand(2,2,2).astype(bool)},
-        data = np.random.rand(5,2,8),
+    import zarr
+    zarr.config.config['array']['order']='F'
+    self=create_tensorfield(
+        data={(0, 0): np.random.rand(5,2,8).astype(float),
+              },
+        #data = np.random.rand(5,2,8),
         store=r"C:\Users\GOB7\Downloads\test",
         #store='/u/gob7/test.zarr',
         path="testpath",
@@ -1212,7 +1471,6 @@ if __name__ == "__main__":
         coord_descriptions=("UM", "DOIS", "WW"),
         coord_latex_names=(r"$r$", r"$i$", r"$p$"),
         coord_latex_units=('a', '', '.'),
-        attrs=None,
         overwrite=True)
     self.validate()
 

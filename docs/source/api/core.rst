@@ -13,12 +13,16 @@ Classes
 
 .. autosummary::
 
-   ~Array
+   ~TensorField
+   ~TensorCoordinateSet
+   ~TensorCoordinate
 
 .. toctree::
    :hidden:
 
-   core/array
+   core/tensorfield
+   core/tensorcoordinateset
+   core/tensorcoordinate
 
 
 .. _core module creation functions:
@@ -29,5 +33,5 @@ Creation functions
 .. autosummary::
    :toctree: _autogen
 
-   ~create_array
+   ~create_tensorfield
    ~load_array_from_h5_file
