@@ -92,7 +92,7 @@ def in_group(varname, var, group):
 
 def list_of_zarray(varname, var):
     conditions = [isinstance(var, list),
-                  all(isinstance(k, zarr.core.Array) for k in var)]
+                  all(isinstance(k, zarr.core.array.Array) for k in var)]
     if not all(conditions):
         collective_raise(ValueError(f"Expected list of Zarr arrays for {varname}."))
 
@@ -138,8 +138,8 @@ def same_voxel_unit(message, varlist):
            collective_raise(ValueError(f'{message} must have same voxel unit.'))
 
 def zarr_array(varname, var):
-    if not isinstance(var, zarr.core.Array):
-        collective_raise(ValueError(f'Expected Zarr array for {varname}'))
+    if not isinstance(var, zarr.core.array.Array):
+        collective_raise(ValueError(f'Expected Zarr array for {varname}.'))
 
 def zarr_group(varname, var):
     if not isinstance(var, zarr.Group):
@@ -151,7 +151,7 @@ def zarr_localstore(varname, var):
 
 def zarr_or_none_iterable(varname, var):
     if not (hasattr(var, '__iter__')
-            and all(k is None or isinstance(k, zarr.core.Array) for k in var)
+            and all(k is None or isinstance(k, zarr.core.array.Array) for k in var)
             ):
         collective_raise(ValueError(f'Expected list of None or Zarr arrays for {varname}.'))
 

@@ -13,6 +13,7 @@ Classes
 
 .. autosummary::
 
+   ~ParallelArray
    ~TensorField
    ~TensorCoordinateSet
    ~TensorCoordinate
@@ -20,6 +21,7 @@ Classes
 .. toctree::
    :hidden:
 
+   core/paralellarray
    core/tensorfield
    core/tensorcoordinateset
    core/tensorcoordinate

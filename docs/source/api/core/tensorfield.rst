@@ -13,7 +13,7 @@ Attributes
 .. autosummary::
     :toctree: _autogen
 
-    ~TensorField.coordinates
+    ~TensorField.coordinate
     ~TensorField.zgroup
 
 
