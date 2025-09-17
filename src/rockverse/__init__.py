@@ -65,7 +65,6 @@ __all__ = [
     "Group",
 ]
 
-from rockverse.group import Group, create_group
 from rockverse import voxel_image
 from rockverse import region
 from rockverse.viz import OrthogonalViewer

@@ -30,7 +30,7 @@ def collective_only_rank0_runs(id=''):
     How to use
     ----------
 
-    >>> with rank0_runs():
+    >>> with collective_only_rank0_runs():
     >>>     if mpi_rank == 0: #<-- THIS IS VERY IMPORTANT!
                 <block to be run only by rank0>
     >>> <continue the code>

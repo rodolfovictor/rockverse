@@ -35,8 +35,8 @@ def positive_integer(varname, var):
             return
     collective_raise(ValueError(f"Expected positive integer value for {varname}."))
 
-def voxelimage_dtype(varname, var):
+def numeric_or_boolean(varname, var):
     if np.dtype(var).kind not in 'biufc':
-        collective_raise(ValueError(
+        collective_raise(TypeError(
             f"Invalid dtype kind for {varname}. Expected boolean, integer, "
             "unsigned integer, floating-point or complex floating-point."))

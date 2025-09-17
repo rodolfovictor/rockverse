@@ -96,7 +96,7 @@ def create(shape,
     _assert.iterable.length('shape', shape, 3)
 
     # Check for valid dtype ---------------------
-    _assert.condition.voxelimage_dtype('dtype', dtype)
+    _assert.condition.numeric_or_boolean('dtype', dtype)
 
     # Check for valid voxel_length --------------
     if voxel_length is not None:

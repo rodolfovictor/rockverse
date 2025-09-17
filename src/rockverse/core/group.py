@@ -3,26 +3,23 @@ import zarr
 from rockverse import _assert
 from rockverse._assert import collective_raise
 from rockverse.configure import config, config_context
+from rockverse.errors import collective_raise, collective_only_rank0_runs
+
+
+from rockverse.configure import config
 mpi_comm = config.mpi_comm
 mpi_rank = config.mpi_rank
 mpi_nprocs = config.mpi_nprocs
-
-from rockverse.voxel_image import VoxelImage
-from rockverse.dect import DECTGroup
-from rockverse.seismic import SeismicData, import_segy
-
-
-_DATA_CLASS_MAP = {'VoxelImage': VoxelImage,
-                   'DECTGroup': DECTGroup,
-                   'DualEnergyCTGroup': DECTGroup,
-                   'SeismicData': SeismicData}
-
 
 class Group():
 
     def __init__(self, zgroup):
         _assert.zarr_group('zgroup', zgroup)
-        self.zgroup = zgroup
+        self._zgroup = zgroup
+
+    @property
+    def zgroup(self):
+        return self._zgroup
 
     def create_group(self, path, overwrite=False):
         zgroup = zarr.group(store=self.zgroup.store, path=path, overwrite=overwrite)
@@ -47,14 +44,35 @@ class Group():
 
             return self.zgroup[key]
 
-    def import_segy(self, filename, path, **kwargs):
-        return import_segy(filename=filename,
-                           store=self.zgroup.store,
-                           path=os.path.join(self.zgroup.path, path),
-                           **kwargs)
 
+def create_group(store, path, overwrite=False, **kwargs):
 
-def create_group(store, overwrite=False):
-    zgroup = zarr.group(store, overwrite=overwrite)
-    zgroup.attrs['_ROCKVERSE_DATATYPE'] = 'Group'
+    kwargs['store'] = store
+    kwargs['overwrite'] = overwrite
+    kwargs['path'] = path
+    kwargs['zarr_format'] = 3
+
+    if 'attributes' in kwargs:
+        attrs = kwargs.pop('attributes')
+    else:
+        attrs = {}
+
+    if '_ROCKVERSE_DATATYPE' not in attrs:
+        attrs['_ROCKVERSE_DATATYPE'] = 'Group'
+
+    if not store or isinstance(store, zarr.storage.MemoryStore):
+        zgroup = zarr.create_group(**kwargs)
+    else: #Only rank 0 writes metadata to disk
+        with collective_only_rank0_runs():
+            if mpi_rank == 0:
+                zgroup = zarr.create_group(**kwargs)
+        for k in range(mpi_nprocs):
+            if k == mpi_rank:
+                zgroup = zarr.open(store=store, path=kwargs['path'], mode='r+')
+            mpi_comm.barrier()
+
+    if mpi_rank == 0:
+        zgroup.attrs.update(**attrs)
+    mpi_comm.barrier()
+
     return Group(zgroup)

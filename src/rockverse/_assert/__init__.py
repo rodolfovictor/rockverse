@@ -142,6 +142,14 @@ def zarr_array(varname, var):
         collective_raise(ValueError(f'Expected Zarr array for {varname}.'))
 
 def zarr_group(varname, var):
+    if not isinstance(var, zarr.core.group.Group):
+        collective_raise(ValueError(f'Expected Zarr group for {varname}'))
+
+def zarr_array_or_group(varname, var):
+    if not isinstance(var, zarr.core.array.Array) and not isinstance(var, zarr.core.group.Group):
+        collective_raise(ValueError(f'Expected Zarr array or group for {varname}.'))
+
+def zarr_group(varname, var):
     if not isinstance(var, zarr.Group):
         collective_raise(ValueError(f'Expected Zarr group for {varname}'))
 
@@ -156,5 +164,5 @@ def zarr_or_none_iterable(varname, var):
         collective_raise(ValueError(f'Expected list of None or Zarr arrays for {varname}.'))
 
 def array_like(varname, var):
-    if not hasattr(var, '__array__'):
-        collective_raise(ValueError(f'{varname} must be an array-like object.'))
+    if not all(hasattr(var, attr) for attr in ('__array__', 'shape', 'dtype')):
+        collective_raise(ValueError(f"Expected array-like with shape and dtype attributes for {varname}."))

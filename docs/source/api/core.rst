@@ -13,6 +13,7 @@ Classes
 
 .. autosummary::
 
+   ~Attributes
    ~ParallelArray
    ~TensorField
    ~TensorCoordinateSet
@@ -21,6 +22,7 @@ Classes
 .. toctree::
    :hidden:
 
+   core/attributes
    core/paralellarray
    core/tensorfield
    core/tensorcoordinateset
@@ -35,5 +37,7 @@ Creation functions
 .. autosummary::
    :toctree: _autogen
 
+   ~create_array
+   ~array
    ~create_tensorfield
    ~load_array_from_h5_file
