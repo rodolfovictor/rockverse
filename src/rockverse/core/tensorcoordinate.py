@@ -10,6 +10,8 @@ from rockverse.errors import collective_raise
 # rank0 reads data and send chunk to MPI process
 
 from rockverse.configure import config
+from rockverse.core.attributes import Attributes
+
 comm = config.mpi_comm
 mpi_rank = config.mpi_rank
 mpi_nprocs = config.mpi_nprocs
@@ -37,6 +39,7 @@ class TensorCoordinate:
     def __init__(self, zgroup, index):
         self._zgroup = zgroup
         self._array_name = f'coord_{index}'
+        self._attrs = Attributes(zgroup[f'coord_{index}'])
 
     @property
     def zgroup(self):

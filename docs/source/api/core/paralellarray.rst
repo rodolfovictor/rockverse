@@ -12,9 +12,10 @@ Attributes
 
 .. autosummary::
     :toctree: _autogen
-
-    ~ParallelArray.zarray
+    
+    ~ParallelArray.attrs
     ~ParallelArray.chunk_process_map
+    ~ParallelArray.zarray
 
 Methods
 -------

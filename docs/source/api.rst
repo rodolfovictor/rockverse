@@ -34,12 +34,17 @@ Objects
      - The lib-wide instance of the :class:`configuration class <rockverse.configure.Config>`
        containing the configuration settings and parameters.
 
-Functions
----------
+
+.. _core module creation functions:
+
+Data creation functions
+-----------------------
 
 .. autosummary::
   :toctree: _autogen
 
+  ~rockverse.create_array
+  ~rockverse.array
   ~rockverse.open
 
 Core Module

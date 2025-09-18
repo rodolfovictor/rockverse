@@ -13,17 +13,16 @@ import h5py
 import zarr
 from rockverse.errors import collective_raise
 
-# TODO WRITE PLOT_FRIENDLY FUNCTIONS (labels, etc)
-
 from rockverse.configure import config
 comm = config.mpi_comm
 mpi_rank = config.mpi_rank
 mpi_nprocs = config.mpi_nprocs
 
+from rockverse.core.group import Group
 from rockverse.core.attributes import Attributes
 from rockverse.core.parallelarray import ParallelArray
 from rockverse.core.tensorcoordinateset import TensorCoordinateSet, TensorCoordinate
-from rockverse.core.tensorfield import TensorField, create_tensorfield
+from rockverse.core.tensorfield import TensorField, TensorComponent, create_tensorfield
 
 
 #>>>>>>>>>>>>>> PARALELIZE! READ BY CHUNKS, even when not chunked but large dataset

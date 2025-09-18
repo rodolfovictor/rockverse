@@ -65,6 +65,14 @@ __all__ = [
     "Group",
 ]
 
+
+# Data creation functions
+from rockverse.core.parallelarray import (
+    create_array,
+    array,
+    )
+
+
 from rockverse import voxel_image
 from rockverse import region
 from rockverse.viz import OrthogonalViewer
@@ -72,6 +80,7 @@ from rockverse import dect
 from rockverse import seismic
 from rockverse.errors import collective_only_rank0_runs, collective_raise
 
+#TODO: migrar para core module, revisar
 def open(store, *, path=None, **kwargs):
     """
     Opens RockVerse data.

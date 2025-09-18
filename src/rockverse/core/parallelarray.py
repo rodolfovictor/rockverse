@@ -20,10 +20,10 @@ class ParallelArray:
     """
     A high-level interface for distributed management of chunked arrays.
 
-    This class is designed to work seamlessly in MPI environments.
-    It builds on top of
+    This class builds on top of
     `Zarr arrays <https://zarr.readthedocs.io/en/stable/user-guide/arrays.html#>`_
-    and supports efficient parallel read, write, and mathematical operations on
+    and is designed to work seamlessly in MPI environments. It supports
+    efficient parallel read, write, and mathematical operations on
     numeric or boolean Zarr arrays across multiple MPI processes.
 
     The class maps array chunks to MPI ranks to balance workload distribution,
@@ -49,18 +49,23 @@ class ParallelArray:
             collective_raise(TypeError("expected numeric or boolean array for zarray."))
 
         self._zarray = zarray
+        self._attrs = Attributes(zarray)
         self._zarray.attrs['_ROCKVERSE_DATATYPE'] = 'ParallelArray'
-
-        ranges = [range(m) for m in self._zarray.cdata_shape]
-        self._chunk_block_index_to_id = {combo: k for k, combo in enumerate(product(*ranges))}
-        self._chunk_id_to_block_index = {v: k for k, v in self._chunk_block_index_to_id.items()}
 
     @property
     def zarray(self):
         """
-        The underlying Zarr array managed by this ParallelArray instance on each MPI process.
+        The underlying Zarr array managed by this array instance on each MPI process.
         """
         return self._zarray
+
+    @property
+    def attrs(self):
+        """
+        The collective metadata attributes associated with this array as an
+        :class:`Attributes` object.
+        """
+        return self._attrs
 
     @property
     def chunk_process_map(self):
@@ -113,11 +118,9 @@ class ParallelArray:
 
     def clean_chunks(self):
         """
-        Reset all chunks not owned by the current MPI process to the array's fill value.
-        This method iterates over all chunks of the Zarr array and clears those chunks
-        whose assigned chunk ID modulo the total number of MPI processes does not match
-        the current MPI rank. This helps ensure that each MPI rank only maintains data
-        for its assigned chunks, which can prevent data inconsistencies in parallel operations.
+        Reset all chunks not owned by the current MPI process to the array's fill
+        value. This helps ensure that each MPI rank only maintains data for its
+        assigned chunks, which can prevent data inconsistencies in parallel operations.
         """
         chunk_process_map = self.chunk_process_map
         for block_id, block_index in chunk_process_map.items():
@@ -219,7 +222,7 @@ class ParallelArray:
 
 def create_array(shape,
                  dtype,
-                 chunk_shape=None,
+                 chunks=None,
                  store=None,
                  path=None,
                  overwrite=False,
@@ -234,7 +237,7 @@ def create_array(shape,
     dtype : string or dtype
         Numpy dtype. Type must be numeric (unsigned integer, integer, float, complex)
         or boolean. Ex: ``dtype=int``, ``dtype='u2'``, ``dtype='f4'``, ``dtype=np.complex128``.
-    chunk_shape : iterable of ints | None, optional
+    chunks : iterable of ints | None, optional
         If iterable of integers, define the chunk shape. If `None`, `False`, empty tuple or
         any other object that makes ``not chunk_shape`` True, chunk shape will be set to the
         array shape, i.e., single chunk for the whole array.
@@ -264,11 +267,11 @@ def create_array(shape,
     _assert.condition.numeric_or_boolean('dtype', dtype)
 
     # Check for valid chunk_shape ---------------
-    if not chunk_shape:
-        _chunk_shape = shape
+    if not chunks:
+        _chunks = shape
     else:
-        _chunk_shape = chunk_shape
-    _assert.iterable.ordered_numbers_positive('chunk_shape', _chunk_shape)
+        _chunks = chunks
+    _assert.iterable.ordered_numbers_positive('chunks', _chunks)
 
     # Check for valid overwrite -----------------
     _assert.instance('overwrite', overwrite, 'boolean', (bool,))
@@ -279,7 +282,7 @@ def create_array(shape,
 
     kwargs['shape'] = shape
     kwargs['dtype'] = dtype
-    kwargs['chunks'] = _chunk_shape
+    kwargs['chunks'] = _chunks
     kwargs['store'] = store
     kwargs['overwrite'] = overwrite
     kwargs['path'] = path
@@ -313,28 +316,31 @@ def create_array(shape,
 
 def array(data, chunk_shape=None, store=None, path=None, overwrite=False, **kwargs):
     """
-    Create a parallel array and populate it with values from `data`.
-    This function creates a new parallel array with the same shape and data type as the
-    provided data array, using the specified chunk shape and storage options. After creation,
-    it fills the array with the values from data, distributing the data across MPI processes
-    for parallel management.
+    Create a parallel array and populate it with values from `data`. This
+    function creates a new parallel array with the same shape and data type as
+    the provided data array, using the specified chunk shape and storage options.
+    After creation, it fills the array with the values from data, distributing
+    the data across MPI processes for parallel management.
 
     Parameters
     ----------
     data : array-like
         The source array whose data will populate the new parallel array.
-    chunk_shape : iterable of ints or None, optional
-        Defines the chunk shape for the parallel array. If None or falsy, the chunk shape
-        defaults to the shape of the entire array (single chunk).
+    chunks : iterable of ints or None, optional
+        Defines the chunk shape for the parallel array. If None or falsy, the
+        chunk shape defaults to the shape of the entire array (single chunk).
     store : str, zarr.storage.StoreLike, or None, optional
-        Storage location for the array. Can be a file path, a Zarr-compatible store object,
-        or None for in-memory storage.
+        Storage location for the array. Can be a file path, a Zarr-compatible
+        store object, or None for in-memory storage.
     path : str or None, optional
-        The path within the store where the array will be located. If None, the root path is used.
+        The path within the store where the array will be located. If None,
+        the root path is used.
     overwrite : bool, optional
-        If True, any existing data at the target location will be overwritten. Default is False.
+        If True, any existing data at the target location will be overwritten.
+        Default is False.
     **kwargs
-        Additional keyword arguments passed to the underlying create_array function.
+        Additional keyword arguments passed to the underlying create_array
+        function.
 
     Returns
     -------
@@ -351,25 +357,3 @@ def array(data, chunk_shape=None, store=None, path=None, overwrite=False, **kwar
                              **kwargs)
     new_array[...] = data
     return new_array
-
-
-if __name__ == "__main__":
-    import numpy as np
-    import h5py
-
-    shape=(5,2,8)
-    a = create_array(shape=shape, dtype=np.float32, chunk_shape=(2,2,2))
-    a[...] = np.random.rand(*shape)
-    a.zarray[...]
-    a[...]
-
-    filename = r"C:\Users\GOB7\Downloads\test.h5"
-    path='/my/awesome/array'
-    self=a
-    self.h5_dump(filename, path='/my/awesome/array', mode='w')
-
-    with h5py.File(filename, 'r') as fobj:
-        b = fobj['/my/awesome/array'][...]
-        c = {k: v for k, v in fobj['/my/awesome/array'].attrs.items()}
-    b == a[...]
-    c

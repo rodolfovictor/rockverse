@@ -15,7 +15,9 @@ Classes
 
    ~Attributes
    ~ParallelArray
+   ~Group
    ~TensorField
+   ~TensorComponent
    ~TensorCoordinateSet
    ~TensorCoordinate
 
@@ -24,20 +26,8 @@ Classes
 
    core/attributes
    core/paralellarray
+   core/group
    core/tensorfield
+   core/tensorcomponent
    core/tensorcoordinateset
    core/tensorcoordinate
-
-
-.. _core module creation functions:
-
-Creation functions
-------------------
-
-.. autosummary::
-   :toctree: _autogen
-
-   ~create_array
-   ~array
-   ~create_tensorfield
-   ~load_array_from_h5_file

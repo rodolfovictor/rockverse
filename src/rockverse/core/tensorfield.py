@@ -1,11 +1,11 @@
-
-import os
 import h5py
-import zarr
-from zarr.core.sync import sync
+import numpy as np
 from itertools import product
 from rockverse import _assert
-from rockverse.errors import collective_raise, collective_only_rank0_runs, CustomCollectiveException
+from rockverse.errors import (
+    collective_raise,
+    CustomCollectiveException
+    )
 
 # TODO WRITE PLOT_FRIENDLY FUNCTIONS (labels, etc)
 # TODO TENSOR INTERFACE FOR __getitem__, __setitem__
@@ -16,10 +16,10 @@ comm = config.mpi_comm
 mpi_rank = config.mpi_rank
 mpi_nprocs = config.mpi_nprocs
 
-from rockverse.core.group import Group, create_group
+from rockverse.core.group import create_group
 from rockverse.core.attributes import Attributes
-from rockverse.core.parallelarray import ParallelArray, array
-from rockverse.core.tensorcoordinateset import TensorCoordinateSet, TensorCoordinate
+from rockverse.core.parallelarray import ParallelArray
+from rockverse.core.tensorcoordinateset import TensorCoordinateSet
 
 
 def _tensor_shape(zgroup):
@@ -34,6 +34,22 @@ def _tensor_shape(zgroup):
 
 
 class TensorComponent:
+    """
+    Represents the individual components of the tensor field. This class
+    provides access to each numeric component array of a tensor field, allowing
+    retrieval of specific components by their indices.
+
+    .. note::
+        This class should not be directly instantiated.
+        It is managed by RockVerse
+        :ref:`creation functions <core module creation functions>`.
+
+    Parameters
+    ----------
+    zgroup : zarr.group.Group
+        The Zarr group containing the component arrays of the tensor field.
+
+    """
 
     def __init__(self, zgroup):
         _assert.zarr_group('zgroup', zgroup)
@@ -42,7 +58,7 @@ class TensorComponent:
     @property
     def zgroup(self):
         """
-        The Zarr group containing the data.
+        The Zarr group containing the parent tensor field data.
         """
         return self._zgroup
 
@@ -136,7 +152,8 @@ class TensorField:
     @property
     def attrs(self):
         """
-        The metadata attributes associated with this TensorField.
+        The collective metadata attributes associated with this tensor field
+        as an :class:`Attributes` object.
         """
         return self._attrs
 
@@ -210,9 +227,9 @@ class TensorField:
     @property
     def name(self):
         """
-        Get or set the tensor name.
+        Get or set the tensor name (alias for `attrs['name']`).
         """
-        return self.attrs['name']
+        return self.attrs.get('name', default=None)
 
     @name.setter
     def name(self, v):
@@ -222,9 +239,9 @@ class TensorField:
     @property
     def unit(self):
         """
-        Get or set the tensor data unit.
+        Get or set the tensor data unit (alias for `attrs['unit']`).
         """
-        return self.attrs['unit']
+        return self.attrs.get('unit', default=None)
 
     @unit.setter
     def unit(self, v):
@@ -234,9 +251,9 @@ class TensorField:
     @property
     def description(self):
         """
-        Get or set the tensor description.
+        Get or set the tensor description (alias for `attrs['description']`).
         """
-        return self.attrs['description']
+        return self.attrs.get('description', default=None)
 
     @description.setter
     def description(self, v):
@@ -246,9 +263,10 @@ class TensorField:
     @property
     def latex_name(self):
         """
-        Get or set the tensor LaTeX representation for the tensor name.
+        Get or set the tensor LaTeX representation for the tensor name
+        (alias for `attrs['latex_name']`).
         """
-        return self.attrs['latex_name']
+        return self.attrs.get('latex_name', default=None)
 
     @latex_name.setter
     def latex_name(self, v):
@@ -258,9 +276,10 @@ class TensorField:
     @property
     def latex_unit(self):
         """
-        Get or set the tensor LaTeX representation for the tensor data unit.
+        Get or set the tensor LaTeX representation for the tensor data unit
+        (alias for `attrs['latex_unit']`).
         """
-        return self.attrs['latex_unit']
+        return self.attrs.get('latex_unit', default=None)
 
     @latex_unit.setter
     def latex_unit(self, v):
@@ -282,8 +301,7 @@ class TensorField:
         - Component array data types must be the same.
         - Every coordinate array must exist and be a 1D array.
         - Each coordinate array shape must match the corresponding tensor component shape
-        - Attributes `name`, `unit`, `description`, `latex_name`, and `latex_unit`, if defined
-        for the tensor field or its components, must be strings.
+        - Attributes `name`, `unit`, `description`, `latex_name`, and `latex_unit`, if defined for the tensor field or its components, must be strings.
 
         Returns
         -------
@@ -301,12 +319,12 @@ class TensorField:
 
         # Data type identifier
         if "_ROCKVERSE_DATATYPE" not in self.attrs:
-            collective_raise(KeyError(f"Missing '_ROCKVERSE_DATATYPE' identifier in the zarr group attrs."))
+            collective_raise(KeyError("Missing '_ROCKVERSE_DATATYPE' identifier in the zarr group attrs."))
 
         # component arrays must exist
         component_arrays = [k for k in self._zgroup.array_keys() if k.startswith('component_')]
         if not component_arrays:
-            collective_raise(KeyError(f"Missing component arrays in the zarr group."))
+            collective_raise(KeyError("Missing component arrays in the zarr group."))
 
         # array indices must have same length
         component_indices = [tuple(int(i) for i in k.replace('component_', '').split('_')) for k in component_arrays]
@@ -317,19 +335,19 @@ class TensorField:
         # component array shapes must be the same
         shapes = [self._zgroup[k].shape for k in component_arrays]
         if not all(k==shapes[0] for k in shapes):
-            collective_raise(KeyError(f"Component array shapes must be the same."))
+            collective_raise(KeyError("Component array shapes must be the same."))
         shape = shapes[0]
         ndim = len(shapes[0])
 
         # Component array chunks must be the same
         chunks = [self._zgroup[k].chunks for k in component_arrays]
         if not all(k==chunks[0] for k in chunks):
-            collective_raise(KeyError(f"Component arrays chunk size must be the same."))
+            collective_raise(KeyError("Component arrays chunk size must be the same."))
 
         # Component array types must be the same
         dtypes = [self._zgroup[k].dtype.str for k in component_arrays]
         if not all(k==dtypes[0] for k in dtypes):
-            collective_raise(KeyError(f"Component array types must be the same."))
+            collective_raise(KeyError("Component array types must be the same."))
 
         # Every coordinate array must exist
         missing_dims = [f"'coord_{k}'" for k in range(ndim) if f"coord_{k}" not in self._zgroup]
@@ -604,9 +622,9 @@ def create_tensorfield(data,
         An instance of the RockVerse TensorField class representing the created array.
     """
 
-    #PARALLEL __GETITEM__
-    #PARALLEL __SETITEM__
-    #NÂO CRIAR DENTRO DE STORE QUE JA CONTENHA ROCKVERSE DATA?
+    # TODO: PARALLEL __GETITEM__
+    # TODO: PARALLEL __SETITEM__
+    # TODO: NÂO CRIAR DENTRO DE STORE QUE JA CONTENHA ROCKVERSE DATA?
 
     # Check for valid entries ----------------------------------
 
@@ -800,47 +818,3 @@ def create_tensorfield(data,
             temp[...] = components[ind]
 
     return TensorField(zgroup._zgroup)
-
-
-
-if __name__ == "__main__":
-    import numpy as np
-    self = create_tensorfield(
-        data={(0, 0): np.random.rand(5,2,8).astype(float),
-              (2, 2): np.random.rand(5,2,8).astype(float),
-              },
-        chunks=(2,2,2),
-        #data = np.random.rand(5,2,8),
-        store=r"C:\Users\GOB7\Downloads\test",
-        #store='/u/gob7/test.zarr',
-        path="testpath",
-        name='test array',
-        unit='m/s',
-        description="UMA DESC",
-        latex_name=r"$ERF$",
-        latex_unit="MM",
-        coord_data=([1, 2, 4, 7, 9], [2, 2], None),
-        coord_names=("QQ", 'y','z'),
-        coord_units=('km', "S", "F"),
-        coord_descriptions=("UM", "DOIS", "WW"),
-        coord_latex_names=(r"$r$", r"$i$", r"$p$"),
-        coord_latex_units=('a', '', '.'),
-        overwrite=True)
-    self.validate()
-
-    #filename = '/u/gob7/test.h5'
-    filename = r"C:\Users\GOB7\Downloads\test.h5"
-    self.h5_dump(filename, path='/my/awesome/array', mode='w')
-
-    #store='/u/gob7/test2.zarr'
-    #store=r"C:\Users\GOB7\Downloads\test2"
-    #h5path = '/myawesomearray'
-    #path=None
-    #overwrite=True
-    #kwargs={}
-    #with h5py.File(filename, mode='r') as fobj:
-    #    self2 = load_array_from_h5_file(fobj, h5path, store, path=None, overwrite=True)
-
-    #self.component[0]
-    #self.component[0].zarray[...]
-    #self.component[0][...]
