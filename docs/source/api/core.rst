@@ -17,7 +17,7 @@ Classes
    ~ParallelArray
    ~Group
    ~TensorField
-   ~TensorComponent
+   ~TensorComponents
    ~TensorCoordinateSet
    ~TensorCoordinate
 
@@ -28,6 +28,6 @@ Classes
    core/paralellarray
    core/group
    core/tensorfield
-   core/tensorcomponent
+   core/tensorcomponents
    core/tensorcoordinateset
    core/tensorcoordinate

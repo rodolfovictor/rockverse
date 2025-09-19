@@ -42,9 +42,10 @@ Data creation functions
 
 .. autosummary::
   :toctree: _autogen
-
+  
   ~rockverse.create_array
   ~rockverse.array
+  ~rockverse.create_group
   ~rockverse.open
 
 Core Module

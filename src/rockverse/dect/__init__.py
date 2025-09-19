@@ -653,13 +653,13 @@ class CalibrationMaterial():
         """
         Low energy CT attenuation Gaussian probability density function (PDF).
 
-        A tuple :math:`(\mu, \sigma)` with the mean and standard deviation values
+        A tuple :math:`(\\mu, \\sigma)` with the mean and standard deviation values
         for a Gaussian (normal) probability density function model for
         low energy attenuation values:
 
         .. math::
 
-            y(x) = \\frac{1}{\sqrt{2\pi\sigma^2}}e^{-\\frac{1}{2}\left(\\frac{x-\mu}{\sigma}\\right)^2}.
+            y(x) = \\frac{1}{\\sqrt{2\\pi\\sigma^2}}e^{-\\frac{1}{2}\\left(\\frac{x-\\mu}{\\sigma}\\right)^2}.
 
 
         When set, gets precedence over the :obj:`lowE_pdf <rockverse.dect.CalibrationMaterial.lowE_pdf>` attribute.
@@ -692,13 +692,13 @@ class CalibrationMaterial():
         High energy CT attenuation Gaussian probability density function (PDF).
 
 
-        A tuple :math:`(\mu, \sigma)` with the mean and standard deviation values
+        A tuple :math:`(\\mu, \\sigma)` with the mean and standard deviation values
         for a Gaussian (normal) probability density function model for
         high energy attenuation values:
 
         .. math::
 
-            y(x) = \\frac{1}{\sqrt{2\pi\sigma^2}}e^{-\\frac{1}{2}\left(\\frac{x-\mu}{\sigma}\\right)^2}.
+            y(x) = \\frac{1}{\\sqrt{2\\pi\\sigma^2}}e^{-\\frac{1}{2}\\left(\\frac{x-\\mu}{\\sigma}\\right)^2}.
 
 
         When set, gets precedence over the :obj:`highE_pdf <rockverse.dect.CalibrationMaterial.highE_pdf>` attribute.

@@ -22,4 +22,5 @@ Methods
     :toctree: _autogen
 
     ~Group.create_group
-
+    ~Group.create_array
+    ~Group.__getitem__

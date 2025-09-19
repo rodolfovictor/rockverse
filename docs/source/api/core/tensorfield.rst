@@ -18,18 +18,18 @@ Attributes
     ~TensorField.unit
     ~TensorField.description
     ~TensorField.latex_name
-    ~TensorField.latex_unit    
+    ~TensorField.latex_unit
     ~TensorField.dtype
     ~TensorField.tensor_shape
     ~TensorField.tensor_order
-    ~TensorField.component
-    ~TensorField.coordinate
-    ~TensorField.shape
-    ~TensorField.ndim   
+    ~TensorField.components
     ~TensorField.chunk_shape
+    ~TensorField.coordinates
+    ~TensorField.shape
+    ~TensorField.ndim
     ~TensorField.zgroup
-    
-    
+
+
 
 Methods
 -------

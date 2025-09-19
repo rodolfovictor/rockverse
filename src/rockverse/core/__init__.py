@@ -21,8 +21,8 @@ mpi_nprocs = config.mpi_nprocs
 from rockverse.core.group import Group
 from rockverse.core.attributes import Attributes
 from rockverse.core.parallelarray import ParallelArray
-from rockverse.core.tensorcoordinateset import TensorCoordinateSet, TensorCoordinate
-from rockverse.core.tensorfield import TensorField, TensorComponent, create_tensorfield
+from rockverse.core.tensorcoordinates import TensorCoordinateSet, TensorCoordinate
+from rockverse.core.tensorfield import TensorField, TensorComponents, create_tensorfield
 
 
 #>>>>>>>>>>>>>> PARALELIZE! READ BY CHUNKS, even when not chunked but large dataset

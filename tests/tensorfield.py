@@ -36,6 +36,6 @@ self.h5_dump(filename, path='/my/awesome/array', mode='w')
 #with h5py.File(filename, mode='r') as fobj:
 #    self2 = load_array_from_h5_file(fobj, h5path, store, path=None, overwrite=True)
 
-#self.component[0]
-#self.component[0].zarray[...]
-#self.component[0][...]
+#self.components[0]
+#self.components[0].zarray[...]
+#self.components[0][...]

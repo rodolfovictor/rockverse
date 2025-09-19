@@ -18,8 +18,8 @@ mpi_nprocs = config.mpi_nprocs
 
 from rockverse.core.group import create_group
 from rockverse.core.attributes import Attributes
-from rockverse.core.parallelarray import ParallelArray
-from rockverse.core.tensorcoordinateset import TensorCoordinateSet
+from rockverse.core.parallelarray import ParallelArray, array
+from rockverse.core.tensorcoordinates import TensorCoordinateSet
 
 
 def _tensor_shape(zgroup):
@@ -33,11 +33,22 @@ def _tensor_shape(zgroup):
     return tuple(max(ind[k] for ind in tuple_indices)+1 for k in range(len(tuple_indices[0])))
 
 
-class TensorComponent:
+class TensorComponents:
     """
     Represents the individual components of the tensor field. This class
     provides access to each numeric component array of a tensor field, allowing
     retrieval of specific components by their indices.
+
+    The `TensorComponents` object can be indexed to specific components as
+    :class:`ParallelArray` objects. For example:
+
+    .. code-block:: python
+
+        # create your tensor field
+        tensor0 = create_tensorfield(...)
+
+        # to get the first tensor component as a ParallelArray object
+        comp0 = tensorfield.component[0]
 
     .. note::
         This class should not be directly instantiated.
@@ -125,29 +136,29 @@ class TensorField:
         """
         _assert.zarr_group('zgroup', zgroup)
         self._zgroup = zgroup
-        self._coordinate = TensorCoordinateSet(zgroup)
-        self._component = TensorComponent(zgroup)
+        self._coordinates = TensorCoordinateSet(zgroup)
+        self._components = TensorComponents(zgroup)
         self._attrs = Attributes(zgroup)
         #self.validate()
 
     @property
-    def coordinate(self):
+    def coordinates(self):
         """
         Provides access to the set of coordinates associated with this TensorField.
         Returns a :class:`TensorCoordinateSet` object that allows indexing by coordinate
         index or name, which retrieves of individual tensor field coordinates as
         :class:`TensorCoordinate` objects.
         """
-        return self._coordinate
+        return self._coordinates
 
     @property
-    def component(self):
+    def components(self):
         """
         Provides access to the individual components of the tensor field.
-        Returns a :class:`TensorComponent` object that encapsulates the numeric arrays
+        Returns a :class:`TensorComponents` object that encapsulates the numeric arrays
         representing each component of the tensor field.
         """
-        return self._component
+        return self._components
 
     @property
     def attrs(self):
@@ -239,7 +250,7 @@ class TensorField:
     @property
     def unit(self):
         """
-        Get or set the tensor data unit (alias for `attrs['unit']`).
+        Get or set the tensor data unit (linked to `attrs['unit']`).
         """
         return self.attrs.get('unit', default=None)
 
@@ -251,7 +262,7 @@ class TensorField:
     @property
     def description(self):
         """
-        Get or set the tensor description (alias for `attrs['description']`).
+        Get or set the tensor description (linked to `attrs['description']`).
         """
         return self.attrs.get('description', default=None)
 
@@ -264,7 +275,7 @@ class TensorField:
     def latex_name(self):
         """
         Get or set the tensor LaTeX representation for the tensor name
-        (alias for `attrs['latex_name']`).
+        (linked to `attrs['latex_name']`).
         """
         return self.attrs.get('latex_name', default=None)
 
@@ -277,7 +288,7 @@ class TensorField:
     def latex_unit(self):
         """
         Get or set the tensor LaTeX representation for the tensor data unit
-        (alias for `attrs['latex_unit']`).
+        (linked to `attrs['latex_unit']`).
         """
         return self.attrs.get('latex_unit', default=None)
 
@@ -390,7 +401,7 @@ class TensorField:
 
     def h5_dump(self, filename, path, mode='a', **kwargs):
         """
-        Export the array data and its attributes to an HDF5 file.
+        Export the tensor field data and its attributes to an HDF5 file.
 
         This method writes the contents of the tensor field into an HDF5 dataset at
         the specified path within the given file. The operation is performed serially
@@ -464,7 +475,7 @@ class TensorField:
                 index = int(index)
             else:
                 index = tuple(int(i) for i in index.split('_'))
-            self.component[index].h5_dump(filename=filename,
+            self.components[index].h5_dump(filename=filename,
                                           path=f"{path}/{array_name}",
                                           mode='a',
                                           **kwargs)
@@ -731,7 +742,7 @@ def create_tensorfield(data,
             if any(name1 and (name2 == name1) and (k2 != k1) for k2, name2 in enumerate(coord_names)):
                 collective_raise(ValueError(f'Invalid coord_names={coord_names}: coordinate names must be unique.'))
 
-    # Create the Zarr group -------------------------------
+    # Create the group -------------------------------
     if zarr_group_args is None:
         kwargs = {}
     else:
@@ -752,38 +763,36 @@ def create_tensorfield(data,
         kwargs['attributes']['latex_name'] = latex_name
     if latex_unit is not None:
         kwargs['attributes']['latex_unit'] = latex_unit
-    zgroup = create_group(**kwargs)
+    group = create_group(**kwargs)
 
-    # Coordinate arrays go only to rank 0 -----------------
-    if mpi_rank == 0:
-        for k in range(len(shape)):
-            coord_attrs = {}
-            if coord_names is not None and coord_names[k]:
-                coord_attrs['name'] = coord_names[k]
-            else:
-                coord_attrs['name'] = f"coord_{k}"
-            if coord_units is not None and coord_units[k]:
-                coord_attrs['unit'] = coord_units[k]
-            if coord_descriptions is not None and coord_descriptions[k]:
-                coord_attrs['description'] = coord_descriptions[k]
-            if coord_latex_names is not None and coord_latex_names[k]:
-                coord_attrs['latex_name'] = coord_latex_names[k]
-            if coord_latex_units is not None and coord_latex_units[k]:
-                coord_attrs['latex_unit'] = coord_latex_units[k]
+    # Coordinate arrays
+    for k in range(len(shape)):
+        coord_attrs = {}
+        if coord_names is not None and coord_names[k]:
+            coord_attrs['name'] = coord_names[k]
+        else:
+            coord_attrs['name'] = f"coord_{k}"
+        if coord_units is not None and coord_units[k]:
+            coord_attrs['unit'] = coord_units[k]
+        if coord_descriptions is not None and coord_descriptions[k]:
+            coord_attrs['description'] = coord_descriptions[k]
+        if coord_latex_names is not None and coord_latex_names[k]:
+            coord_attrs['latex_name'] = coord_latex_names[k]
+        if coord_latex_units is not None and coord_latex_units[k]:
+            coord_attrs['latex_unit'] = coord_latex_units[k]
 
-            if coord_data is not None and coord_data[k] is not None:
-                coord_data_k = np.array(coord_data[k])
-            else:
-                coord_data_k = np.arange(shape[k])
-
-            new_coord = zgroup._zgroup.create_array(
-                f"coord_{k}",
-                shape=coord_data_k.shape,
-                chunks=coord_data_k.shape, # no chunks in dim data
-                dtype=coord_data_k.dtype,
-                overwrite=overwrite,
-                attributes=coord_attrs)
-            new_coord[...] = coord_data_k
+        if coord_data is not None and coord_data[k] is not None:
+            coord_data_k = np.array(coord_data[k])
+        else:
+            coord_data_k = np.arange(shape[k])
+        new_coord = group.create_array(
+            name=f"coord_{k}",
+            shape=coord_data_k.shape,
+            chunks=coord_data_k.shape, # no chunks in dim data
+            dtype=coord_data_k.dtype,
+            overwrite=overwrite,
+            attributes=coord_attrs)
+        new_coord[...] = coord_data_k
     comm.barrier()
 
     # Data arrays -----------------------------------------
@@ -806,15 +815,14 @@ def create_tensorfield(data,
         component_arrays = ["_".join(map(str, combo)) for combo in product(*ranges)]
 
     for name in component_arrays:
-        temp = ParallelArray(
-            zgroup._zgroup.zeros(
+        temp = group.create_array(
                 name=f"component_{name}",
                 shape=shape,
                 chunks=chunks_,
                 dtype=type_,  # TODO specify in input parameters?
-                **kwargs))
+                **kwargs)
         ind = tuple(int(i) for i in name.split('_')) if name.find('_') >=0 else int(name)
         if ind in components_keys:
             temp[...] = components[ind]
 
-    return TensorField(zgroup._zgroup)
+    return TensorField(group._zgroup)

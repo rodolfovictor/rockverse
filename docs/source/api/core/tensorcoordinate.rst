@@ -13,10 +13,11 @@ Attributes
 .. autosummary::
     :toctree: _autogen
 
+    ~TensorCoordinate.attrs
     ~TensorCoordinate.name
     ~TensorCoordinate.unit
     ~TensorCoordinate.latex_name
     ~TensorCoordinate.latex_unit
     ~TensorCoordinate.description
-    ~TensorCoordinate.zarray
+    ~TensorCoordinate.array
     ~TensorCoordinate.zgroup

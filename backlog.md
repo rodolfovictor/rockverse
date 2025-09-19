@@ -84,4 +84,6 @@
   - Add multi-CPU/multi-GPU
   - Author in the tutorials
 
+- Creating arrays and groups: make a more friendly error if existing and overwrite=False
+
 > Note: These tasks are subject to change based on project needs and priorities.

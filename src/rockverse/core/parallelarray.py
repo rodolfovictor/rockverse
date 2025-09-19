@@ -304,7 +304,7 @@ def create_array(shape,
                 z = zarr.create(**kwargs)
         for k in range(mpi_nprocs):
             if k == mpi_rank:
-                z = zarr.open(store=store, path=kwargs['name'], mode='r+')
+                z = zarr.open(store=store, path=kwargs['path'], mode='r+')
             comm.barrier()
 
     if mpi_rank == 0:
