@@ -86,4 +86,6 @@
 
 - Creating arrays and groups: make a more friendly error if existing and overwrite=False
 
+- Update docstring badges
+
 > Note: These tasks are subject to change based on project needs and priorities.

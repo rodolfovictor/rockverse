@@ -51,6 +51,11 @@ class Attributes:
 
 
     def __getitem__(self, key):
+        """
+        Return `self[index]`.
+
+        :bdg-primary:`MPI collective`
+        """
         value = None
         with collective_only_rank0_runs():
             if mpi_rank == 0:
@@ -62,6 +67,8 @@ class Attributes:
     def get(self, key, default=None):
         """
         Return the value for the given key if it exists, otherwise return default.
+
+        :bdg-primary:`MPI collective`
 
         Parameters
         ----------
@@ -87,6 +94,11 @@ class Attributes:
 
 
     def __setitem__(self, key, value):
+        """
+        Set the value for `self[index]`.
+
+        :bdg-primary:`MPI collective`
+        """
         with collective_only_rank0_runs():
             if mpi_rank == 0:
                 self._zobj.attrs[key] = value
@@ -97,11 +109,20 @@ class Attributes:
         Return an iterator over the attribute keys managed by this Attributes
         instance. This allows iteration like a standard dictionary over
         attribute keys.
+
+        :bdg-primary:`MPI collective`
+
         """
         return self.keys()
 
 
     def __contains__(self, key):
+        """
+        Check if the specified key exists among the attributes.
+
+        :bdg-primary:`MPI collective`
+
+        """
         value = False
         with collective_only_rank0_runs():
             if mpi_rank == 0:
@@ -111,6 +132,11 @@ class Attributes:
 
 
     def __len__(self):
+        """
+        Return the number of attributes managed by this Attributes instance.
+
+        :bdg-primary:`MPI collective`
+        """
         value = 0
         with collective_only_rank0_runs():
             if mpi_rank == 0:
@@ -123,6 +149,8 @@ class Attributes:
         """
         Return a string representation of the Attributes instance showing the
         underlying attributes.
+
+        :bdg-primary:`MPI collective`
 
         Returns
         -------
@@ -150,6 +178,9 @@ class Attributes:
     def asdict(self):
         """
         Retrieve all attributes as a standard Python dictionary.
+
+        :bdg-primary:`MPI collective`
+
         """
         value = None
         with collective_only_rank0_runs():
@@ -162,6 +193,9 @@ class Attributes:
     def keys(self):
         """
         Return an iterator over the attribute keys.
+
+        :bdg-primary:`MPI collective`
+
         """
         keys = None
         with collective_only_rank0_runs():
@@ -174,6 +208,9 @@ class Attributes:
     def values(self):
         """
         Return an iterator over the attribute values.
+
+        :bdg-primary:`MPI collective`
+
         """
         values = None
         with collective_only_rank0_runs():
@@ -186,6 +223,9 @@ class Attributes:
     def items(self):
         """
         Return an iterator over the attribute (key, value) pairs.
+
+        :bdg-primary:`MPI collective`
+
         """
         items = None
         with collective_only_rank0_runs():
@@ -200,6 +240,8 @@ class Attributes:
         Remove the specified attribute and return its value.
         If the key is not found, return the default value if provided,
         otherwise raise a KeyError.
+
+        :bdg-primary:`MPI collective`
 
         Parameters
         ----------
@@ -242,6 +284,9 @@ class Attributes:
     def clear(self):
         """
         Remove all attributes from the array or group.
+
+        :bdg-primary:`MPI collective`
+
         """
         with collective_only_rank0_runs():
             if mpi_rank == 0:
@@ -254,6 +299,8 @@ class Attributes:
     def update(self, other=None, **kwargs):
         """
         Update attributes from another dictionary or iterable of key-value pairs.
+
+        :bdg-primary:`MPI collective`
 
         Parameters
         ----------

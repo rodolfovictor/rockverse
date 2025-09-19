@@ -50,7 +50,7 @@ class ParallelArray:
 
         self._zarray = zarray
         self._attrs = Attributes(zarray)
-        self._zarray.attrs['_ROCKVERSE_DATATYPE'] = 'ParallelArray'
+        self._attrs['_ROCKVERSE_DATATYPE'] = 'ParallelArray'
 
     @property
     def zarray(self):
@@ -111,9 +111,9 @@ class ParallelArray:
         if chunk_id not in chunk_process_map.keys():
             collective_raise(IndexError(f'invalid chunk_id={chunk_id} for array nchunks={self._zarray.nchunks}.'))
         block_index = chunk_process_map[chunk_id]
-        chunk_shape = self._zarray.chunks
+        chunks = self._zarray.chunks
         array_shape = self._zarray.shape
-        ind = tuple((bi*ci, min(bi*ci+ci, si)) for bi, ci, si in zip(block_index, chunk_shape, array_shape))
+        ind = tuple((bi*ci, min(bi*ci+ci, si)) for bi, ci, si in zip(block_index, chunks, array_shape))
         return tuple(slice(i[0], i[1], 1) for i in ind)
 
     def clean_chunks(self):
@@ -125,9 +125,22 @@ class ParallelArray:
         chunk_process_map = self.chunk_process_map
         for block_id, block_index in chunk_process_map.items():
             if block_id % mpi_nprocs != mpi_rank:
-                self.zarray[block_index] = self.array.fill_value
+                self.zarray.blocks[block_index] = self.zarray.fill_value
 
-    def __getitem__(self, index):
+    def __getitem__(self, index, /):
+        """
+        Return `self[index]`.
+
+        This is a collective operation across all MPI ranks. Each rank
+        contributes by accessing the chunks it owns, and the results are
+        combined via an MPI all-reduce operation to produce the complete data
+        selection.
+
+        Parameters
+        ----------
+        index : int, slice, tuple, or array-like
+            The indexing expression specifying the portion of the array to modify.
+        """
         temp = zarr.zeros_like(self._zarray, store={})
         selection = temp[index]
         for block_id, block_index in self.chunk_process_map.items():
@@ -138,6 +151,21 @@ class ParallelArray:
         return comm.allreduce(selection, op=MPI.SUM)
 
     def __setitem__(self, index, array):
+        """
+        Set the values of `self[index]`.
+
+        This is a collective operation across all MPI ranks. Each rank updates
+        the chunks of the array it owns, modifying the corresponding portions
+        of the underlying Zarr array. Synchronization barriers ensure that all
+        ranks complete their updates before proceeding.
+
+        Parameters
+        ----------
+        index : int, slice, tuple, or array-like
+            The indexing expression specifying the portion of the array to modify.
+        array : array-like
+            The data to assign to the specified portion of the array.
+        """
         temp = zarr.zeros_like(self._zarray, store={})
         for block_id, block_index in self.chunk_process_map.items():
             if block_id % mpi_nprocs == mpi_rank:
@@ -239,7 +267,7 @@ def create_array(shape,
         or boolean. Ex: ``dtype=int``, ``dtype='u2'``, ``dtype='f4'``, ``dtype=np.complex128``.
     chunks : iterable of ints | None, optional
         If iterable of integers, define the chunk shape. If `None`, `False`, empty tuple or
-        any other object that makes ``not chunk_shape`` True, chunk shape will be set to the
+        any other object that makes ``not chunks`` True, chunk shape will be set to the
         array shape, i.e., single chunk for the whole array.
     store :  str | zarr.storage.StoreLike | None, optional
         A string with the file path in the local file disk,
@@ -266,7 +294,7 @@ def create_array(shape,
     # Check for valid dtype ---------------------
     _assert.condition.numeric_or_boolean('dtype', dtype)
 
-    # Check for valid chunk_shape ---------------
+    # Check for valid chunks --------------------
     if not chunks:
         _chunks = shape
     else:
@@ -289,12 +317,11 @@ def create_array(shape,
     kwargs['zarr_format'] = 3
     kwargs['chunk_key_encoding'] = {"name": "default", "separator": "/"}
 
-    # Attributes will go only to rank 0
+    # Attributes will go through the proper class
     if 'attributes' in kwargs:
         attributes = kwargs.pop('attributes')
     else:
         attributes = {}
-    attributes['_ROCKVERSE_DATATYPE'] = 'ParallelArray'
 
     if not store or isinstance(store, zarr.storage.MemoryStore):
         z = zarr.create(**kwargs)
@@ -306,15 +333,15 @@ def create_array(shape,
             if k == mpi_rank:
                 z = zarr.open(store=store, path=kwargs['path'], mode='r+')
             comm.barrier()
-
-    if mpi_rank == 0:
-        z.attrs.update(**attributes)
-
     comm.barrier()
-    return ParallelArray(z)
+
+    new_array = ParallelArray(z)
+    new_array.attrs.update(attributes)
+
+    return new_array
 
 
-def array(data, chunk_shape=None, store=None, path=None, overwrite=False, **kwargs):
+def array(data, chunks=None, store=None, path=None, overwrite=False, **kwargs):
     """
     Create a parallel array and populate it with values from `data`. This
     function creates a new parallel array with the same shape and data type as
@@ -350,7 +377,7 @@ def array(data, chunk_shape=None, store=None, path=None, overwrite=False, **kwar
     _assert.array_like('data', data)
     new_array = create_array(shape=data.shape,
                              dtype=data.dtype,
-                             chunk_shape=chunk_shape,
+                             chunks=chunks,
                              store=store,
                              path=path,
                              overwrite=overwrite,

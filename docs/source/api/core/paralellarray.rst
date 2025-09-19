@@ -26,3 +26,5 @@ Methods
     ~ParallelArray.chunk_slice_index
     ~ParallelArray.clean_chunks
     ~ParallelArray.h5_dump
+    ~ParallelArray.__getitem__
+    ~ParallelArray.__setitem__

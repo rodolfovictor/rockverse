@@ -3,7 +3,7 @@ import h5py
 import rockverse as rv
 
 shape=(5,2,8)
-a = rv.create_array(shape=shape, dtype=np.float32, chunk_shape=(2,2,2))
+a = rv.create_array(shape=shape, dtype=np.float32, chunks=(2,2,2))
 a[...] = np.random.rand(*shape)
 a.zarray[...]
 a[...]

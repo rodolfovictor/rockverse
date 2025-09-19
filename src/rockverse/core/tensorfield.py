@@ -215,7 +215,7 @@ class TensorField:
         return _tensor_shape(self.zgroup)
 
     @property
-    def chunk_shape(self):
+    def chunks(self):
         """
         The chunk size of each tensor component array.
         """
@@ -750,49 +750,47 @@ def create_tensorfield(data,
     kwargs['overwrite'] = overwrite
     kwargs['store'] = store
     kwargs['path'] = path
-    if 'attributes' not in kwargs:
-        kwargs['attributes'] = {}
-    kwargs['attributes']['_ROCKVERSE_DATATYPE'] = 'TensorField'
-    if name is not None:
-        kwargs['attributes']['name'] = name
-    if unit is not None:
-        kwargs['attributes']['unit'] = unit
-    if description is not None:
-        kwargs['attributes']['description'] = description
-    if latex_name is not None:
-        kwargs['attributes']['latex_name'] = latex_name
-    if latex_unit is not None:
-        kwargs['attributes']['latex_unit'] = latex_unit
     group = create_group(**kwargs)
+
+    group.attrs['_ROCKVERSE_DATATYPE'] = 'TensorField'
+    if name is not None:
+        group.attrs['name'] = name
+    if unit is not None:
+        group.attrs['unit'] = unit
+    if description is not None:
+        group.attrs['description'] = description
+    if latex_name is not None:
+        group.attrs['latex_name'] = latex_name
+    if latex_unit is not None:
+        group.attrs['latex_unit'] = latex_unit
+
+    comm.barrier()
 
     # Coordinate arrays
     for k in range(len(shape)):
-        coord_attrs = {}
-        if coord_names is not None and coord_names[k]:
-            coord_attrs['name'] = coord_names[k]
-        else:
-            coord_attrs['name'] = f"coord_{k}"
-        if coord_units is not None and coord_units[k]:
-            coord_attrs['unit'] = coord_units[k]
-        if coord_descriptions is not None and coord_descriptions[k]:
-            coord_attrs['description'] = coord_descriptions[k]
-        if coord_latex_names is not None and coord_latex_names[k]:
-            coord_attrs['latex_name'] = coord_latex_names[k]
-        if coord_latex_units is not None and coord_latex_units[k]:
-            coord_attrs['latex_unit'] = coord_latex_units[k]
-
         if coord_data is not None and coord_data[k] is not None:
             coord_data_k = np.array(coord_data[k])
         else:
             coord_data_k = np.arange(shape[k])
-        new_coord = group.create_array(
-            name=f"coord_{k}",
-            shape=coord_data_k.shape,
-            chunks=coord_data_k.shape, # no chunks in dim data
-            dtype=coord_data_k.dtype,
-            overwrite=overwrite,
-            attributes=coord_attrs)
+        new_coord = group.create_array(path=f"coord_{k}",
+                                       shape=coord_data_k.shape,
+                                       chunks=coord_data_k.shape, # single chunk
+                                       dtype=coord_data_k.dtype,
+                                       overwrite=overwrite)
         new_coord[...] = coord_data_k
+        if coord_names is not None and coord_names[k]:
+            new_coord.attrs['name'] = coord_names[k]
+        else:
+            new_coord.attrs['name'] = f"coord_{k}"
+        if coord_units is not None and coord_units[k]:
+            new_coord.attrs['unit'] = coord_units[k]
+        if coord_descriptions is not None and coord_descriptions[k]:
+            new_coord.attrs['description'] = coord_descriptions[k]
+        if coord_latex_names is not None and coord_latex_names[k]:
+            new_coord.attrs['latex_name'] = coord_latex_names[k]
+        if coord_latex_units is not None and coord_latex_units[k]:
+            new_coord.attrs['latex_unit'] = coord_latex_units[k]
+
     comm.barrier()
 
     # Data arrays -----------------------------------------
@@ -801,6 +799,8 @@ def create_tensorfield(data,
     else:
         kwargs = dict(**zarr_array_args)
     kwargs['overwrite'] = overwrite
+
+
     if 'attributes' not in kwargs:
         kwargs['attributes'] = {}
 
@@ -815,12 +815,11 @@ def create_tensorfield(data,
         component_arrays = ["_".join(map(str, combo)) for combo in product(*ranges)]
 
     for name in component_arrays:
-        temp = group.create_array(
-                name=f"component_{name}",
-                shape=shape,
-                chunks=chunks_,
-                dtype=type_,  # TODO specify in input parameters?
-                **kwargs)
+        temp = group.create_array(path=f"component_{name}",
+                                  shape=shape,
+                                  chunks=chunks_,
+                                  dtype=type_,  # TODO specify in input parameters?
+                                  **kwargs)
         ind = tuple(int(i) for i in name.split('_')) if name.find('_') >=0 else int(name)
         if ind in components_keys:
             temp[...] = components[ind]

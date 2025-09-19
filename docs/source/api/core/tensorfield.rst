@@ -23,7 +23,7 @@ Attributes
     ~TensorField.tensor_shape
     ~TensorField.tensor_order
     ~TensorField.components
-    ~TensorField.chunk_shape
+    ~TensorField.chunks
     ~TensorField.coordinates
     ~TensorField.shape
     ~TensorField.ndim

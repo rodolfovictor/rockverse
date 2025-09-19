@@ -29,3 +29,10 @@ Methods
     ~Attributes.pop
     ~Attributes.clear
     ~Attributes.update
+    ~Attributes.__getitem__
+    ~Attributes.__setitem__
+    ~Attributes.__iter__
+    ~Attributes.__contains__
+    ~Attributes.__len__
+    ~Attributes.__repr__
+    ~Attributes.__str__
