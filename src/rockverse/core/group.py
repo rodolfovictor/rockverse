@@ -133,7 +133,7 @@ class Group():
             "See the documentation for the available creation functions."))
 
 
-def create_group(store, path=None, overwrite=False, **kwargs):
+def create_group(store=None, path=None, overwrite=False, **kwargs):
     """
     Create a RockVerse group at the specified storage location and path.
 

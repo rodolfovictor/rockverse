@@ -7,9 +7,7 @@ from rockverse.errors import (
     CustomCollectiveException
     )
 
-# TODO WRITE PLOT_FRIENDLY FUNCTIONS (labels, etc)
-# TODO TENSOR INTERFACE FOR __getitem__, __setitem__
-# TODO TENSOR CREATE FUNCTION BASED ON TENSOR_SHAPE
+# TODO TENSOR INTERFACE FOR __setitem__
 
 from rockverse.configure import config
 comm = config.mpi_comm
@@ -18,7 +16,7 @@ mpi_nprocs = config.mpi_nprocs
 
 from rockverse.core.group import create_group
 from rockverse.core.attributes import Attributes
-from rockverse.core.parallelarray import ParallelArray, array
+from rockverse.core.parallelarray import ParallelArray
 from rockverse.core.tensorcoordinates import TensorCoordinateSet
 
 
@@ -31,6 +29,15 @@ def _tensor_shape(zgroup):
         return max(int(k) for k in component_indices)+1
     tuple_indices = [tuple(int(i) for i in k.split('_')) for k in component_indices]
     return tuple(max(ind[k] for ind in tuple_indices)+1 for k in range(len(tuple_indices[0])))
+
+def _component_indices(zgroup):
+    arrays = [k for k in zgroup.array_keys() if k.startswith('component_')]
+    indices = [k.replace('component_', '') for k in arrays]
+    if indices[0].find('_')>=0:
+        indices = [tuple(int(i) for i in k.split('_')) for k in indices]
+    else:
+        indices = [int(k) for k in indices]
+    return indices, arrays
 
 
 class TensorComponents:
@@ -74,28 +81,9 @@ class TensorComponents:
         return self._zgroup
 
     def __getitem__(self, index):
-
-        component_arrays = [k for k in self.zgroup.array_keys() if k.startswith('component_')]
-        component_indices = [k.replace('component_', '') for k in component_arrays]
-        if component_indices[0].find('_')>=0:
-            component_indices = [tuple(int(i) for i in k.split('_')) for k in component_indices]
-        else:
-            component_indices = [int(k) for k in component_indices]
-
-        # index must be integer or integer array, same as tensor order
-        if all(isinstance(k, int) for k in component_indices): #scalar field or vector field
-            if not isinstance(index, int): #expected integer index
-                if len(component_indices) > 1:
-                    collective_raise(IndexError('expected integer index for order 1 tensor (vector field).'))
-                else:
-                    collective_raise(IndexError('expected index=0 for zero order tensor (scalar field).'))
-        else: #tensor field order>1: expected array of integers
-            if not (hasattr(index, '__getitem__') and all(isinstance(k, int) for k in index)):
-                collective_raise(IndexError('expected integer array for index.'))
-
+        component_indices, component_arrays = _component_indices(self.zgroup)
         if index not in component_indices:
             collective_raise(IndexError(f'invalid component index={index} for tensor shape {_tensor_shape(self.zgroup)}.'))
-
         ind = [k for k, v in enumerate(component_indices) if v == index][0]
         return ParallelArray(self.zgroup[component_arrays[ind]])
 
@@ -140,6 +128,37 @@ class TensorField:
         self._components = TensorComponents(zgroup)
         self._attrs = Attributes(zgroup)
         self.validate()
+
+
+    def __getitem__(self, index):
+        """
+        Retrieve the tensor components at a specific coordinate index in the
+        coordinate space.
+
+        Parameters
+        ----------
+        index : tuple of int
+            A tuple of integers specifying the coordinate indices within the
+            tensor's spatial domain. The length of the tuple must match the
+            number of spatial dimensions (`self.shape`).
+
+        Returns
+        -------
+        numpy.ndarray
+            An array containing the values of all tensor components at the
+            specified coordinate.
+        """
+        if not all(isinstance(k, int) for k in index):
+            collective_raise(IndexError("Only integers accepeted for tensor index."))
+        if len(index) != len(self.shape):
+            collective_raise(IndexError("Index must point to one element in the coordinate space."))
+        component_indices, component_arrays = _component_indices(self.zgroup)
+        result = np.zeros(self.tensor_shape, dtype=self.dtype)
+        for indice, array_name in zip(component_indices, component_arrays):
+            print(index)
+            result[indice] = self.zgroup[array_name][index]
+        return result
+
 
     @property
     def coordinates(self):
@@ -297,6 +316,33 @@ class TensorField:
         _assert.string('latex_unit', v)
         self.attrs['latex_unit'] = v
 
+    def get_plot_label(self, unit=True, latex=True):
+        """
+        Build a string 'name (unit)' based on the tensor attributes.
+
+        Parameters
+        ----------
+        unit : bool, optional
+            If True, use unit in the resulting string -> `'name (unit)'`.
+            If False, discard unit -> `'name'`.
+            Default is True.
+        latex : bool, optional
+            If True, use the LaTeX reprentations instead of the plain ones.
+            Fall back to plain labels in case of absent LaTeX versions.
+            Default is True.
+
+        Returns
+        -------
+        str
+            The resulting string to be used as a plot label.
+        """
+        name_str = self.latex_name if self.latex_name and latex else self.name
+        if unit:
+            unit_str = self.latex_unit if self.latex_unit and latex else self.unit
+            if unit_str:
+                name_str = f"{name_str} ({unit_str})"
+        return name_str
+
     def validate(self):
         """
         Checks the consistency of the data and its associated attributes.
@@ -391,9 +437,9 @@ class TensorField:
         for attr in ('name', 'unit', 'description', 'latex_name', 'latex_unit'):
             if attr in self.attrs and not isinstance(self.attrs[attr], str):
                 collective_raise(ValueError(f"attrs['{attr}'] must be a string."))
-            for array in [f"coord_{k}" for k in range(ndim)]:
-                if attr in self.zgroup[array].attrs and not isinstance(self.zgroup[array].attrs[attr], str):
-                    collective_raise(ValueError(f"zgroup['{array}'].attrs['{attr}'] must be a string."))
+            for array_name in [f"coord_{k}" for k in range(ndim)]:
+                if attr in self.zgroup[array_name].attrs and not isinstance(self.zgroup[array_name].attrs[attr], str):
+                    collective_raise(ValueError(f"zgroup['{array_name}'].attrs['{attr}'] must be a string."))
 
         # Non array-specific attributes won't be tested...
         return
@@ -481,9 +527,10 @@ class TensorField:
                                           **kwargs)
 
 
-
-def create_tensorfield(data,
-                       store,
+def create_tensorfield(tensor_shape,
+                       shape,
+                       dtype,
+                       store=None,
                        path=None,
                        chunks=None,
                        name=None,
@@ -506,46 +553,14 @@ def create_tensorfield(data,
     Parameters
     ----------
 
-    data : array-like | dict
-        The tensor components to be stored in the tensor field. It must be one of the following:
-        an array-like object (for creating scalar fields);
-        a list of arrays with identical shapes (for vector fields);
-        a dictionary where keys are the component zero-based positions and values are the
-        corresponding arrays.
+    tensor_shape : tuple | list
+        The tensor shape at each point in the coordinate space.
 
-        Examples:
+    shape : tuple | list
+        The shape of the coordinate space. Equivalent to the array shape of each tensor component.
 
-        .. code-block::
-
-            import numpy as np
-            import rockverse as rv
-
-            # Create a scalar field in a 10x10x10 grid
-            field1 = rv.create_tensorfield(data=np.random.rand(10, 10, 10), ...
-
-            # Create a 3-component vector field in a 10x10x10 grid
-            field2 = rv.create_tensorfield(data=[np.random.rand(10, 10, 10),
-                                                 np.random.rand(10, 10, 10),
-                                                 np.random.rand(10, 10, 10)], ...
-
-            # Create a 3x3 second order tensor field in a 10x10x10 grid
-            # Missing components are assumed zero arrays
-            field3 = rv.create_tensorfield(data={(0, 0): np.random.rand(10, 10, 10),
-                                                 (1, 1): np.random.rand(10, 10, 10),
-                                                 (2, 2): np.random.rand(10, 10, 10),
-                                                 (0, 2): np.random.rand(10, 10, 10)}, ...
-
-            # Integer dictionary keys are also valid entries
-            # This is equivalent to field2 above:
-            field4 = rv.create_tensorfield(data={0: np.random.rand(10, 10, 10),
-                                                 1: np.random.rand(10, 10, 10),
-                                                 2: np.random.rand(10, 10, 10)}, ...
-
-            # And this is equivalent to field1 above:
-            field4 = rv.create_tensorfield(data={0: np.random.rand(10, 10, 10)}, ...
-
-            # This will create a 2-component vector, as position 0 will be treated as zero array:
-            field5 = rv.create_tensorfield(data={1: np.random.rand(10, 10, 10)}, ...
+    dtype :
+        Numpy data type for the tensor components.
 
     store : str or zarr.storage.StoreLike
         The storage location for the underlying Zarr group.
@@ -605,27 +620,6 @@ def create_tensorfield(data,
     zarr_array_args : dict
         Dictionary with keyword arguments to be passed to the underlying Zarr array creation function.
 
-    Example
-    -------
-
-    Create a tensor field with specified coordinates:
-
-    .. code-block:: python
-
-        import numpy as np
-        import rockverse as rv
-        temperature = rv.create_tensorfield(
-            data=np.random.rand(5, 4, 3)+300,
-            store='/path/to/zarr/store',
-            name='Tr',
-            latex_name='$T_r$',
-            unit='K',
-            description='Random temperature field, in kelvin units',
-            coord_data=([10, 20, 30, 40, 50], [45, 55, 65, 75], [5, 6, 7]),
-            coord_names=('x', 'y', 'z'),
-            coord_units=('m', 'm', 'm')
-        )
-
     Returns
     -------
 
@@ -633,86 +627,33 @@ def create_tensorfield(data,
         An instance of the RockVerse TensorField class representing the created array.
     """
 
-    # TODO: PARALLEL __GETITEM__
-    # TODO: PARALLEL __SETITEM__
-    # TODO: NÂO CRIAR DENTRO DE STORE QUE JA CONTENHA ROCKVERSE DATA?
+    # Check for valid tensor shape --------------
+    _assert.iterable.ordered_integers_positive('tensor_shape', tensor_shape)
 
-    # Check for valid entries ----------------------------------
+    # Check for valid shape ---------------------
+    _assert.iterable.ordered_integers_positive('shape', shape)
 
-    _assert.boolean('overwrite', overwrite)
-    if zarr_group_args is not None:
-        _assert.dictionary('zarr_group_args', zarr_group_args)
+    # Check for valid dtype ---------------------
+    _assert.condition.numeric_or_boolean('dtype', dtype)
 
-    # data:
-    # Array-like: order 0 (scalar field)
-    if all(hasattr(data, attr) for attr in ('__array__', 'shape', 'dtype')):
-        components = {0: data}
-
-    # List or tuple of arrays: order 1 (vector field)
-    elif isinstance(data, (list, tuple)):
-        if not all(hasattr(k, '__array__') for k in data):
-            collective_raise(ValueError('Invalid value for data: list or tuple elements must be array-like.'))
-        components = {k: v for k, v in enumerate(data)}
-
-    # Dictionary with tensor positions and arrays: arbitrary order
-    elif isinstance(data, dict):
-        if not all(isinstance(k, int) or (isinstance(k, tuple) and all(isinstance(i, int) for i in k)) for k in data.keys()):
-            collective_raise(ValueError('Invalid value for data: dictionary keys must be integer or tuple of integers with the zero-based component positions.'))
-        if not all(type(k)==type(list(data.keys())[0]) for k in data.keys()):
-            collective_raise(ValueError('Invalid value for data: dictionary keys must be of the same type.'))
-        if not all(hasattr(v, '__array__') for v in data.values()):
-            collective_raise(ValueError('Invalid value for data: dictionary values must be array-like.'))
-        order = [1 if isinstance(k, int) else len(k) for k in data.keys()]
-        if not all(k==order[0] for k in order):
-            collective_raise(ValueError('Invalid value for data: dictionary keys must have same length.'))
-        components = data
-    else:
-        collective_raise(ValueError('Invalid value for data.'))
-
-    # Only component[(0, 0, ...)] will collapse to a scalar field
-    if (len(data.keys()) == 1
-        and isinstance(list(data.keys())[0], tuple)
-        and all(k==0 for k in list(data.keys())[0])):
-        components = {0: list(data.values())[0]}
-
-    # All data arrays must have same shape:
-    shapes = [v.shape for v in components.values()]
-    if not all(s == shapes[0] for s in shapes):
-        collective_raise(ValueError('Data components must have identical shape.'))
-    shape = shapes[0]
-
-    # Array data types must be numeric or boolean
-    dtypes = [v.dtype.kind for v in components.values()]
-    if not all(k in 'buifc' for k in dtypes):
-        collective_raise(ValueError('Data arrays must be numeric or boolean.'))
-
-    # Data array type
-    dtypes = [v.dtype.str for v in components.values()]
-    dtypes_map = {}
-    for t in 'cfiub':
-        if any(t in type_ for type_ in dtypes):
-            dtypes_map[t] = max(np.dtype(v).itemsize for v in dtypes if np.dtype(v).kind==t)
-    if 'c' in dtypes_map:
-        type_ = np.dtype(f'c{dtypes_map['c']}')
-    elif 'f' in dtypes_map:
-        type_ = np.dtype(f'f{dtypes_map['f']}')
-    elif 'i' in dtypes_map or 'u' in dtypes_map:
-        itemsize = max(v for k, v in dtypes_map.items() if k in 'iu')
-        if 'i' in dtypes_map:
-            type_ = np.dtype(f'i{itemsize}')
-        else:
-            type_ = np.dtype(f'u{itemsize}')
-    else:
-        type_ = np.dtype('bool')
-
-    # Chunk shape length must match array shape length
-    if chunks is None:
+    # Check for valid chunks --------------------
+    if not chunks:
         chunks_ = shape
     else:
-        _assert.iterable.ordered_integers_positive('chunks', chunks)
-        if len(shape) != len(chunks):
-            collective_raise(ValueError(f'chunks={chunks} not compatible with array shape={shape}.'))
         chunks_ = chunks
+    _assert.iterable.ordered_numbers_positive('chunks', chunks_)
+    if len(shape) != len(chunks):
+        collective_raise(ValueError(f'chunks={chunks} not compatible with array shape={shape}.'))
+
+    # Check for valid overwrite -----------------
+    _assert.instance('overwrite', overwrite, 'boolean', (bool,))
+
+    # Check for valid path ----------------------
+    if path is not None:
+        _assert.instance('path', path, 'string', (str,))
+
+    if zarr_group_args is not None:
+        _assert.dictionary('zarr_group_args', zarr_group_args)
 
     # String attributes
     for varname, var in zip(('path', 'name', 'unit', 'description', 'latex_name', 'latex_unit'),
@@ -799,29 +740,13 @@ def create_tensorfield(data,
     else:
         kwargs = dict(**zarr_array_args)
     kwargs['overwrite'] = overwrite
-    if 'dtype' not in kwargs:
-        kwargs['dtype'] = type_
+    kwargs['dtype'] = dtype
+    kwargs['shape'] = shape
+    kwargs['chunks'] = chunks_
 
-    if 'attributes' not in kwargs:
-        kwargs['attributes'] = {}
-
-    components_keys = list(components.keys())
-    if all(isinstance(k, int) for k in components_keys):
-        component_arrays = tuple([str(k) for k in range(max(components_keys)+1)])
-    else:
-        max_inds = np.zeros(len(components_keys[0])).astype(int)
-        for i in range(len(max_inds)):
-            max_inds[i] = max([k[i] for k in components.keys()])+1
-        ranges = [range(m) for m in max_inds]
-        component_arrays = ["_".join(map(str, combo)) for combo in product(*ranges)]
-
+    ranges = [range(m) for m in tensor_shape]
+    component_arrays = ["_".join(map(str, combo)) for combo in product(*ranges)]
     for name in component_arrays:
-        temp = group.create_array(path=f"component_{name}",
-                                  shape=shape,
-                                  chunks=chunks_,
-                                  **kwargs)
-        ind = tuple(int(i) for i in name.split('_')) if name.find('_') >=0 else int(name)
-        if ind in components_keys:
-            temp[...] = components[ind]
+        _ = group.create_array(path=f"component_{name}", **kwargs)
 
     return TensorField(group._zgroup)

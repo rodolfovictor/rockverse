@@ -1,7 +1,5 @@
 from rockverse import _assert
+from rockverse.core.group import Group
 
-class WellLog():
-
-    def __init__(self, zgroup):
-        _assert.zarr_group('zgroup', zgroup)
-        self.zgroup = zgroup
+class Well(Group):
+    pass

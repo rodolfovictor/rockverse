@@ -1,14 +1,5 @@
 from rockverse import _assert
 from rockverse.errors import collective_raise, collective_only_rank0_runs
-
-# TODO PARALELLIZE EVERYTHING
-# TODO WRITE PLOT_FRIENDLY FUNCTIONS (labels, etc)
-# TODO TENSOR PROPERTY ATTRS
-# TODO TENSOR INTERFACE FOR DATA
-# TODO Attributes I/O must be only through rank 0
-# Create: allocate zarr group and arrays; only rank 0 fill in the attrs,
-# rank0 reads data and send chunk to MPI process
-
 from rockverse.core.attributes import Attributes
 from rockverse.core.parallelarray import ParallelArray
 from rockverse.configure import config
@@ -58,11 +49,16 @@ class TensorCoordinateSet:
         """
         return tuple(sorted(k for k in self.zgroup.array_keys() if k.startswith('coord_')))
 
+    def __len__(self):
+        return len(self.array_keys)
+
+
     def _get_attr(self, key):
         value = None
         with collective_only_rank0_runs():
             if mpi_rank == 0:
                 value = tuple(self.zgroup[k].attrs.get(key) for k in self.array_keys)
+        comm.barrier()
         value = comm.bcast(value, root=0)
         return value
 
@@ -101,10 +97,36 @@ class TensorCoordinateSet:
         """
         return self._get_attr('latex_unit')
 
+
+    def get_plot_labels(self, unit=True, latex=True):
+        """
+        A sorted tuple with plot labels for each coordinate.
+
+        Parameters
+        ----------
+        unit : bool, optional
+            If True, use unit in the resulting string -> `'name (unit)'`.
+            If False, discard unit -> `'name'`.
+            Default is True.
+        latex : bool, optional
+            If True, use the LaTeX reprentations instead of the plain ones.
+            Default is True.
+
+        Returns
+        -------
+        tuple
+            The resulting strings to be used as a plot labels.
+        """
+        return tuple(self[k].get_plot_label(unit=unit, latex=latex) for k in range(len(self)))
+
+
     def __getitem__(self, index):
         if index in range(len(self.names)):
             return TensorCoordinate(self.zgroup, index=index)
         if index in self.names:
+            names = self.names
+            if len([n for n in names if n == index]) > 1:
+                collective_raise(KeyError(f'Coordinate names must be unique. Got {names}.'))
             return TensorCoordinate(self.zgroup, index=[k for k, v in enumerate(self.names) if v == index][0])
         collective_raise(KeyError(f'Expected key as integer in range({len(self.names)}) or string in {self.names}.'))
 
@@ -216,3 +238,30 @@ class TensorCoordinate:
     def description(self, value):
         _assert.string('description', value)
         self.attrs['description'] = value
+
+    def get_plot_label(self, unit=True, latex=True):
+        """
+        Build a string 'name (unit)' based on the coordinate attributes.
+
+        Parameters
+        ----------
+        unit : bool, optional
+            If True, use unit in the resulting string -> `'name (unit)'`.
+            If False, discard unit -> `'name'`.
+            Default is True.
+        latex : bool, optional
+            If True, use the LaTeX reprentations instead of the plain ones.
+            Fall back to plain labels in case of absent LaTeX versions.
+            Default is True.
+
+        Returns
+        -------
+        str
+            The resulting string to be used as a plot label.
+        """
+        name_str = self.latex_name if self.latex_name and latex else self.name
+        if unit:
+            unit_str = self.latex_unit if self.latex_unit and latex else self.unit
+            if unit_str:
+                name_str = f"{name_str} ({unit_str})"
+        return name_str

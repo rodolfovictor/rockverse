@@ -60,6 +60,7 @@ class Attributes:
         with collective_only_rank0_runs():
             if mpi_rank == 0:
                 value = self._zobj.attrs[key]
+        comm.barrier()
         value = comm.bcast(value, root=0)
         return value
 
@@ -89,6 +90,7 @@ class Attributes:
                     value = self._zobj.attrs[key]
                 else:
                     value = default
+        comm.barrier()
         value = comm.bcast(value, root=0)
         return value
 
@@ -102,6 +104,7 @@ class Attributes:
         with collective_only_rank0_runs():
             if mpi_rank == 0:
                 self._zobj.attrs[key] = value
+        comm.barrier()
 
 
     def __iter__(self):
@@ -127,6 +130,7 @@ class Attributes:
         with collective_only_rank0_runs():
             if mpi_rank == 0:
                 value = key in self._zobj.attrs
+        comm.barrier()
         value = comm.bcast(value, root=0)
         return value
 
@@ -141,6 +145,7 @@ class Attributes:
         with collective_only_rank0_runs():
             if mpi_rank == 0:
                 value = len(self._zobj.attrs)
+        comm.barrier()
         value = comm.bcast(value, root=0)
         return value
 
@@ -186,6 +191,7 @@ class Attributes:
         with collective_only_rank0_runs():
             if mpi_rank == 0:
                 value = {k: v for k, v in self._zobj.attrs.items()}
+        comm.barrier()
         value = comm.bcast(value, root=0)
         return value
 
@@ -201,6 +207,7 @@ class Attributes:
         with collective_only_rank0_runs():
             if mpi_rank == 0:
                 keys = list(self._zobj.attrs.keys())
+        comm.barrier()
         keys = comm.bcast(keys, root=0)
         return iter(keys)
 
@@ -216,6 +223,7 @@ class Attributes:
         with collective_only_rank0_runs():
             if mpi_rank == 0:
                 values = list(self._zobj.attrs.values())
+        comm.barrier()
         values = comm.bcast(values, root=0)
         return iter(values)
 
@@ -231,6 +239,7 @@ class Attributes:
         with collective_only_rank0_runs():
             if mpi_rank == 0:
                 items = list(self._zobj.attrs.items())
+        comm.barrier()
         items = comm.bcast(items, root=0)
         return iter(items)
 
@@ -271,6 +280,7 @@ class Attributes:
                     found = True
                 else:
                     found = False
+        comm.barrier()
         found = comm.bcast(found, root=0)
         value = comm.bcast(value, root=0)
         if not found:

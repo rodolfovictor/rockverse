@@ -21,3 +21,11 @@ Attributes
     ~TensorCoordinate.description
     ~TensorCoordinate.array
     ~TensorCoordinate.zgroup
+
+Methods
+----------
+
+.. autosummary::
+    :toctree: _autogen
+
+    ~TensorCoordinate.get_plot_label

@@ -30,7 +30,6 @@ Attributes
     ~TensorField.zgroup
 
 
-
 Methods
 -------
 
@@ -38,4 +37,6 @@ Methods
     :toctree: _autogen
 
     ~TensorField.validate
+    ~TensorField.get_plot_label
     ~TensorField.h5_dump
+    ~TensorField.__getitem__

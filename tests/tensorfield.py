@@ -1,10 +1,10 @@
 import rockverse as rv
 import numpy as np
 self = rv.core.create_tensorfield(
-    data={(0, 0): np.random.rand(5,2,8).astype(float),
-            (2, 2): np.random.rand(5,2,8).astype(float),
-            },
+    shape=(5, 2, 8),
+    tensor_shape=(3, 3),
     chunks=(2,2,2),
+    dtype=float,
     #data = np.random.rand(5,2,8),
     store=r"C:\Users\GOB7\Downloads\test",
     #store='/u/gob7/test.zarr',
@@ -22,6 +22,8 @@ self = rv.core.create_tensorfield(
     coord_latex_units=('a', '', '.'),
     overwrite=True)
 self.validate()
+self.components[0, 0][...] = np.random.randn(5,2,8)
+self.components[0, 1][...] = np.random.randn(5,2,8)
 
 #filename = '/u/gob7/test.h5'
 filename = r"C:\Users\GOB7\Downloads\test.h5"
