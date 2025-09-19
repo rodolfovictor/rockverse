@@ -11,11 +11,10 @@ mpi_nprocs = config.mpi_nprocs
 
 class Group():
     """
-    A high-level interface for managing Zarr groups in a parallel MPI
-    environment. This class wraps a Zarr group and provides synchronized access
-    and manipulation of group datasets, subgroups, arrays, and attributes
-    across MPI processes, ensuring consistency and avoiding race conditions in
-    parallel workflows.
+    A high-level interface for managing Zarr groups and arrays in a parallel
+    MPI environment. This class provides synchronized access and manipulation
+    of datasets across MPI processes, ensuring consistency and avoiding race
+    conditions in parallel workflows.
 
     .. note::
         This class should not be directly instantiated. Use the
@@ -47,6 +46,18 @@ class Group():
         """
         return self._attrs
 
+    def _create_parents(self, path, overwrite, **kwargs):
+        if path.find('/') > 0:
+            parent = path.split('/')[0]
+            child = path.split('/')[1:]
+            kwargs['store'] = self.zgroup.store
+            kwargs['path'] = f"{self.zgroup.path}/{parent}"
+            kwargs['overwrite'] = overwrite
+            new_group = create_group(**kwargs)
+            print(type(new_group))
+            kwargs['path'] = '/'.join(child)
+            new_group._create_parents(**kwargs)
+
     def create_group(self, path, overwrite=False, **kwargs):
         """
         Create a subgroup within this group at the specified path.
@@ -65,13 +76,15 @@ class Group():
         Group
             The new subgroup instance.
         """
+        _assert.string('path', path)
+        _assert.boolean('overwrite', overwrite)
+        self._create_parents(path=path, overwrite=overwrite, **kwargs)
         kwargs['store'] = self.zgroup.store
         kwargs['path'] = f"{self.zgroup.path}/{path}"
         kwargs['overwrite'] = overwrite
-        new_group = create_group(**kwargs)
-        return new_group
+        return create_group(**kwargs)
 
-    def create_array(self, path, overwrite=False, **kwargs):
+    def create_array(self, path, overwrite=False, parent_attrs=None, **kwargs):
         """
         Create a new parallel array within this group with the specified name.
 
@@ -84,11 +97,17 @@ class Group():
         kwargs
             Additional keyword arguments passed to :func:`create_array <rockverse.create_array>`.
         """
+        _assert.string('path', path)
+        _assert.boolean('overwrite', overwrite)
+        temp = {'path': path, 'overwrite': overwrite}
+        if parent_attrs is not None:
+            _assert.dictionary('parent_attrs', parent_attrs)
+            temp.update(**parent_attrs)
+        self._create_parents(**temp)
         kwargs['store'] = self.zgroup.store
         kwargs['path'] = f"{self.zgroup.path}/{path}"
         kwargs['overwrite'] = overwrite
-        new_array = create_array(**kwargs)
-        return new_array
+        return create_array(**kwargs)
 
     def __getitem__(self, key, /):
         """
@@ -106,10 +125,15 @@ class Group():
         if rvdtype == 'ParallelArray':
             return ParallelArray(self.zgroup[key])
 
-        collective_raise(TypeError(f"Data in {key} is not a valid RockVerse data type."))
+        return self.zgroup[key]
+
+    def __setitem__(self, key, value):
+        collective_raise(TypeError(
+            "'Group' object does not support item assignment. "
+            "See the documentation for the available creation functions."))
 
 
-def create_group(store, path, overwrite=False, **kwargs):
+def create_group(store, path=None, overwrite=False, **kwargs):
     """
     Create a RockVerse group at the specified storage location and path.
 

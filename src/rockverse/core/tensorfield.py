@@ -139,7 +139,7 @@ class TensorField:
         self._coordinates = TensorCoordinateSet(zgroup)
         self._components = TensorComponents(zgroup)
         self._attrs = Attributes(zgroup)
-        #self.validate()
+        self.validate()
 
     @property
     def coordinates(self):
@@ -799,7 +799,8 @@ def create_tensorfield(data,
     else:
         kwargs = dict(**zarr_array_args)
     kwargs['overwrite'] = overwrite
-
+    if 'dtype' not in kwargs:
+        kwargs['dtype'] = type_
 
     if 'attributes' not in kwargs:
         kwargs['attributes'] = {}
@@ -818,7 +819,6 @@ def create_tensorfield(data,
         temp = group.create_array(path=f"component_{name}",
                                   shape=shape,
                                   chunks=chunks_,
-                                  dtype=type_,  # TODO specify in input parameters?
                                   **kwargs)
         ind = tuple(int(i) for i in name.split('_')) if name.find('_') >=0 else int(name)
         if ind in components_keys:
