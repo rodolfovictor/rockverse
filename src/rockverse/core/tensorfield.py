@@ -17,7 +17,7 @@ mpi_nprocs = config.mpi_nprocs
 from rockverse.core.group import create_group
 from rockverse.core.attributes import Attributes
 from rockverse.core.parallelarray import ParallelArray
-from rockverse.core.tensorcoordinates import TensorCoordinateSet
+from rockverse.core.coordinates import CoordinateSet
 
 
 def _tensor_shape(zgroup):
@@ -124,7 +124,7 @@ class TensorField:
         """
         _assert.zarr_group('zgroup', zgroup)
         self._zgroup = zgroup
-        self._coordinates = TensorCoordinateSet(zgroup)
+        self._coordinates = CoordinateSet(zgroup)
         self._components = TensorComponents(zgroup)
         self._attrs = Attributes(zgroup)
         self.validate()
@@ -164,9 +164,9 @@ class TensorField:
     def coordinates(self):
         """
         Provides access to the set of coordinates associated with this TensorField.
-        Returns a :class:`TensorCoordinateSet` object that allows indexing by coordinate
+        Returns a :class:`CoordinateSet` object that allows indexing by coordinate
         index or name, which retrieves of individual tensor field coordinates as
-        :class:`TensorCoordinate` objects.
+        :class:`Coordinate` objects.
         """
         return self._coordinates
 

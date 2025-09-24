@@ -16,6 +16,7 @@ comm = config.mpi_comm
 mpi_rank = config.mpi_rank
 mpi_nprocs = config.mpi_nprocs
 
+
 class ParallelArray:
     """
     A high-level interface for distributed management of chunked arrays.
@@ -26,10 +27,10 @@ class ParallelArray:
     efficient parallel read, write, and mathematical operations on
     numeric or boolean Zarr arrays across multiple MPI processes.
 
-    The class maps array chunks to MPI ranks to balance workload distribution,
-    supports chunk-wise data access and modification with automatic
-    synchronization, and ensures data consistency through collective MPI
-    communication.
+    The class maps array chunks to MPI ranks to balance memory and workload
+    distribution, supports chunk-wise data access and modification with
+    automatic MPI synchronization, and ensures data consistency through
+    collective MPI communication.
 
     .. note::
         This class should not be directly instantiated. Use the
@@ -39,6 +40,7 @@ class ParallelArray:
     ----------
     zarray: zarr.core.array.Array
         An existing Zarr array to be managed in parallel.
+
     """
 
     def __init__(self, zarray):
@@ -66,6 +68,104 @@ class ParallelArray:
         :class:`Attributes` object.
         """
         return self._attrs
+
+    @property
+    def name(self):
+        """
+        Gets or sets the array name.
+        """
+        return self.attrs.get('name')
+
+    @property
+    def unit(self):
+        """
+        Gets or sets the array data unit.
+        """
+        return self.attrs.get('unit')
+
+    @property
+    def latex_name(self):
+        """
+        Gets or sets the LaTeX representation of the array name.
+        """
+        return self.attrs.get('latex_name')
+
+    @property
+    def latex_unit(self):
+        """
+        Gets or sets the LaTeX representation of the array data unit.
+        """
+        return self.attrs.get('latex_unit')
+
+    @property
+    def description(self):
+        """
+        Gets or sets the array description.
+        """
+        return self.attrs.get('description')
+
+    @name.setter
+    def name(self, value):
+        _assert.string('name', value)
+        self.attrs['name'] = value
+
+    @unit.setter
+    def unit(self, value):
+        _assert.string('unit', value)
+        self.attrs['unit'] = value
+
+    @latex_name.setter
+    def latex_name(self, value):
+        _assert.string('latex_name', value)
+        self.attrs['latex_name'] = value
+
+    @latex_unit.setter
+    def latex_unit(self, value):
+        _assert.string('latex_unit', value)
+        self.attrs['latex_unit'] = value
+
+    @description.setter
+    def description(self, value):
+        _assert.string('description', value)
+        self.attrs['description'] = value
+
+    def get_plot_label(self, unit=True, latex=True):
+        """
+        Build a string 'name (unit)' based on the array attributes.
+
+        Parameters
+        ----------
+        unit : bool, optional
+            If True, use unit in the resulting string -> `'name (unit)'`.
+            If False, discard unit -> `'name'`.
+            Default is True.
+        latex : bool, optional
+            If True, use the LaTeX reprentations instead of the plain ones.
+            Fall back to plain labels in case of absent LaTeX versions.
+            Default is True.
+
+        Returns
+        -------
+        str
+            The resulting string to be used as a plot label.
+        """
+        if self.latex_name and latex:
+            name_str = self.latex_name
+        elif self.name:
+            name_str = self.name
+        else:
+            return ''
+        
+        if self.latex_unit and latex:
+            unit_str = f" ({self.latex_unit})"
+        elif self.unit:
+            unit_str = f" ({self.unit})"
+        else:
+            unit_str = ''
+
+        if unit:
+            return f"{name_str}{unit_str}"
+        return ''
 
     @property
     def chunk_process_map(self):
@@ -174,6 +274,26 @@ class ParallelArray:
                 self.zarray.blocks[block_index] = temp.blocks[block_index].copy()
         comm.barrier()
 
+    @property
+    def shape(self):
+        """
+        Array shape.
+        """
+        return self._zarray.shape
+
+    @property
+    def chunks(self):
+        """
+        Chunk shape.
+        """
+        return self._zarray.chunks
+
+    @property
+    def dtype(self):
+        """
+        Numpy data type for the array.
+        """
+        return self._zarray.dtype
 
     def h5_dump(self, filename, path, mode='a', **kwargs):
         """

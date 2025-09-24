@@ -12,10 +12,18 @@ Attributes
 
 .. autosummary::
     :toctree: _autogen
-    
-    ~ParallelArray.attrs
-    ~ParallelArray.chunk_process_map
+
     ~ParallelArray.zarray
+    ~ParallelArray.chunk_process_map
+    ~ParallelArray.attrs
+    ~ParallelArray.name
+    ~ParallelArray.unit
+    ~ParallelArray.latex_name
+    ~ParallelArray.latex_unit
+    ~ParallelArray.description
+    ~ParallelArray.shape
+    ~ParallelArray.chunks
+    ~ParallelArray.dtype
 
 Methods
 -------
@@ -28,3 +36,4 @@ Methods
     ~ParallelArray.h5_dump
     ~ParallelArray.__getitem__
     ~ParallelArray.__setitem__
+    ~ParallelArray.get_plot_label

@@ -12,14 +12,16 @@ Classes
 -------
 
 .. autosummary::
-
-   ~Attributes
+   
    ~ParallelArray
+   ~Attributes
+   ~Coordinate
+   ~CoordinateSet
    ~Group
    ~TensorField
    ~TensorComponents
-   ~TensorCoordinateSet
-   ~TensorCoordinate
+   
+   
 
 .. toctree::
    :hidden:
@@ -29,5 +31,5 @@ Classes
    core/group
    core/tensorfield
    core/tensorcomponents
-   core/tensorcoordinateset
-   core/tensorcoordinate
+   core/coordinateset
+   core/coordinate
