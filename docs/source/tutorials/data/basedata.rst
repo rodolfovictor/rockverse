@@ -56,3 +56,4 @@ to gain a deeper understanding of its fundamentals.
     :hidden:
 
     basedata/parallelarray.ipynb
+    basedata/coordinates.ipynb

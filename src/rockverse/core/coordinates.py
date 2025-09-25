@@ -94,7 +94,7 @@ class Coordinate(ParallelArray):
         return comm.bcast(coord_value, root=0)
 
 
-class CoordinateSet:
+class CoordinateSpace:
     """
     Represents the collection of coordinate objects.
 
@@ -209,7 +209,7 @@ class CoordinateSet:
         """
         names = self.names
         if len(names) == 0:
-            collective_raise(IndexError(f'CoordinateSet is empty.'))
+            collective_raise(IndexError(f'CoordinateSpace is empty.'))
         if index in range(len(names)):
             return self._coordinates[index]
         if index in names:

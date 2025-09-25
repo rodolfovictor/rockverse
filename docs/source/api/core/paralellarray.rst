@@ -39,3 +39,12 @@ Methods
     ~ParallelArray.__getitem__
     ~ParallelArray.__setitem__
     ~ParallelArray.get_plot_label
+
+
+
+Related tutorials
+-----------------
+
+.. nblinkgallery::
+
+   ../../tutorials/data/basedata/parallelarray

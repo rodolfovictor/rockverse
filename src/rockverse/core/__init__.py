@@ -8,5 +8,5 @@ using MPI (Message Passing Interface), with optimized I/O operations and memory 
 from rockverse.core.group import Group
 from rockverse.core.attributes import Attributes
 from rockverse.core.parallelarray import ParallelArray
-from rockverse.core.coordinates import Coordinate, CoordinateSet
+from rockverse.core.coordinates import Coordinate, CoordinateSpace
 from rockverse.core.tensorfield import TensorField, TensorComponents, create_tensorfield
