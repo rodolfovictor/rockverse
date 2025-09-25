@@ -207,14 +207,16 @@ class CoordinateSet:
             xcomp = some_field.coordinates['x-comp'] # Access by name
 
         """
-        if index in range(len(self.names)):
+        names = self.names
+        if len(names) == 0:
+            collective_raise(IndexError(f'CoordinateSet is empty.'))
+        if index in range(len(names)):
             return self._coordinates[index]
-        if index in self.names:
-            names = self.names
+        if index in names:
             if len([n for n in names if n == index]) > 1:
                 collective_raise(KeyError(f'Coordinate names must be unique. Got {names}.'))
-            ind = [k for k, v in enumerate(self.names) if v == index][0]
+            ind = [k for k, v in enumerate(names) if v == index][0]
             return self._coordinates[ind]
         if isinstance(index, str):
             collective_raise(KeyError(f"Coordinate name '{index}' not found."))
-        collective_raise(KeyError(f'Expected key as integer in range({len(self.names)}) or string with coordinate name.'))
+        collective_raise(KeyError(f'Expected key as integer in range({len(names)}) or string with coordinate name.'))

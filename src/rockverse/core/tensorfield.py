@@ -480,7 +480,7 @@ class TensorField:
 
             import rockverse as rv
             tensor_instance = rv.create_tensor(...)  # Create your tensor...
-            tensor_instance.h5dump('filename.h5', path='/my/awesome/tensor')
+            tensor_instance.h5_dump('filename.h5', path='/my/awesome/tensor')
         """
 
         self.validate()

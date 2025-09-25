@@ -21,9 +21,11 @@ Attributes
     ~ParallelArray.latex_name
     ~ParallelArray.latex_unit
     ~ParallelArray.description
+    ~ParallelArray.dtype
     ~ParallelArray.shape
     ~ParallelArray.chunks
-    ~ParallelArray.dtype
+    ~ParallelArray.nchunks
+
 
 Methods
 -------

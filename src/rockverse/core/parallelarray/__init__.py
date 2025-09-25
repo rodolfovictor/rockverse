@@ -155,17 +155,16 @@ class ParallelArray:
             name_str = self.name
         else:
             return ''
-        
-        if self.latex_unit and latex:
+
+        if unit and self.latex_unit and latex:
             unit_str = f" ({self.latex_unit})"
-        elif self.unit:
+        elif unit and self.unit:
             unit_str = f" ({self.unit})"
         else:
             unit_str = ''
 
-        if unit:
-            return f"{name_str}{unit_str}"
-        return ''
+        return f"{name_str}{unit_str}"
+
 
     @property
     def chunk_process_map(self):
@@ -289,6 +288,13 @@ class ParallelArray:
         return self._zarray.chunks
 
     @property
+    def nchunks(self):
+        """
+        Total number of chunks.
+        """
+        return self._zarray.nchunks
+
+    @property
     def dtype(self):
         """
         Numpy data type for the array.
@@ -329,9 +335,12 @@ class ParallelArray:
 
             import rockverse as rv
             array_instance = rv.create_array(...)  # Create your array...
-            array_instance.h5dump('filename.h5', path='/my/awesome/array')
+            array_instance.h5_dump('filename.h5', path='/my/awesome/array')
 
         """
+
+        _assert.string('filename', filename)
+        _assert.string('path', path)
 
         # Serial writing. HDF5 installation may not have MPI enabled...
 
@@ -374,6 +383,11 @@ def create_array(shape,
                  store=None,
                  path=None,
                  overwrite=False,
+                 name=None,
+                 unit=None,
+                 description=None,
+                 latex_name=None,
+                 latex_unit=None,
                  **kwargs):
     """
     Create empty parallel array.
@@ -399,6 +413,16 @@ def create_array(shape,
     overwrite : bool, optional
         If True, delete all pre-existing data in the store at the specified path
         before creating the new image. Default value is False.
+    name : str, optional
+        The array name.
+    unit : str, optional
+        The data unit of the array values.
+    description : str, optional
+        A description of the array.
+    latex_name : str, optional
+        The LaTeX representation of the array name.
+    latex_unit : str, optional
+        The LaTeX representation of the array data unit.
     **kwargs
         Additional keyword arguments to be passed to the underlying
         `Zarr.create_array <https://zarr.readthedocs.io/en/stable/api/zarr/index.html#zarr.create_array>`_ function.
@@ -428,6 +452,19 @@ def create_array(shape,
     if path is not None:
         _assert.instance('path', path, 'string', (str,))
 
+    # Attributes will go through the proper class
+    if 'attributes' in kwargs:
+        attributes = kwargs.pop('attributes')
+    else:
+        attributes = {}
+
+    # Check for valid default attributes --------
+    for key, value in zip(('name', 'unit', 'description', 'latex_name', 'latex_unit'),
+                          (name, unit, description, latex_name, latex_unit)):
+        if value is not None:
+            _assert.string(key, value)
+            attributes[key] = value
+
     kwargs['shape'] = shape
     kwargs['dtype'] = dtype
     kwargs['chunks'] = _chunks
@@ -436,12 +473,6 @@ def create_array(shape,
     kwargs['path'] = path
     kwargs['zarr_format'] = 3
     kwargs['chunk_key_encoding'] = {"name": "default", "separator": "/"}
-
-    # Attributes will go through the proper class
-    if 'attributes' in kwargs:
-        attributes = kwargs.pop('attributes')
-    else:
-        attributes = {}
 
     if not store or isinstance(store, zarr.storage.MemoryStore):
         z = zarr.create(**kwargs)
