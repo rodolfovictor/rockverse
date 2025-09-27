@@ -1,7 +1,7 @@
 import numpy as np
 from rockverse import _assert
 from rockverse.errors import collective_raise, collective_only_rank0_runs
-from rockverse.core.parallelarray import ParallelArray
+from rockverse.core.parallelarray import ParallelArray, array
 from rockverse.configure import config
 comm = config.mpi_comm
 mpi_rank = config.mpi_rank
@@ -45,7 +45,7 @@ class Coordinate(ParallelArray):
                 diff = np.diff(array._zarray[...])
                 is_sorted = np.all(diff>0) or np.all(diff<0)
         if not comm.bcast(is_sorted, root=0):
-            collective_raise(ValueError("Coordinate arrays must be sorted."))
+            collective_raise(ValueError("Coordinate arrays must be sorted and without repeated values."))
 
         super().__init__(array._zarray)
         self.attrs['_ROCKVERSE_DATATYPE'] = 'Coordinate'
@@ -94,6 +94,45 @@ class Coordinate(ParallelArray):
         return comm.bcast(coord_value, root=0)
 
 
+def coordinate(data, store=None, path=None, overwrite=False, **kwargs):
+    """
+    Create a Coordinate object from data.
+
+    Parameters
+    ----------
+    data : array-like
+        The source array whose data will populate the new coordinate.
+    store : str, zarr.storage.StoreLike, or None, optional
+        Storage location for the coordinate. Can be a file path, a Zarr-compatible
+        store object, or None for in-memory storage.
+    path : str or None, optional
+        The path within the store where the array will be located. If None,
+        the root path is used.
+    overwrite : bool, optional
+        If True, any existing data at the target location will be overwritten.
+        Default is False.
+    **kwargs
+        Additional keyword arguments passed to the underlying create_array
+        function. Keyword 'chunks' will be ignored, as Coordinate objects
+        must have only one chunk.
+
+    Returns
+    -------
+    coord : Coordinate
+        The the coordinate object.
+    """
+    _assert.array_like('data', data)
+    if len(data.shape) != 1:
+        collective_raise(ValueError("Coordinate arrays must be one-dimensional."))
+    if data.dtype.kind not in 'fui': # non complex numeric, only
+        collective_raise(TypeError("data: expected integer or float data type."))
+    kwargs['chunks'] = None
+    kwargs['store'] = store
+    kwargs['path'] = path
+    kwargs['overwrite'] = overwrite
+    return Coordinate(array(data, **kwargs))
+
+
 class CoordinateSpace:
     """
     Represents the collection of coordinate objects.
@@ -122,7 +161,7 @@ class CoordinateSpace:
 
     def __init__(self, *args):
         if not all(isinstance(k, Coordinate) for k in args):
-            collective_raise(TypeError("Input variables must be Coordinate objects."))
+            collective_raise(TypeError("CoordinateSpace input variables must be Coordinate objects."))
         self._coordinates = args
 
     def __len__(self):

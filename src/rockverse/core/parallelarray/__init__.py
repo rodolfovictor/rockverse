@@ -526,8 +526,9 @@ def array(data, chunks=None, store=None, path=None, overwrite=False, **kwargs):
         The newly created and populated parallel array.
     """
     _assert.array_like('data', data)
+    if 'dtype' not in kwargs:
+        kwargs['dtype'] = data.dtype
     new_array = create_array(shape=data.shape,
-                             dtype=data.dtype,
                              chunks=chunks,
                              store=store,
                              path=path,

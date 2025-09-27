@@ -17,10 +17,10 @@ Classes
    ~Attributes
    ~Coordinate
    ~CoordinateSpace
+   ~ScalarField
    ~Group
    ~TensorField
    ~TensorComponents
-
 
 
 .. toctree::
@@ -28,8 +28,9 @@ Classes
 
    core/attributes
    core/paralellarray
+   core/coordinate
+   core/coordinatespace
+   core/scalarfield
    core/group
    core/tensorfield
    core/tensorcomponents
-   core/coordinatespace
-   core/coordinate

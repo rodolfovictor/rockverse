@@ -45,6 +45,8 @@ Data creation functions
 
   ~rockverse.create_array
   ~rockverse.array
+  ~rockverse.coordinate
+  ~rockverse.scalarfield
   ~rockverse.create_group
   ~rockverse.create_tensorfield
   ~rockverse.open
