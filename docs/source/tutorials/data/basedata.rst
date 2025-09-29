@@ -58,3 +58,4 @@ to gain a deeper understanding of its fundamentals.
     basedata/parallelarray.ipynb
     basedata/coordinates.ipynb
     basedata/scalarfields.ipynb
+    basedata/groups.ipynb

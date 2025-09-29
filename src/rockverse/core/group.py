@@ -3,6 +3,7 @@ from rockverse import _assert
 from rockverse.errors import collective_raise, collective_only_rank0_runs
 from rockverse.core.attributes import Attributes
 from rockverse.core.parallelarray import create_array, ParallelArray
+from rockverse.core.coordinates import coordinate
 
 from rockverse.configure import config
 mpi_comm = config.mpi_comm
@@ -54,7 +55,6 @@ class Group():
             kwargs['path'] = f"{self.zgroup.path}/{parent}"
             kwargs['overwrite'] = overwrite
             new_group = create_group(**kwargs)
-            print(type(new_group))
             kwargs['path'] = '/'.join(child)
             new_group._create_parents(**kwargs)
 
@@ -108,6 +108,31 @@ class Group():
         kwargs['path'] = f"{self.zgroup.path}/{path}"
         kwargs['overwrite'] = overwrite
         return create_array(**kwargs)
+
+    def create_coordinate(self, path, overwrite=False, parent_attrs=None, **kwargs):
+        """
+        Create a new parallel array within this group with the specified name.
+
+        Parameters
+        ----------
+        path : str
+            The path for the new array within the group path.
+        overwrite : bool, optional
+            If True, existing data at the specified path will be overwritten. Default is False.
+        kwargs
+            Additional keyword arguments passed to :func:`create_array <rockverse.create_array>`.
+        """
+        _assert.string('path', path)
+        _assert.boolean('overwrite', overwrite)
+        temp = {'path': path, 'overwrite': overwrite}
+        if parent_attrs is not None:
+            _assert.dictionary('parent_attrs', parent_attrs)
+            temp.update(**parent_attrs)
+        self._create_parents(**temp)
+        kwargs['store'] = self.zgroup.store
+        kwargs['path'] = f"{self.zgroup.path}/{path}"
+        kwargs['overwrite'] = overwrite
+        return coordinate(**kwargs)    
 
     def __getitem__(self, key, /):
         """
