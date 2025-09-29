@@ -137,7 +137,6 @@ tutorials = [
         ['data/basedata.rst', 'voxel_image.png'],
     ]],
     ['Digital Rock Petrophysics', [
-        ['digitalrock/voxel_image.rst', 'voxel_image.png'],
         ['digitalrock/orthogonal_viewer.rst', 'exploring_orthogonal_viewer.png'],
         ['digitalrock/dual_energy.rst', 'Monte_Carlo_Dual_energy_CT_processing.png'],
     ]],
