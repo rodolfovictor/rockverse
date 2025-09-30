@@ -133,7 +133,7 @@ html_sidebars = {
 tutorial_folder = "tutorials"
 thumbs_folder = "_static/tutorial_thumbnails"
 tutorials = [
-    ['Data types', [
+    ['Data manipulation', [
         ['data/basedata.rst', 'voxel_image.png'],
     ]],
     ['Digital Rock Petrophysics', [

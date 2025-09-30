@@ -23,4 +23,5 @@ Methods
 
     ~Group.create_group
     ~Group.create_array
+    ~Group.create_coordinate
     ~Group.__getitem__

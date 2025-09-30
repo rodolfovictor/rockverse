@@ -65,8 +65,7 @@
 
 - Zarr
   - Test block indexing for 'F' or 'C' formats.
-  - Include dimension_names in the voxel image.
-
+  
 - Assert
   - Deprecate drpdtype
 
@@ -83,6 +82,7 @@
   - Replace `>>>` by `.. code-block:: python`
   - Add multi-CPU/multi-GPU
   - Author in the tutorials
+  - Tutorial scalar field in group
 
 - Creating arrays and groups: make a more friendly error if existing and overwrite=False
 

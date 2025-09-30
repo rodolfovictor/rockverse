@@ -2,8 +2,8 @@ import zarr
 from rockverse import _assert
 from rockverse.errors import collective_raise, collective_only_rank0_runs
 from rockverse.core.attributes import Attributes
-from rockverse.core.parallelarray import create_array, ParallelArray
-from rockverse.core.coordinates import coordinate
+from rockverse.core.parallelarray import create_array, array, ParallelArray
+from rockverse.core.coordinates import coordinate, Coordinate
 
 from rockverse.configure import config
 mpi_comm = config.mpi_comm
@@ -108,22 +108,29 @@ class Group():
         kwargs['path'] = f"{self.zgroup.path}/{path}"
         kwargs['overwrite'] = overwrite
         return create_array(**kwargs)
-
-    def create_coordinate(self, path, overwrite=False, parent_attrs=None, **kwargs):
+    
+    def create_coordinate(self, path, data, overwrite=False, parent_attrs=None, **kwargs):
         """
-        Create a new parallel array within this group with the specified name.
+        Create a new coordinate object within this group with the specified name.
 
         Parameters
         ----------
         path : str
-            The path for the new array within the group path.
+            The path for the new object within the group path.
+        data : array-like
+            The source array whose data will populate the new coordinate.
         overwrite : bool, optional
             If True, existing data at the specified path will be overwritten. Default is False.
         kwargs
-            Additional keyword arguments passed to :func:`create_array <rockverse.create_array>`.
+            Additional keyword arguments passed to :func:`coordinate <rockverse.coordinate>`.
         """
         _assert.string('path', path)
         _assert.boolean('overwrite', overwrite)
+        _assert.array_like('data', data)
+        if len(data.shape) != 1:
+            collective_raise(ValueError("Coordinate arrays must be one-dimensional."))
+        if data.dtype.kind not in 'fui': # non complex numeric, only
+            collective_raise(TypeError("data: expected integer or float data type."))
         temp = {'path': path, 'overwrite': overwrite}
         if parent_attrs is not None:
             _assert.dictionary('parent_attrs', parent_attrs)
@@ -131,8 +138,9 @@ class Group():
         self._create_parents(**temp)
         kwargs['store'] = self.zgroup.store
         kwargs['path'] = f"{self.zgroup.path}/{path}"
-        kwargs['overwrite'] = overwrite
-        return coordinate(**kwargs)    
+        kwargs['overwrite'] = overwrite       
+        kwargs['chunks'] = None
+        return coordinate(data, **kwargs)
 
     def __getitem__(self, key, /):
         """
@@ -149,6 +157,8 @@ class Group():
             return Group(self.zgroup[key])
         if rvdtype == 'ParallelArray':
             return ParallelArray(self.zgroup[key])
+        if rvdtype == 'Coordinate':
+            return Coordinate(ParallelArray(self.zgroup[key]))
 
         return self.zgroup[key]
 
