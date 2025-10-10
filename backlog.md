@@ -1,5 +1,10 @@
 # Backlog
 
+## Tasks to be completed before next release
+
+- Adapt the open function
+- Remove GOB7 
+
 ## Tasks to be completed
 
 - Introduce well logs

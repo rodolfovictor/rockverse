@@ -25,6 +25,7 @@ Attributes
     ~Coordinate.shape
     ~Coordinate.chunks
     ~Coordinate.dtype
+    ~Coordinate.is_equally_spaced
 
 Methods
 ----------

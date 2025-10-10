@@ -1,3 +1,4 @@
+import os
 import rockverse as rv
 import numpy as np
 self = rv.core.create_tensorfield(
@@ -6,8 +7,7 @@ self = rv.core.create_tensorfield(
     chunks=(2,2,2),
     dtype=float,
     #data = np.random.rand(5,2,8),
-    store=r"C:\Users\GOB7\Downloads\test",
-    #store='/u/gob7/test.zarr',
+    store=os.path.join(os.getenv('USERPROFILE'), "Downloads", "test"),
     path="testpath",
     name='test array',
     unit='m/s',
@@ -25,12 +25,10 @@ self.validate()
 self.components[0, 0][...] = np.random.randn(5,2,8)
 self.components[0, 1][...] = np.random.randn(5,2,8)
 
-#filename = '/u/gob7/test.h5'
-filename = r"C:\Users\GOB7\Downloads\test.h5"
+filename = os.path.join(os.getenv('USERPROFILE'), "Downloads", "test.h5")
 self.h5_dump(filename, path='/my/awesome/array', mode='w')
 
-#store='/u/gob7/test2.zarr'
-#store=r"C:\Users\GOB7\Downloads\test2"
+#store=os.path.join(os.getenv('USERPROFILE'), "Downloads", "test2.zarr")
 #h5path = '/myawesomearray'
 #path=None
 #overwrite=True

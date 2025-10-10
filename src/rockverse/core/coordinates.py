@@ -92,6 +92,33 @@ class Coordinate(ParallelArray):
                 index = np.argmin(np.abs(self._zarray[...]-value))
                 coord_value = self._zarray[index]
         return comm.bcast(coord_value, root=0)
+    
+
+    @property
+    def is_equally_spaced(self):
+        """
+        Determine whether the coordinate values are equally spaced.
+
+        Returns
+        -------
+        bool
+            True if the coordinate values are equally spaced; False otherwise.
+        """
+        dx = np.diff(self[...])
+        if len(dx) == 0:
+            return True  # Single element coordinate is trivially equally spaced
+    
+        ref = dx[0]
+        dtype = self.dtype
+    
+        if np.issubdtype(dtype, np.integer):            
+            return np.all(dx == ref)
+    
+        if np.issubdtype(dtype, np.inexact):            
+            tol = 2 * np.finfo(dtype).eps * np.abs(ref)
+            return np.all(np.abs(dx - ref) <= tol)
+        
+        collective_raise(TypeError("Expected integer or float data type for coordinate."))
 
 
 def coordinate(data, store=None, path=None, overwrite=False, **kwargs):
@@ -210,6 +237,14 @@ class CoordinateSpace:
         A sorted tuple of all LaTeX representations for the coordinate data units.
         """
         return self._get_attr('latex_unit')
+    
+    @property
+    def is_equally_spaced(self):
+        """
+        A tuple of boolean values indicating whether each coordinate in the 
+        CoordinateSpace is equally spaced.
+        """
+        return tuple(coord.is_equally_spaced for coord in self._coordinates)
 
 
     def get_plot_labels(self, unit=True, latex=True):

@@ -18,6 +18,7 @@ Attributes
     ~CoordinateSpace.latex_names
     ~CoordinateSpace.latex_units
     ~CoordinateSpace.descriptions
+    ~CoordinateSpace.is_equally_spaced
 
 
 Methods

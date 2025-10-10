@@ -135,6 +135,7 @@ thumbs_folder = "_static/tutorial_thumbnails"
 tutorials = [
     ['Data manipulation', [
         ['data/basedata.rst', 'voxel_image.png'],
+        ['data/welllog.rst', 'WellLogCompositionDissertation.jpg'],
     ]],
     ['Digital Rock Petrophysics', [
         ['digitalrock/orthogonal_viewer.rst', 'exploring_orthogonal_viewer.png'],

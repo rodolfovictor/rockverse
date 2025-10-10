@@ -1,6 +1,7 @@
 import numpy as np
 import h5py
 import rockverse as rv
+import os
 
 shape=(5,2,8)
 a = rv.create_array(shape=shape, dtype=np.float32, chunks=(2,2,2))
@@ -8,7 +9,7 @@ a[...] = np.random.rand(*shape)
 a.zarray[...]
 a[...]
 
-filename = r"C:\Users\GOB7\Downloads\test.h5"
+filename = os.path.join(os.getenv('USERPROFILE'), "Downloads", "test.h5")
 path='/my/awesome/array'
 self=a
 self.h5_dump(filename, path='/my/awesome/array', mode='w')

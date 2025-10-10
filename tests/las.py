@@ -1,19 +1,20 @@
+#%%
+import os
+import rockverse
 
+#filename='LAS2_example_1.las'
+#filename='LAS2_example_2.las'
+#filename='LAS2_example_3.las'
+#filename='LAS2_example_4.las'
+#filename='LAS2_example_5.las'
+filename='LAS3_example_1.las'
 
-#filename='/togp/GOB7/Pseudowell/Buzios2023/pocos/Basicos/CurvasFinais_BUZ-3.las'
-#filename='/u/gob7/rockverse/tests/LAS2_example_1.las'
-#filename='/u/gob7/rockverse/tests/LAS2_example_2.las'
-#filename='/u/gob7/rockverse/tests/LAS2_example_3.las'
-#filename='/u/gob7/rockverse/tests/LAS2_example_4.las'
-#filename='/u/gob7/rockverse/tests/LAS2_example_5.las'
-#filename='/u/gob7/rockverse/tests/LAS3_example_1.las'
-filename=r'C:\Users\GOB7\Downloads\rockverse\tests\LAS3_example_1.las'
-filename=r'C:\Users\GOB7\Downloads\rockverse\tests\LAS2_example_5.las'
-encoding=None
+fullfilename = os.path.join(rockverse.__path__[0], '..', '..', 'tests', filename)
 
+print(fullfilename)
 #def import_las(filename, encoding=None):
 if True:
-    lines = load_text_file(filename, encoding=encoding)
+    lines = load_text_file(fullfilename, encoding=None)
     imported_sections, section_order, las_version, las_wrap, las_delimiter = split_sections(lines)
     if las_version == 2:
         final_data = assemble_las2_dict(imported_sections, las_wrap)
@@ -31,3 +32,5 @@ if True:
 
     self=final_data
     final_data.tree()
+
+# %%
