@@ -1,11 +1,20 @@
-import copy
-import datetime
-import numpy as np
+import os
+from rockverse import __path__ as RVPATH
 from rockverse._utils.text import load_text_file
-
 from rockverse.las.exceptions import LasImportError
 from rockverse.las.las2 import break_las2_line, assemble_las2_dict
 from rockverse.las.las3 import break_las3_line, assemble_las3_dict
+
+def get_first_comment_lines(lines):
+    initial_comments = []
+    for line in lines:
+        if line.startswith('#'):
+            initial_comments.append(line[1:])
+        else:
+            break
+    if initial_comments:
+        initial_comments = ''.join(initial_comments)
+    return initial_comments
 
 def split_sections(lines):
 
@@ -164,3 +173,51 @@ def split_sections(lines):
 
     section_order = sections
     return imported_sections, section_order, las_version, las_wrap, las_delimiter
+
+
+def read_las(filename, encoding=None):
+    lines = load_text_file(filename, encoding=encoding)
+    initial_comments = get_first_comment_lines(lines)
+    imported_sections, section_order, las_version, las_wrap, las_delimiter = split_sections(lines)
+    if las_version == 2:
+        final_data = assemble_las2_dict(imported_sections, las_wrap)
+        final_data['_version'] = 2
+    elif las_version == 3:
+        final_data = assemble_las3_dict(imported_sections, section_order, las_delimiter)
+        final_data['_version'] = 3
+    else: # Maybe another version in the future?...
+        raise NotImplementedError(f"I don't know how to read LAS version {las_version}.")
+    final_data['_Initial_Comments'] = initial_comments
+
+    # Change "value" to "code" and "data" to "value" in data entries
+    sections = [k for k in final_data.keys() if k not in ('Well', 'Other', '_Initial_Comments', '_version')]
+    for sec in sections:
+        for k in final_data[sec]['data']:
+            k['code'] = k.pop('value')
+            k['value'] = k.pop('data')
+
+    return final_data
+
+def las_sample1():
+    filename = os.path.join(RVPATH[0], 'sample_data', 'las', 'LAS2_example_1.las')
+    return read_las(filename)
+
+def las_sample2():
+    filename = os.path.join(RVPATH[0], 'sample_data', 'las', 'LAS2_example_2.las')
+    return read_las(filename)
+
+def las_sample3():
+    filename = os.path.join(RVPATH[0], 'sample_data', 'las', 'LAS2_example_3.las')
+    return read_las(filename)
+
+def las_sample4():
+    filename = os.path.join(RVPATH[0], 'sample_data', 'las', 'LAS2_example_4.las')
+    return read_las(filename)
+
+def las_sample5():
+    filename = os.path.join(RVPATH[0], 'sample_data', 'las', 'LAS2_example_5.las')
+    return read_las(filename)
+
+def las_sample6():
+    filename = os.path.join(RVPATH[0], 'sample_data', 'las', 'LAS3_example_1.las')
+    return read_las(filename)

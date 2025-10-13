@@ -13,3 +13,4 @@ well logs from the general ScalarField class.
     :hidden:
 
     welllog/welllogclass.ipynb
+    welllog/importinglas.ipynb

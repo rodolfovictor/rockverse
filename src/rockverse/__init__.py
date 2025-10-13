@@ -51,26 +51,23 @@ mpi_comm = config.mpi_comm
 mpi_rank = config.mpi_rank
 mpi_nprocs = config.mpi_nprocs
 
-# Define the public API
-__all__ = [
-    "__version__",
-    "config",
-    "make_logo",
-    "open",
-    "voxel_image",
-    "region",
-    "OrthogonalViewer",
-    "dect",
-    "seismic",
-    "Group",
-]
-
-# Data creation functions
+# Core data creation functions
 from rockverse.core.parallelarray import create_array, array
 from rockverse.core.coordinates import coordinate
 from rockverse.core.group import Group, create_group
 from rockverse.core.scalarfield import scalarfield
 from rockverse.core.tensorfield import create_tensorfield
+
+# LAS interface
+from rockverse.las import (
+    read_las,
+    las_sample1,
+    las_sample2,
+    las_sample3,
+    las_sample4,
+    las_sample5,
+    las_sample6
+    )
 
 from rockverse import voxel_image
 from rockverse import region

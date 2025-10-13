@@ -3,7 +3,7 @@
 ## Tasks to be completed before next release
 
 - Adapt the open function
-- Remove GOB7 
+- Remove GOB7
 
 ## Tasks to be completed
 
@@ -11,6 +11,7 @@
 
 - LAS 3.0
   - Assemble 2D, 3D log curves
+  - Handle associations
 
 - Fine-tune threads per block GPU
   - Adjust GPU thread configurations for optimized performance in parallel computing tasks.
@@ -70,7 +71,7 @@
 
 - Zarr
   - Test block indexing for 'F' or 'C' formats.
-  
+
 - Assert
   - Deprecate drpdtype
 
