@@ -1,3 +1,4 @@
+from rockverse.errors import collective_raise
 from rockverse.core.parallelarray import array
 from rockverse.core.coordinates import coordinate
 from rockverse.core.scalarfield import scalarfield
@@ -78,15 +79,22 @@ class LAS(dict):
     def _get_group_by_path(self, group, path):
         subgroup = group
         split_path = path.split('/')
+        print(split_path )
         if len(split_path) > 1:
-            subgroup = group[split_path[0]]
+            subgroup = subgroup[split_path[0]]
             return self._get_group_by_path(subgroup, '/'.join(split_path[1:]))
-        return subgroup[int(split_path[0])]
+        index = [k for k, v in enumerate(group) if v['mnem'] == path]
+        if len(index) == 0:
+            collective_raise(KeyError(path))
+        if len(index) > 1:
+            collective_raise(KeyError(f'multiple entries with mnem {path}'))
+        return subgroup[0], subgroup[index[0]]
 
 
     def as_scalar_field(self, las_path, **kwargs):
-        las_coord = mpi_comm.bcast(self._get_group_by_path(self, '/'.join(las_path.split('/')[:-1]+['0',])), root=0)
-        las_array = mpi_comm.bcast(self._get_group_by_path(self, las_path), root=0)
+        las_coord, las_array = self._get_group_by_path(self, las_path)
+        las_coord= mpi_comm.bcast(las_coord, root=0)
+        las_array = mpi_comm.bcast(las_array, root=0)
         top_path = '' if 'path' not in kwargs else kwargs['path']
         kwargs['path'] = f"{top_path}/coords/0" if top_path else "coords/0"
         coord = coordinate(data=las_coord['value'],
@@ -100,8 +108,7 @@ class LAS(dict):
                        unit=las_array['unit'],
                        description=las_array['description'],
                        **kwargs)
-        print('code' in las_array)
-        parray.attrs['code'] = las_array['code'] if 'code' in las_array else ''
+        parray.attrs['code'] = las_array['code'] if 'code' in las_array and las_array['code'] else ''
         return scalarfield(parray, coords=(coord,))
 
 
@@ -112,6 +119,5 @@ if __name__ == "__main__":
     self=final_data
 
     #AQUI
-    key = 'Inclinometry_Data/data/1'
-    a=self.as_scalar_field('Curve/data/2')
+    a=self.as_scalar_field('Curve/data/NPHI')
     #group = self
