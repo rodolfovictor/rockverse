@@ -181,18 +181,18 @@ def read_las(filename, encoding=None):
     imported_sections, section_order, las_version, las_wrap, las_delimiter = split_sections(lines)
     if las_version == 2:
         final_data = assemble_las2_dict(imported_sections, las_wrap)
-        final_data['_version'] = 2
+        final_data.dict['_version'] = 2
     elif las_version == 3:
         final_data = assemble_las3_dict(imported_sections, section_order, las_delimiter)
-        final_data['_version'] = 3
+        final_data.dict['_version'] = 3
     else: # Maybe another version in the future?...
         raise NotImplementedError(f"I don't know how to read LAS version {las_version}.")
-    final_data['_Initial_Comments'] = initial_comments
+    final_data.dict['_initial_comments'] = initial_comments
 
     # Change "value" to "code" and "data" to "value" in data entries
-    sections = [k for k in final_data.keys() if k not in ('Well', 'Other', '_Initial_Comments', '_version')]
+    sections = [k for k in final_data.dict.keys() if k not in ('Well', 'Other', '_initial_comments', '_version')]
     for sec in sections:
-        for k in final_data[sec]['data']:
+        for k in final_data.dict[sec]['data']:
             k['code'] = k.pop('value')
             k['value'] = k.pop('data')
 
