@@ -3,6 +3,28 @@ from rockverse.las.exceptions import LasImportError
 from rockverse.las.las import Las
 
 def break_las2_line(line_number, line, las_delimiter):
+    """
+    Parse a single line from a LAS 2.0 section into its components.
+
+    Parameters
+    ----------
+    line_number : int
+        The line number in the LAS file (for error reporting).
+    line : str
+        The line content to parse.
+    las_delimiter : str
+        Delimiter used in the LAS file (for compatibility, not used here).
+
+    Returns
+    -------
+    dict
+        Dictionary with keys 'mnem', 'unit', 'value', and 'description' parsed from the line.
+
+    Raises
+    ------
+    LasImportError
+        If the line does not conform to expected LAS 2.0 format.
+    """
 
     # las_delimiter must be here for compatibility with break_las3_line
 
@@ -50,6 +72,26 @@ def break_las2_line(line_number, line, las_delimiter):
     return out
 
 def convert_value_from_las2(value, null=None):
+    """
+    Convert a LAS 2.0 string value to a numeric or string type, handling null values.
+
+    Parameters
+    ----------
+    value : str
+        The raw value string from the LAS file.
+    null : int or float, optional
+        The null value indicator to map to NaN.
+
+    Returns
+    -------
+    int, float, str, or None
+        The converted numeric value, NaN for nulls, or trimmed string if conversion fails.
+
+    Raises
+    ------
+    ValueError
+        If input types are invalid.
+    """
 
     if not isinstance(value, str):
         raise ValueError('value must be string.')
@@ -74,6 +116,26 @@ def convert_value_from_las2(value, null=None):
 
 
 def assemble_las2_dict(imported_sections, las_wrap):
+    """
+    Assemble LAS 2.0 parsed sections into a structured Las object.
+
+    Parameters
+    ----------
+    imported_sections : dict
+        Sections parsed from the LAS file.
+    las_wrap : bool
+        Indicates whether ASCII data is wrapped.
+
+    Returns
+    -------
+    Las
+        Structured LAS data with sections mapped to parameters and data.
+
+    Raises
+    ------
+    LasImportError
+        If required sections are missing or malformed.
+    """
 
     # Well section
     key = [k for k in imported_sections if k.upper().startswith('~W')]

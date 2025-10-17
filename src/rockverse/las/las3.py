@@ -5,6 +5,27 @@ from rockverse.las.las2 import convert_value_from_las2
 from rockverse.las.las import Las
 
 def break_las3_line(line_number, line, las_delimiter):
+    """
+    Parse a single line from a LAS 3.0 section into its components.
+
+    Parameters
+    ----------
+    line_number : int
+        The line number in the LAS file (used for error reporting).
+    line : str
+        The line content to parse.
+    las_delimiter : str
+        Delimiter used in the LAS file for separating fields.
+
+    Returns
+    -------
+    dict
+        Dictionary with keys: 'mnem', 'unit', 'value', 'description', 'format', 'association'.
+    Raises
+    ------
+    LasImportError
+        If the line does not conform to the expected LAS 3.0 format or contains invalid characters.
+    """
 
     out = {'mnem': '', 'unit': '', 'value': '', 'description': '',
            'format': '', 'association': []}
@@ -88,9 +109,32 @@ def break_las3_line(line_number, line, las_delimiter):
     return out
 
 
-
-
 def convert_value_from_las3(value, format=None, null=None, delimiter=None):
+    """
+    Convert a LAS 3.0 string value to the appropriate Python type, including support for
+    arrays, numbers, strings, and date/time formats.
+
+    Parameters
+    ----------
+    value : str
+        The raw value string from the LAS file.
+    format : str or None, optional
+        The format specifier indicating the type of the value (e.g., 'F', 'I', 'S', date/time codes).
+    null : int or float or None, optional
+        The null value indicator to be converted to np.nan.
+    delimiter : str or None, optional
+        Delimiter used to split array values.
+
+    Returns
+    -------
+    Various types depending on format:
+        Converted value as int, float, tuple, string, datetime, or other appropriate Python type.
+
+    Raises
+    ------
+    ValueError
+        If conversion fails or format is invalid.
+    """
 
     def trouble(value, format):
         raise ValueError(f"Error converting '{value}' to {{{format}}} format.")
@@ -204,59 +248,99 @@ def convert_value_from_las3(value, format=None, null=None, delimiter=None):
 
 
 def assemble_las3_section_trio(section_keys, imported_sections, las_delimiter):
-        """
-        section_keys = (parameter mnen, definition mnem, data mnem)
-        """
+    """
+    Assemble a trio of LAS 3.0 sections: parameters, definitions, and data into a structured group.
 
-        final_group = {}
-        sections = [None, None, None]
-        for n, section_key in enumerate(section_keys):
-            dict_key = [k for k in imported_sections if k.upper() == section_key.upper()]
-            if len(dict_key) > 1:
-                raise LasImportError(f"Duplicated {section_key} section.")
-            if len(dict_key) > 0:
-                sections[n] = imported_sections[dict_key[0]]
+    Parameters
+    ----------
+    section_keys : tuple of str
+        Tuple containing the mnemonics for parameter, definition, and data sections.
+    imported_sections : dict
+        Dictionary of imported LAS sections keyed by section name.
+    las_delimiter : str
+        Delimiter character used in the LAS file.
 
-        if sections[0] is not None:
-            for p in sections[0]:
-                p['value'] = convert_value_from_las3(value=p['value'], format=p['format'], delimiter=las_delimiter)
-            final_group['parameters'] = sections[0]
+    Returns
+    -------
+    dict
+        Structured group containing 'parameters' and 'data' entries with converted values.
 
-        if sections[1] is not None and sections[2] is None:
-            raise LasImportError(f"Found {section_keys[1]} section but missing {section_keys[2]} section.")
+    Raises
+    ------
+    LasImportError
+        If required sections are missing or duplicated.
+    """
 
-        if sections[2] is not None and sections[1] is None:
-            raise LasImportError(f"Found {section_keys[2]} section but missing {section_keys[1]} section.")
+    final_group = {}
+    sections = [None, None, None]
+    for n, section_key in enumerate(section_keys):
+        dict_key = [k for k in imported_sections if k.upper() == section_key.upper()]
+        if len(dict_key) > 1:
+            raise LasImportError(f"Duplicated {section_key} section.")
+        if len(dict_key) > 0:
+            sections[n] = imported_sections[dict_key[0]]
 
-        # Split and convert values, must preserve elements with delimiter but enclosed in " "
-        formats = [k['format'] for k in sections[1]]
-        data = []
-        for line in sections[2]:
-            result = []
-            current = ''
-            in_quotes = False
-            for char in line:
-                if char == '"':
-                    in_quotes = not in_quotes  # Toggle the quote state
-                elif char == las_delimiter and not in_quotes:
-                    result.append(current)
-                    current = ''
-                else:
-                    current += char
-            result.append(current)  # Add the last part
-            data.append([convert_value_from_las3(value=v, format=f, delimiter=las_delimiter)
-                         for v, f in zip(result, formats)])
+    if sections[0] is not None:
+        for p in sections[0]:
+            p['value'] = convert_value_from_las3(value=p['value'], format=p['format'], delimiter=las_delimiter)
+        final_group['parameters'] = sections[0]
 
-        # Add to definitions
-        for k, item in enumerate(sections[1]):
-            item['data'] = np.array([line[k] for line in data])
+    if sections[1] is not None and sections[2] is None:
+        raise LasImportError(f"Found {section_keys[1]} section but missing {section_keys[2]} section.")
 
-        final_group['data'] = sections[1]
+    if sections[2] is not None and sections[1] is None:
+        raise LasImportError(f"Found {section_keys[2]} section but missing {section_keys[1]} section.")
 
-        return final_group
+    # Split and convert values, must preserve elements with delimiter but enclosed in " "
+    formats = [k['format'] for k in sections[1]]
+    data = []
+    for line in sections[2]:
+        result = []
+        current = ''
+        in_quotes = False
+        for char in line:
+            if char == '"':
+                in_quotes = not in_quotes  # Toggle the quote state
+            elif char == las_delimiter and not in_quotes:
+                result.append(current)
+                current = ''
+            else:
+                current += char
+        result.append(current)  # Add the last part
+        data.append([convert_value_from_las3(value=v, format=f, delimiter=las_delimiter)
+                        for v, f in zip(result, formats)])
+
+    # Add to definitions
+    for k, item in enumerate(sections[1]):
+        item['data'] = np.array([line[k] for line in data])
+
+    final_group['data'] = sections[1]
+
+    return final_group
 
 def assemble_las3_dict(imported_sections, section_order, las_delimiter):
+    """
+    Assemble all imported LAS 3.0 sections into a structured Las object.
 
+    Parameters
+    ----------
+    imported_sections : dict
+        Dictionary of imported LAS sections keyed by section name.
+    section_order : list of str
+        List of section names in the order they appeared.
+    las_delimiter : str
+        Delimiter character used in the LAS file.
+
+    Returns
+    -------
+    Las
+        Structured LAS data encapsulated in a RockVerse Las object.
+
+    Raises
+    ------
+    LasImportError
+        If required sections are missing or malformed.
+    """
     final_data = Las()
 
     # Well section

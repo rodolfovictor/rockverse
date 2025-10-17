@@ -1,11 +1,34 @@
+"""
+Module for reading and parsing LAS (Log ASCII Standard) files.
+
+This module provides functionality to read, parse, and structure LAS files
+commonly used in well logging data. It supports LAS versions 2.0 and 3.0,
+integrating with RockVerse's parallel data structures.
+"""
+
 import os
 from rockverse import __path__ as RVPATH
 from rockverse._utils.text import load_text_file
 from rockverse.las.exceptions import LasImportError
 from rockverse.las.las2 import break_las2_line, assemble_las2_dict
 from rockverse.las.las3 import break_las3_line, assemble_las3_dict
+from rockverse.las.las import Las, LasSection, LasParam, LasData
 
-def get_first_comment_lines(lines):
+
+def _get_first_comment_lines(lines):
+    """
+    Extract initial comment lines from LAS file lines.
+
+    Parameters
+    ----------
+    lines : list of str
+        Lines from a LAS file.
+
+    Returns
+    -------
+    str
+        Concatenated initial comment lines (without the leading '#'), or empty string if none.
+    """
     initial_comments = []
     for line in lines:
         if line.startswith('#'):
@@ -16,12 +39,34 @@ def get_first_comment_lines(lines):
         initial_comments = ''.join(initial_comments)
     return initial_comments
 
-def split_sections(lines):
 
+def _split_sections(lines):
     """
-    Split sections into dictionaries
-    """
+    Parse LAS file lines into sections and extract metadata.
 
+    Parameters
+    ----------
+    lines : list of str
+        Lines from a LAS file.
+
+    Returns
+    -------
+    imported_sections : dict
+        Dictionary mapping section headers to their content lines.
+    section_order : list
+        List of section headers in the order they appeared.
+    las_version : int or None
+        LAS file version (2 or 3).
+    las_wrap : bool or None
+        Whether WRAP mode is enabled.
+    las_delimiter : str
+        Delimiter character used in the file (space by default).
+
+    Raises
+    ------
+    LasImportError
+        If the file structure violates LAS standards or has invalid sections.
+    """
     las_version = None
     las_wrap = None
     las_delimiter = ' '
@@ -176,9 +221,26 @@ def split_sections(lines):
 
 
 def read_las(filename, encoding=None):
+    """
+    Read and parse a LAS (Log ASCII Standard) file, returning a structured LAS object.
+
+    Parameters
+    ----------
+    filename : str
+        Path to the LAS file.
+    encoding : str or None, optional
+        File encoding to use when reading the text file.
+        If None (default), the function will try to read the file using
+        'ascii', 'utf-8', and 'latin-1' options.
+
+    Returns
+    -------
+    Las
+        Parsed LAS data encapsulated in a RockVerse LAS object.
+    """
     lines = load_text_file(filename, encoding=encoding)
-    initial_comments = get_first_comment_lines(lines)
-    imported_sections, section_order, las_version, las_wrap, las_delimiter = split_sections(lines)
+    initial_comments = _get_first_comment_lines(lines)
+    imported_sections, section_order, las_version, las_wrap, las_delimiter = _split_sections(lines)
     if las_version == 2:
         final_data = assemble_las2_dict(imported_sections, las_wrap)
         final_data.dict['_version'] = 2
@@ -198,26 +260,75 @@ def read_las(filename, encoding=None):
 
     return final_data
 
+
 def las_sample1():
+    """
+    Load sample LAS2 example 1 file.
+
+    Returns
+    -------
+    Las
+        Parsed LAS data from sample file.
+    """
     filename = os.path.join(RVPATH[0], 'sample_data', 'las', 'LAS2_example_1.las')
     return read_las(filename)
 
 def las_sample2():
+    """
+    Load sample LAS2 example 2 file.
+
+    Returns
+    -------
+    Las
+        Parsed LAS data from sample file.
+    """
     filename = os.path.join(RVPATH[0], 'sample_data', 'las', 'LAS2_example_2.las')
     return read_las(filename)
 
 def las_sample3():
+    """
+    Load sample LAS2 example 3 file.
+
+    Returns
+    -------
+    Las
+        Parsed LAS data from sample file.
+    """
     filename = os.path.join(RVPATH[0], 'sample_data', 'las', 'LAS2_example_3.las')
     return read_las(filename)
 
 def las_sample4():
+    """
+    Load sample LAS2 example 4 file.
+
+    Returns
+    -------
+    Las
+        Parsed LAS data from sample file.
+    """
     filename = os.path.join(RVPATH[0], 'sample_data', 'las', 'LAS2_example_4.las')
     return read_las(filename)
 
 def las_sample5():
+    """
+    Load sample LAS2 example 5 file.
+
+    Returns
+    -------
+    Las
+        Parsed LAS data from sample file.
+    """
     filename = os.path.join(RVPATH[0], 'sample_data', 'las', 'LAS2_example_5.las')
     return read_las(filename)
 
 def las_sample6():
+    """
+    Load sample LAS3 example 1 file.
+
+    Returns
+    -------
+    Las
+        Parsed LAS data from sample file.
+    """
     filename = os.path.join(RVPATH[0], 'sample_data', 'las', 'LAS3_example_1.las')
     return read_las(filename)

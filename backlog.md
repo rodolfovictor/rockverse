@@ -3,7 +3,9 @@
 ## Tasks to be completed before next release
 
 - Adapt the open function
+- Open function cannot create zarr objects if they dont exist
 - Remove GOB7
+
 
 ## Tasks to be completed
 

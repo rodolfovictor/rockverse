@@ -51,11 +51,41 @@ Data creation functions
   ~rockverse.create_tensorfield
   ~rockverse.open
 
+Importing from other formats
+----------------------------
+
+.. autosummary::
+  :toctree: _autogen
+
+  ~rockverse.read_las
+
+Sample data
+-----------
+
+LAS files
+^^^^^^^^^
+
+.. autosummary::
+  :toctree: _autogen
+
+  ~rockverse.las_sample1
+  ~rockverse.las_sample2
+  ~rockverse.las_sample3
+  ~rockverse.las_sample4
+  ~rockverse.las_sample5
+  ~rockverse.las_sample6
+
 Core Module
 ===========
 
 .. autosummary::
   ~rockverse.core
+
+Well data Modules
+=================
+
+.. autosummary::
+  ~rockverse.las
 
 Digital Rock Modules
 ====================
@@ -97,6 +127,7 @@ Runtime configuration
   :maxdepth: 2
 
   api/core
+  api/las
   api/voxel_image
   api/region
   api/dect

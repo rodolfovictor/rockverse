@@ -1,5 +1,7 @@
 class LasImportError(Exception):
-
+    """
+    Exception raised for errors encountered during LAS file import and parsing.
+    """
     def __init__(self, message, line_number=None):
         super().__init__(message)
         self.line_number = line_number
