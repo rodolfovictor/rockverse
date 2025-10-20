@@ -2,7 +2,7 @@
 import os
 import rockverse as rv
 
-self = rv.las_sample1()
+self = rv.cwls_las_sample()
 #final_data.tree()
 
 #self['Curve'].find('*NM*')

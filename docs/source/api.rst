@@ -68,12 +68,7 @@ LAS files
 .. autosummary::
   :toctree: _autogen
 
-  ~rockverse.las_sample1
-  ~rockverse.las_sample2
-  ~rockverse.las_sample3
-  ~rockverse.las_sample4
-  ~rockverse.las_sample5
-  ~rockverse.las_sample6
+  ~rockverse.cwls_las_sample
 
 Core Module
 ===========

@@ -86,9 +86,9 @@ def in_group(varname, var, group):
     if len(group) == 1:
         collective_raise(ValueError(f"{varname} must be {group[0]}."))
     elif len(group) == 2:
-        collective_raise(ValueError(f"{varname} must be {group[0]} or {group[1]}"))
+        collective_raise(ValueError(f"{varname} must be {group[0]} or {group[1]}."))
     else:
-        collective_raise(ValueError(f"{varname} must be {', '.join(group[:-1])} or {group[-1]}."))
+        collective_raise(ValueError(f"{varname} must be {', '.join([str(k) for k in group[:-1]])} or {group[-1]}."))
 
 def list_of_zarray(varname, var):
     conditions = [isinstance(var, list),

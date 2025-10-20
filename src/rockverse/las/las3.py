@@ -2,7 +2,6 @@ import datetime
 import numpy as np
 from rockverse.las.exceptions import LasImportError
 from rockverse.las.las2 import convert_value_from_las2
-from rockverse.las.las import Las
 
 def break_las3_line(line_number, line, las_delimiter):
     """
@@ -341,7 +340,7 @@ def assemble_las3_dict(imported_sections, section_order, las_delimiter):
     LasImportError
         If required sections are missing or malformed.
     """
-    final_data = Las()
+    final_data = dict()
 
     # Well section
     key = [k for k in imported_sections if k.upper().startswith('~WELL')]
@@ -357,10 +356,10 @@ def assemble_las3_dict(imported_sections, section_order, las_delimiter):
     if not null_value:
         raise LasImportError("I didn't find NULL parameter in ~Well section.")
     null_value = null_value[0]
-    final_data.dict['Well'] = well_section
+    final_data['Well'] = well_section
 
     # Legacy ~Parameter, ~Curve, ~Ascii
-    final_data.dict['Curve'] = assemble_las3_section_trio(section_keys=('~Parameter', '~Curve', '~Ascii'),
+    final_data['Curve'] = assemble_las3_section_trio(section_keys=('~Parameter', '~Curve', '~Ascii'),
                                                      imported_sections=imported_sections,
                                                      las_delimiter=las_delimiter)
 
@@ -382,6 +381,6 @@ def assemble_las3_dict(imported_sections, section_order, las_delimiter):
         if section_order[pos-1].upper() == definition.upper().replace('_DEFINITION', '_PARAMETER'):
             section_keys[0] = section_order[pos-1]
 
-        final_data.dict[section_name.split('|')[0].strip().replace('~', '')] = assemble_las3_section_trio(section_keys, imported_sections, las_delimiter)
+        final_data[section_name.split('|')[0].strip().replace('~', '')] = assemble_las3_section_trio(section_keys, imported_sections, las_delimiter)
 
     return final_data

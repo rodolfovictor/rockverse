@@ -59,15 +59,7 @@ from rockverse.core.scalarfield import scalarfield
 from rockverse.core.tensorfield import create_tensorfield
 
 # LAS interface
-from rockverse.las import (
-    read_las,
-    las_sample1,
-    las_sample2,
-    las_sample3,
-    las_sample4,
-    las_sample5,
-    las_sample6
-    )
+from rockverse.las import read_las, cwls_las_sample
 
 from rockverse import voxel_image
 from rockverse import region

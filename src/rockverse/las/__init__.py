@@ -7,13 +7,25 @@ integrating with RockVerse's parallel data structures.
 """
 
 import os
+import fnmatch
 from rockverse import __path__ as RVPATH
 from rockverse._utils.text import load_text_file
 from rockverse.las.exceptions import LasImportError
 from rockverse.las.las2 import break_las2_line, assemble_las2_dict
 from rockverse.las.las3 import break_las3_line, assemble_las3_dict
-from rockverse.las.las import Las, LasSection, LasParam, LasData
+from rockverse.errors import collective_raise, collective_only_rank0_runs
+import rockverse._assert as _assert
+from rockverse.core.parallelarray import array
+from rockverse.core.coordinates import coordinate
+from rockverse.core.scalarfield import scalarfield
+from rockverse.configure import config
+mpi_comm = config.mpi_comm
+mpi_rank = config.mpi_rank
+mpi_nprocs = config.mpi_nprocs
 
+def _lprint(object):
+    if mpi_rank == 0:
+        print(object)
 
 def _get_first_comment_lines(lines):
     """
@@ -238,97 +250,681 @@ def read_las(filename, encoding=None):
     Las
         Parsed LAS data encapsulated in a RockVerse LAS object.
     """
-    lines = load_text_file(filename, encoding=encoding)
-    initial_comments = _get_first_comment_lines(lines)
-    imported_sections, section_order, las_version, las_wrap, las_delimiter = _split_sections(lines)
-    if las_version == 2:
-        final_data = assemble_las2_dict(imported_sections, las_wrap)
-        final_data.dict['_version'] = 2
-    elif las_version == 3:
-        final_data = assemble_las3_dict(imported_sections, section_order, las_delimiter)
-        final_data.dict['_version'] = 3
-    else: # Maybe another version in the future?...
-        raise NotImplementedError(f"I don't know how to read LAS version {las_version}.")
-    final_data.dict['_initial_comments'] = initial_comments
+    final_data = {}
+    # Imported data sits only on rank 0
+    with collective_only_rank0_runs():
+        if mpi_rank == 0:
+            lines = load_text_file(filename, encoding=encoding)
+            initial_comments = _get_first_comment_lines(lines)
+            imported_sections, section_order, las_version, las_wrap, las_delimiter = _split_sections(lines)
+            if las_version == 2:
+                final_data = assemble_las2_dict(imported_sections, las_wrap)
+                final_data['_version'] = 2
+            elif las_version == 3:
+                final_data = assemble_las3_dict(imported_sections, section_order, las_delimiter)
+                final_data['_version'] = 3
+            else: # Maybe another version in the future?...
+                raise NotImplementedError(f"I don't know how to read LAS version {las_version}.")
+            final_data['_initial_comments'] = initial_comments
 
-    # Change "value" to "code" and "data" to "value" in data entries
-    sections = [k for k in final_data.dict.keys() if k not in ('Well', 'Other', '_initial_comments', '_version')]
-    for sec in sections:
-        for k in final_data.dict[sec]['data']:
-            k['code'] = k.pop('value')
-            k['value'] = k.pop('data')
+            # Change "value" to "code" and "data" to "value" in data entries
+            sections = [k for k in final_data.keys() if k not in ('Well', 'Other', '_initial_comments', '_version')]
+            for sec in sections:
+                for k in final_data[sec]['data']:
+                    k['code'] = k.pop('value')
+                    k['value'] = k.pop('data')
+    las_data = Las()
+    las_data.dict = final_data
+    return las_data
 
-    return final_data
 
-
-def las_sample1():
+def cwls_las_sample(version=3, sample=1):
     """
-    Load sample LAS2 example 1 file.
+    Load LAS sample from the Canadian Well Logging Society LAS standard documents.
+
+    Parameters
+    ----------
+    version : {2, 3}
+        The LAS version.
+
+    sample : int
+        The sample file. Must be from 1 to 5 for LAS 2.0 or 1 for LAS 3.0.
 
     Returns
     -------
     Las
         Parsed LAS data from sample file.
     """
-    filename = os.path.join(RVPATH[0], 'sample_data', 'las', 'LAS2_example_1.las')
+    _assert.in_group('version', version, (2, 3))
+    if version == 2:
+        _assert.in_group('for version=2, sample', sample, (1, 2, 3, 4, 5))
+    if version == 3:
+        _assert.in_group('for version=3, sample', sample, (1,))
+    if version == 2 and sample == 1:
+        filename = os.path.join(RVPATH[0], 'sample_data', 'las', 'LAS2_example_1.las')
+    elif version == 2 and sample == 2:
+        filename = os.path.join(RVPATH[0], 'sample_data', 'las', 'LAS2_example_2.las')
+    elif version == 2 and sample == 3:
+        filename = os.path.join(RVPATH[0], 'sample_data', 'las', 'LAS2_example_3.las')
+    elif version == 2 and sample == 4:
+        filename = os.path.join(RVPATH[0], 'sample_data', 'las', 'LAS2_example_4.las')
+    elif version == 2 and sample == 5:
+        filename = os.path.join(RVPATH[0], 'sample_data', 'las', 'LAS2_example_5.las')
+    else:
+        filename = os.path.join(RVPATH[0], 'sample_data', 'las', 'LAS3_example_1.las')
     return read_las(filename)
 
-def las_sample2():
+
+def _print_parameter(param):
     """
-    Load sample LAS2 example 2 file.
+    Format a parameter dictionary into a human-readable string.
+
+    Parameters
+    ----------
+    param : dict
+        Dictionary containing parameter information.
 
     Returns
     -------
-    Las
-        Parsed LAS data from sample file.
+    str
+        Formatted string representation of the parameter.
     """
-    filename = os.path.join(RVPATH[0], 'sample_data', 'las', 'LAS2_example_2.las')
-    return read_las(filename)
+    if mpi_rank != 0:
+        return ''
+    str = f"{param['mnem']}"
+    if param['value']:
+        str = f"{str}: {param['value']}"
+    if param['unit']:
+        str = f"{str} {param['unit']}"
+    if param['description']:
+        str = f"{str} ({param['description']})"
+    if 'association' in param and param['association']:
+        str = f"{str} | {param['association']}"
+    return str
 
-def las_sample3():
+def _print_data(data):
     """
-    Load sample LAS2 example 3 file.
+    Format a data dictionary into a human-readable string.
 
-    Returns
-    -------
-    Las
-        Parsed LAS data from sample file.
-    """
-    filename = os.path.join(RVPATH[0], 'sample_data', 'las', 'LAS2_example_3.las')
-    return read_las(filename)
-
-def las_sample4():
-    """
-    Load sample LAS2 example 4 file.
-
-    Returns
-    -------
-    Las
-        Parsed LAS data from sample file.
-    """
-    filename = os.path.join(RVPATH[0], 'sample_data', 'las', 'LAS2_example_4.las')
-    return read_las(filename)
-
-def las_sample5():
-    """
-    Load sample LAS2 example 5 file.
+    Parameters
+    ----------
+    data : dict
+        Dictionary containing data information.
 
     Returns
     -------
-    Las
-        Parsed LAS data from sample file.
+    str
+        Formatted string representation of the data.
     """
-    filename = os.path.join(RVPATH[0], 'sample_data', 'las', 'LAS2_example_5.las')
-    return read_las(filename)
+    if mpi_rank != 0:
+        return ''
+    str = f"{data['mnem']}"
+    if data['unit']:
+        str = f"{str}, {data['unit']}"
+    if data['code']:
+        str = f"{str} ({data['code']})"
+    str = f"{str}:"
+    if data['description']:
+        str = f"{str} {data['description']}"
+    if 'association' in data and data['association']:
+        str = f"{str} | {data['association']}"
+    return str
 
-def las_sample6():
+class LasSubSection():
     """
-    Load sample LAS3 example 1 file.
+    Base class representing a collection of LAS section entries, either
+    parameters or data.
 
-    Returns
-    -------
-    Las
-        Parsed LAS data from sample file.
+    Provides methods for item access by index or mnemonic, pattern searching,
+    and printing a hierarchical tree representation.
+
+    Parameters
+    ----------
+    list_ : list of dict
+        List of entry dictionaries representing parameters or data columns.
+    type_ : str
+        Type of entries, either 'parameters' or 'data'.
     """
-    filename = os.path.join(RVPATH[0], 'sample_data', 'las', 'LAS3_example_1.las')
-    return read_las(filename)
+    def __init__(self, list_, type_):
+        self._entries = list_
+        self._type = type_
+
+    def __getitem__(self, key):
+        """
+        Access an entry by integer index or mnemonic string.
+
+        Parameters
+        ----------
+        key : int or str
+            Index or mnemonic of the entry.
+
+        Returns
+        -------
+        dict
+            The entry dictionary corresponding to the key.
+
+        Examples
+        --------
+
+        Retrieve the second entry in the Curve parameter section (index is zero-based):
+
+        .. code-block:: python
+
+            import rockverse as rv
+            las_data = rv.read_las(/path/to/las/file.las)
+            param = las_data['Curve'].parameters[1]
+
+        Retrieve the entry with the RHO mnemonic in the Curve data section:
+
+        .. code-block:: python
+
+            import rockverse as rv
+            las_data = rv.read_las(/path/to/las/file.las)
+            curve = las_data['Curve'].data['RHO']
+
+        Related Tutorials
+        -----------------
+
+        .. nblinkgallery::
+
+            ../../../tutorials/data/welllog/importinglas
+
+        """
+        value = None
+        with collective_only_rank0_runs():
+            if mpi_rank == 0:
+                if isinstance(key, int):
+                    value = self._entries[key]
+                elif isinstance(key, str):
+                    ind = [k for k, v in enumerate(self._entries) if v['mnem'] == key]
+                    if not ind:
+                        raise KeyError(key)
+                    if len(ind) > 1:
+                        raise KeyError(f'multiple entries for {key}')
+                    value = self._entries[ind[0]]
+        value = mpi_comm.bcast(value, root=0)
+        return value
+
+    def _find(self, pattern, prepend=''):
+        """
+        Find entries matching a pattern in their mnemonic using Unix shell-style
+        wildcards.
+
+        Parameters
+        ----------
+        pattern : str
+            Pattern to match against entry mnemonics.
+        prepend : str, optional
+            String to prepend for formatting. Default is ''.
+
+        Returns
+        -------
+        list of str
+            Formatted strings of matching entries.
+        """
+        out = []
+        matching_entries = [k for k, v in enumerate(self._entries) if fnmatch.fnmatch(v['mnem'], pattern)]
+        if matching_entries:
+            if self._type == 'parameters':
+                for k in matching_entries:
+                    out.append(f"{prepend}|-[{k}] {_print_parameter(self._entries[k])}")
+            elif self._type == 'data':
+                for k in matching_entries:
+                    out.append(f"{prepend}|-[{k}] {_print_data(self._entries[k])}")
+            else:
+                raise Exception('What is happening?...')
+        return out
+
+    def find(self, pattern):
+        """
+        Look for all entries matching a pattern using Unix shell-style
+        wildcards.
+
+        Parameters
+        ----------
+        pattern : str
+            Pattern to search for.
+        prepend : str, optional
+            String to prepend to each line in the output. Default is ''.
+
+        Examples
+        --------
+
+        Find all mnemonics containing NMR in the name in the Curve parameters subsection:
+
+        .. code-block:: python
+
+            import rockverse as rv
+            las_data = rv.read_las(/path/to/las/file.las)
+            las_data['Curve'].parameters.find('*NMR*')
+
+        Find all mnemonics starting with DT in the Curve data subsection:
+
+        .. code-block:: python
+
+            import rockverse as rv
+            las_data = rv.read_las(/path/to/las/file.las)
+            las_data['Curve'].data.find('DT*')
+
+        Related Tutorials
+        -----------------
+
+        .. nblinkgallery::
+
+            ../../../tutorials/data/welllog/importinglas
+
+        """
+        out = self._find(pattern)
+        if out:
+            _lprint('')
+            _lprint('\n'.join(out))
+        else:
+            _lprint('<no match>')
+
+    def tree(self):
+        """
+        Print a tree representation of the subsection entries.
+
+        Examples
+        --------
+
+        .. nblinkgallery::
+
+            ../../../tutorials/data/welllog/importinglas
+        """
+        self.find("*")
+
+
+class LasParam(LasSubSection):
+    """
+    Represents a LAS subsection containing parameter entries.
+
+    .. note::
+        This class should not be instantiated directly. It is properly created
+        when importing a LAS file using the RockVerse :func:`read_las <rockverse.read_las>`
+        function.
+    """
+
+    def __init__(self, list_):
+        super().__init__(list_, 'parameters')
+
+
+class LasData(LasSubSection):
+    """
+    Represents a LAS subsection containing data entries.
+
+    .. note::
+        This class should not be instantiated directly. It is properly created
+        when importing a LAS file using the RockVerse :func:`read_las <rockverse.read_las>`
+        function.
+    """
+
+    def __init__(self, list_):
+        super().__init__(list_, 'data')
+
+    def create_scalarfield(self, column, coordinate_column=None, **kwargs):
+        """
+        Create a RockVerse scalarfield object from a data entry.
+
+        Parameters
+        ----------
+        column : int or str
+            Index or mnemonic of the data column to use as scalarfield data.
+        coordinate_column : int or str, optional
+            Index or mnemonic of the coordinate column to use as coordinates.
+            Defaults to 0 (the first entry in the LAS section).
+        **kwargs
+            Additional keyword arguments for coordinate and array creation.
+
+        Returns
+        -------
+        ScalarField
+            A RockVerse scalarfield object constructed from the specified columns.
+
+        Examples
+        --------
+
+        .. nblinkgallery::
+
+            ../../../tutorials/data/welllog/importinglas
+
+        """
+        array_dict = self[column]
+        coordinate_dict = self[0] if coordinate_column is None else self[coordinate_column]
+        array_dict = mpi_comm.bcast(array_dict, root=0)
+        coordinate_dict = mpi_comm.bcast(coordinate_dict, root=0)
+
+        top_path = '' if 'path' not in kwargs else kwargs['path']
+        kwargs['path'] = f"{top_path}/coords/0" if top_path else "coords/0"
+        coord = coordinate(data=coordinate_dict['value'],
+                           name=coordinate_dict['mnem'],
+                           unit=coordinate_dict['unit'],
+                           description=coordinate_dict['description'],
+                           **kwargs)
+        kwargs['path'] = f"{top_path}/array" if top_path else "array"
+        parray = array(data=array_dict['value'],
+                       name=array_dict['mnem'],
+                       unit=array_dict['unit'],
+                       description=array_dict['description'],
+                       **kwargs)
+        parray.attrs['code'] = array_dict['code'] if 'code' in array_dict and array_dict['code'] else ''
+        return scalarfield(parray, coords=(coord,))
+
+
+class LasSection():
+    """
+    Represents a LAS section containing parameters and data entries.
+
+    .. note::
+        This class should not be instantiated directly. It is properly created
+        when importing a LAS file using the RockVerse :func:`read_las <rockverse.read_las>`
+        function.
+    """
+
+    def __init__(self, dict_):
+        self._parameters = dict_['parameters'] if 'parameters' in dict_ else dict()
+        self._data = dict_['data'] if 'data' in dict_ else dict()
+
+    @property
+    def parameters(self):
+        """
+        Return the parameters section as a :class:`LasParam` object.
+
+        Related Tutorials
+        -----------------
+
+        .. nblinkgallery::
+
+            ../../../tutorials/data/welllog/importinglas
+
+        """
+        return LasParam(self._parameters)
+
+    @property
+    def data(self):
+        """
+        Return the data section as a :class:`LasData` object.
+
+        Related Tutorials
+        -----------------
+
+        .. nblinkgallery::
+
+            ../../../tutorials/data/welllog/importinglas
+
+        """
+        return LasData(self._data)
+
+    def _find(self, pattern, prepend=''):
+        """
+        Find entries matching a pattern in their mnemonic using Unix shell-style
+        wildcards.
+
+        Parameters
+        ----------
+        pattern : str
+            Pattern to match against entry mnemonics.
+        prepend : str, optional
+            String to prepend for formatting. Default is ''.
+
+        Returns
+        -------
+        list of str
+            Formatted strings of matching entries.
+
+        """
+        out = []
+        out_parameter = self.parameters._find(pattern)
+        out_data = self.data._find(pattern)
+        if out_parameter:
+            out.append(f"{prepend}|- parameters:")
+            out += [f"{prepend}|   {k}" for k in out_parameter]
+        if out_data:
+            out.append(f"{prepend}|- data:")
+            out += [f"{prepend}|   {k}" for k in out_data]
+        return out
+
+    def find(self, pattern, prepend=''):
+        """
+        Print entries matching a pattern in parameters and data.
+
+        Parameters
+        ----------
+        pattern : str
+            Pattern to search for.
+        prepend : str, optional
+            String to prepend to each line for indentation. Default is ''.
+
+        Examples
+        --------
+
+        Find all mnemonics in Curve section containing NMR in the name:
+
+        .. code-block:: python
+
+            import rockverse as rv
+            las_data = rv.read_las(/path/to/las/file.las)
+            las_data['Curve'].find('*NMR*')
+
+        Find all mnemonics starting with DT:
+
+        .. code-block:: python
+
+            import rockverse as rv
+            las_data = rv.read_las(/path/to/las/file.las)
+            las_data['Curve'].find('DT*')
+
+        Related Tutorials
+        -----------------
+
+        .. nblinkgallery::
+
+            ../../../tutorials/data/welllog/importinglas
+        """
+        out = self._find(pattern, prepend)
+        if out:
+            _lprint('')
+            _lprint('\n'.join(out))
+        else:
+            _lprint('<no match>')
+
+
+    def tree(self, prepend=''):
+        """
+        Print a tree representation of the LAS section.
+
+        Parameters
+        ----------
+        prepend : str, optional
+            String to prepend to each line for indentation. Default is ''.
+
+        Examples
+        --------
+
+        .. nblinkgallery::
+
+            ../../../tutorials/data/welllog/importinglas
+
+        """
+        self.find('*')
+
+
+class Las():
+    """
+    Organizes the loaded LAS file content.
+
+    .. note::
+        This class should not be instantiated directly. It is properly created
+        when importing a LAS file using the RockVerse :func:`read_las <rockverse.read_las>`
+        function.
+    """
+
+    def __init__(self):
+        self.dict = {}
+
+    def _get_attribute(self, key):
+        value = None
+        if mpi_rank == 0:
+            value = self.dict[key]
+        return mpi_comm.bcast(value, root=0)
+
+    @property
+    def version(self):
+        """
+        Return the LAS version in the original LAS file.
+
+        Related Tutorials
+        -----------------
+
+        .. nblinkgallery::
+
+            ../../../tutorials/data/welllog/importinglas
+
+        """
+        return self._get_attribute('_version')
+
+    @property
+    def initial_comments(self):
+        """
+        Return the initial comments from the LAS file.
+
+        Related Tutorials
+        -----------------
+
+        .. nblinkgallery::
+
+            ../../../tutorials/data/welllog/importinglas
+
+        """
+        return self._get_attribute('_initial_comments')
+
+    def section_keys(self):
+        """
+        Return a list with the LAS section keys.
+
+        Related Tutorials
+        -----------------
+
+        .. nblinkgallery::
+
+            ../../../tutorials/data/welllog/importinglas
+
+        """
+        keys = None
+        if mpi_rank == 0:
+            keys = [k for k in self.dict.keys() if k not in ('_version', '_initial_comments')]
+        keys = mpi_comm.bcast(keys, root=0)
+        dict_ = {'Well': None}
+        dict_.update({k: None for k in keys})
+        return dict_.keys()
+
+    def __getitem__(self, key):
+        """
+        Access a LAS section by key.
+
+        Parameters
+        ----------
+        key : str
+            The section name.
+
+        Returns
+        -------
+        LasSection
+            The corresponding section object.
+
+        Examples
+        --------
+
+        .. nblinkgallery::
+
+            ../../../tutorials/data/welllog/importinglas
+
+        """
+        if key == 'Well':
+            if mpi_rank == 0:
+                return LasParam(self.dict[key])
+            return LasParam([])
+        if key not in self.section_keys():
+            collective_raise(KeyError(key))
+        if mpi_rank == 0:
+            return LasSection(self.dict[key])
+        return LasSection([])
+
+    def _find(self, pattern):
+        main_out = []
+        aux_out = self['Well']._find(pattern, prepend="|   ")
+        if aux_out:
+            main_out.append('|- Well')
+            main_out += aux_out
+        for sec in self.section_keys():
+            if sec not in ('Well', 'Other'):
+                aux_out = self[sec]._find(pattern, prepend="|   ")
+                if aux_out:
+                    main_out.append(f"|- {sec}")
+                    main_out += aux_out
+        return main_out
+
+    def find(self, pattern):
+        """
+        Look for all entries matching a pattern using Unix shell-style
+        wildcards.
+
+        Parameters
+        ----------
+        pattern : str
+            Pattern to search for.
+
+        Examples
+        --------
+
+        Find all mnemonics containing NMR in the name:
+
+        .. code-block:: python
+
+            import rockverse as rv
+            las_data = rv.read_las(/path/to/las/file.las)
+            las_data.find('*NMR*')
+
+        Find all mnemonics starting with DT:
+
+        .. code-block:: python
+
+            import rockverse as rv
+            las_data = rv.read_las(/path/to/las/file.las)
+            las_data.find('DT*')
+
+        Related Tutorials
+        -----------------
+
+        .. nblinkgallery::
+
+            ../../../tutorials/data/welllog/importinglas
+
+        """
+        out = self._find(pattern)
+        if out:
+            _lprint('\n')
+            _lprint("\n".join(out))
+        else:
+            _lprint('<no match>')
+
+    def tree(self):
+        """
+        Print a tree representation of the LAS file, including sections and comments.
+
+        Related Tutorials
+        -----------------
+
+        .. nblinkgallery::
+
+            ../../../tutorials/data/welllog/importinglas
+
+        """
+        if '_initial_comments' in self.dict and self.dict['_initial_comments']:
+            _lprint(self.dict['_initial_comments'])
+        print('8888888')
+        self.find('*')
+
+        if 'Other' in self.section_keys():
+            _lprint('|- Other:')
+            _lprint(self.dict['Other'])
