@@ -1,9 +1,9 @@
 .. _Attributes class:
 
-rockverse.core.Attributes
-=========================
+rockverse.Attributes
+====================
 
-.. currentmodule:: rockverse.core
+.. currentmodule:: rockverse
 
 .. autoclass:: Attributes
 
@@ -14,7 +14,7 @@ Attributes
     :toctree: _autogen
 
     ~Attributes.zobj
-    
+
 Methods
 -------
 

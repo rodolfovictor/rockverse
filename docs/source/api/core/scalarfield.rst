@@ -1,9 +1,9 @@
 .. _ScalarField class:
 
-rockverse.core.ScalarField
-==========================
+rockverse.ScalarField
+=====================
 
-.. currentmodule:: rockverse.core
+.. currentmodule:: rockverse
 
 .. autoclass:: ScalarField
 

@@ -1,9 +1,9 @@
 .. _CoordinateSet class:
 
-rockverse.core.CoordinateSet
-============================
+rockverse.CoordinateSet
+=======================
 
-.. currentmodule:: rockverse.core
+.. currentmodule:: rockverse
 
 .. autoclass:: CoordinateSet
 

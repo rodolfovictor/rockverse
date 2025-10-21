@@ -162,7 +162,7 @@ def coordinate(data, store=None, path=None, overwrite=False, **kwargs):
 
 class CoordinateSet:
     """
-    Represents the collection of coordinate objects.
+    Represents the collection of coordinate objects defining a coordinate space.
 
     This class provides indexed access to individual Coordinate instances
     either by integer index or by coordinate name. It also offers collective

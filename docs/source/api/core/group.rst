@@ -1,9 +1,9 @@
 .. _Group class:
 
-rockverse.core.Group
-====================
+rockverse.Group
+===============
 
-.. currentmodule:: rockverse.core
+.. currentmodule:: rockverse
 
 .. autoclass:: Group
 
@@ -14,7 +14,7 @@ Attributes
     :toctree: _autogen
 
     ~Group.zgroup
-    
+
 Methods
 -------
 

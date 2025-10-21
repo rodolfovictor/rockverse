@@ -1,9 +1,9 @@
 .. _ParallelArray class:
 
-rockverse.core.ParallelArray
-============================
+rockverse.ParallelArray
+=======================
 
-.. currentmodule:: rockverse.core
+.. currentmodule:: rockverse
 
 .. autoclass:: ParallelArray
 

@@ -1,9 +1,9 @@
 .. _Coordinate class:
 
-rockverse.core.Coordinate
-=========================
+rockverse.Coordinate
+====================
 
-.. currentmodule:: rockverse.core
+.. currentmodule:: rockverse
 
 .. autoclass:: Coordinate
     :show-inheritance:

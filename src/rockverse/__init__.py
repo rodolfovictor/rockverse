@@ -51,11 +51,14 @@ mpi_comm = config.mpi_comm
 mpi_rank = config.mpi_rank
 mpi_nprocs = config.mpi_nprocs
 
+# Basic data types and creation functions
+from rockverse.core.attributes import Attributes
+from rockverse.core.parallelarray import create_array, array, ParallelArray
+from rockverse.core.coordinates import coordinate, Coordinate, CoordinateSet
+
 # Core data creation functions
-from rockverse.core.parallelarray import create_array, array
-from rockverse.core.coordinates import coordinate
 from rockverse.core.group import Group, create_group
-from rockverse.core.scalarfield import scalarfield
+from rockverse.core.scalarfield import ScalarField
 from rockverse.core.tensorfield import create_tensorfield
 
 # LAS interface

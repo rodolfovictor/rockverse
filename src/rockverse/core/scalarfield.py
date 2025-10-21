@@ -22,7 +22,7 @@ class ScalarField:
         If None, default index-based coordinates will be created automatically.
     """
 
-    def __init__(self, array, coords):
+    def __init__(self, array, coords=None):
         if not isinstance(array, ParallelArray):
             collective_raise(TypeError("Expected ParallelArray object for array."))
 
@@ -51,23 +51,3 @@ class ScalarField:
         The :class:`CoordinateSet` describing the coordinates for each dimension.
         """
         return self._coords
-
-
-def scalarfield(array, coords=None):
-    """
-    Create a ScalarField instance.
-
-    Parameters
-    ----------
-    array : ParallelArray
-        The multidimensional parallel array containing scalar data.
-    coords : CoordinateSet or sequence of Coordinate objects or None, optional
-        Coordinates corresponding to each dimension of the array.
-        If None, default index-based coordinates will be created.
-
-    Returns
-    -------
-    ScalarField
-        A new ScalarField instance combining the array with the specified coordinates.
-    """
-    return ScalarField(array, coords)

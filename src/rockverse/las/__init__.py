@@ -17,7 +17,7 @@ from rockverse.errors import collective_raise, collective_only_rank0_runs
 import rockverse._assert as _assert
 from rockverse.core.parallelarray import array
 from rockverse.core.coordinates import coordinate
-from rockverse.core.scalarfield import scalarfield
+from rockverse.core.scalarfield import ScalarField
 from rockverse.configure import config
 mpi_comm = config.mpi_comm
 mpi_rank = config.mpi_rank
@@ -523,6 +523,7 @@ class LasSubSection():
         Find all mnemonics containing 'NMR' in Curve data section:
 
         .. code-block:: python
+
             import rockverse as rv
             las_data = rv.read_las('/path/to/las/file.las')
             paths = las_data['Curve/data'].find_path('*NMR*')
@@ -636,12 +637,12 @@ class LasData(LasSubSection):
 
     def create_scalarfield(self, column, coordinate_column=None, **kwargs):
         """
-        Create a RockVerse scalarfield object from a data entry.
+        Create a RockVerse ScalarField object from a data entry.
 
         Parameters
         ----------
         column : int or str
-            Index or mnemonic of the data column to use as scalarfield data.
+            Index or mnemonic of the data column to use as ScalarField data.
         coordinate_column : int or str, optional
             Index or mnemonic of the coordinate column to use as coordinates.
             Defaults to 0 (the first entry in the LAS section).
@@ -651,7 +652,7 @@ class LasData(LasSubSection):
         Returns
         -------
         ScalarField
-            A RockVerse scalarfield object constructed from the specified columns.
+            A RockVerse ScalarField object constructed from the specified columns.
 
         Examples
         --------
@@ -680,7 +681,7 @@ class LasData(LasSubSection):
                        description=array_dict['description'],
                        **kwargs)
         parray.attrs['code'] = array_dict['code'] if 'code' in array_dict and array_dict['code'] else ''
-        return scalarfield(parray, coords=(coord,))
+        return ScalarField(parray, coords=(coord,))
 
 
 class LasSection():
@@ -807,6 +808,7 @@ class LasSection():
         Find all mnemonics containing 'NMR' and get their full paths:
 
         .. code-block:: python
+
             import rockverse as rv
             las_data = rv.read_las('/path/to/las/file.las')
             paths = las_data['Curve'].find_path('*NMR*')
@@ -1088,6 +1090,7 @@ class Las():
         Find all mnemonics containing 'NMR' and get their full paths:
 
         .. code-block:: python
+
             import rockverse as rv
             las_data = rv.read_las('/path/to/las/file.las')
             paths = las_data.find_path('*NMR*')

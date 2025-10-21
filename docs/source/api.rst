@@ -14,31 +14,40 @@ and the
 :ref:`example gallery <rockverse_docs_gallery>`.
 
 
-Library-Wide
-============
+.. _core module data types:
 
-Objects
--------
+Basic data types
+================
 
-.. list-table::
-   :header-rows: 0
-   :widths: auto
+.. autosummary::
+  :toctree: _autogen
 
-   * - ``mpi_comm``
-     - The runtime Message Passing Interface (MPI) communicator.
-   * - ``mpi_rank``
-     - The rank of the calling process in the MPI communicator.
-   * - ``mpi_nprocs``
-     - The total number of processes in the MPI communicator.
-   * - ``config``
-     - The lib-wide instance of the :class:`configuration class <rockverse.configure.Config>`
-       containing the configuration settings and parameters.
+  ~rockverse.Attributes
+  ~rockverse.ParallelArray
+  ~rockverse.Coordinate
+  ~rockverse.CoordinateSet
+  ~rockverse.ScalarField
+  ~rockverse.Group
+
+.. toctree::
+  :hidden:
+  :maxdepth: 2
+
+  api/core/attributes
+  api/core/paralellarray
+  api/core/coordinate
+  api/core/coordinateset
+  api/core/scalarfield
+  api/core/group
 
 
 .. _core module creation functions:
 
 Data creation functions
------------------------
+=======================
+
+Create new data
+---------------
 
 .. autosummary::
   :toctree: _autogen
@@ -46,9 +55,7 @@ Data creation functions
   ~rockverse.create_array
   ~rockverse.array
   ~rockverse.coordinate
-  ~rockverse.scalarfield
   ~rockverse.create_group
-  ~rockverse.create_tensorfield
   ~rockverse.open
 
 Importing from other formats
@@ -70,11 +77,27 @@ LAS files
 
   ~rockverse.cwls_las_sample
 
-Core Module
-===========
 
-.. autosummary::
-  ~rockverse.core
+
+Library-Wide Objects
+====================
+
+.. list-table::
+   :header-rows: 0
+   :widths: auto
+
+   * - ``mpi_comm``
+     - The runtime Message Passing Interface (MPI) communicator.
+   * - ``mpi_rank``
+     - The rank of the calling process in the MPI communicator.
+   * - ``mpi_nprocs``
+     - The total number of processes in the MPI communicator.
+   * - ``config``
+     - The lib-wide instance of the :class:`configuration class <rockverse.configure.Config>`
+       containing the configuration settings and parameters.
+
+
+
 
 Well data Modules
 =================
@@ -118,10 +141,8 @@ Runtime configuration
 
 
 .. toctree::
-  :hidden:
   :maxdepth: 2
 
-  api/core
   api/las
   api/voxel_image
   api/region

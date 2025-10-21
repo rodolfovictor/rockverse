@@ -10,4 +10,3 @@ from rockverse.core.attributes import Attributes
 from rockverse.core.parallelarray import ParallelArray
 from rockverse.core.coordinates import Coordinate, CoordinateSet
 from rockverse.core.scalarfield import ScalarField
-from rockverse.core.tensorfield import TensorField, TensorComponents, create_tensorfield
