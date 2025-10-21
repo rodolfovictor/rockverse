@@ -17,7 +17,7 @@ mpi_nprocs = config.mpi_nprocs
 from rockverse.core.group import create_group
 from rockverse.core.attributes import Attributes
 from rockverse.core.parallelarray import ParallelArray
-from rockverse.core.coordinates import CoordinateSpace
+from rockverse.core.coordinates import CoordinateSet
 
 
 def _tensor_shape(zgroup):
@@ -124,7 +124,7 @@ class TensorField:
         """
         _assert.zarr_group('zgroup', zgroup)
         self._zgroup = zgroup
-        self._coordinates = CoordinateSpace(zgroup)
+        self._coordinates = CoordinateSet(zgroup)
         self._components = TensorComponents(zgroup)
         self._attrs = Attributes(zgroup)
         self.validate()
@@ -133,7 +133,7 @@ class TensorField:
     def __getitem__(self, index):
         """
         Retrieve the tensor components at a specific coordinate index in the
-        coordinate space.
+        coordinate set.
 
         Parameters
         ----------
@@ -151,7 +151,7 @@ class TensorField:
         if not all(isinstance(k, int) for k in index):
             collective_raise(IndexError("Only integers accepeted for tensor index."))
         if len(index) != len(self.shape):
-            collective_raise(IndexError("Index must point to one element in the coordinate space."))
+            collective_raise(IndexError("Index must point to one element in the coordinate set."))
         component_indices, component_arrays = _component_indices(self.zgroup)
         result = np.zeros(self.tensor_shape, dtype=self.dtype)
         for indice, array_name in zip(component_indices, component_arrays):
@@ -164,7 +164,7 @@ class TensorField:
     def coordinates(self):
         """
         Provides access to the set of coordinates associated with this TensorField.
-        Returns a :class:`CoordinateSpace` object that allows indexing by coordinate
+        Returns a :class:`CoordinateSet` object that allows indexing by coordinate
         index or name, which retrieves of individual tensor field coordinates as
         :class:`Coordinate` objects.
         """
@@ -211,7 +211,7 @@ class TensorField:
     @property
     def shape(self):
         """
-        The shape of the coordinate space. Equivalent to the array shape of each tensor component.
+        The shape of the coordinate set. Equivalent to the array shape of each tensor component.
         """
         self.validate()
         return self.zgroup[self._component_arrays[0]].shape

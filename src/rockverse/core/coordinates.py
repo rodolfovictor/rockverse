@@ -92,7 +92,7 @@ class Coordinate(ParallelArray):
                 index = np.argmin(np.abs(self._zarray[...]-value))
                 coord_value = self._zarray[index]
         return comm.bcast(coord_value, root=0)
-    
+
 
     @property
     def is_equally_spaced(self):
@@ -107,17 +107,17 @@ class Coordinate(ParallelArray):
         dx = np.diff(self[...])
         if len(dx) == 0:
             return True  # Single element coordinate is trivially equally spaced
-    
+
         ref = dx[0]
         dtype = self.dtype
-    
-        if np.issubdtype(dtype, np.integer):            
+
+        if np.issubdtype(dtype, np.integer):
             return np.all(dx == ref)
-    
-        if np.issubdtype(dtype, np.inexact):            
+
+        if np.issubdtype(dtype, np.inexact):
             tol = 2 * np.finfo(dtype).eps * np.abs(ref)
             return np.all(np.abs(dx - ref) <= tol)
-        
+
         collective_raise(TypeError("Expected integer or float data type for coordinate."))
 
 
@@ -160,7 +160,7 @@ def coordinate(data, store=None, path=None, overwrite=False, **kwargs):
     return Coordinate(array(data, **kwargs))
 
 
-class CoordinateSpace:
+class CoordinateSet:
     """
     Represents the collection of coordinate objects.
 
@@ -188,7 +188,7 @@ class CoordinateSpace:
 
     def __init__(self, *args):
         if not all(isinstance(k, Coordinate) for k in args):
-            collective_raise(TypeError("CoordinateSpace input variables must be Coordinate objects."))
+            collective_raise(TypeError("CoordinateSet input variables must be Coordinate objects."))
         self._coordinates = args
 
     def __len__(self):
@@ -237,12 +237,12 @@ class CoordinateSpace:
         A sorted tuple of all LaTeX representations for the coordinate data units.
         """
         return self._get_attr('latex_unit')
-    
+
     @property
     def is_equally_spaced(self):
         """
-        A tuple of boolean values indicating whether each coordinate in the 
-        CoordinateSpace is equally spaced.
+        A tuple of boolean values indicating whether each coordinate in the
+        CoordinateSet is equally spaced.
         """
         return tuple(coord.is_equally_spaced for coord in self._coordinates)
 
@@ -283,7 +283,7 @@ class CoordinateSpace:
         """
         names = self.names
         if len(names) == 0:
-            collective_raise(IndexError(f'CoordinateSpace is empty.'))
+            collective_raise(IndexError(f'CoordinateSet is empty.'))
         if index in range(len(names)):
             return self._coordinates[index]
         if index in names:

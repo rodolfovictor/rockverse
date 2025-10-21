@@ -16,7 +16,7 @@ Classes
    ~ParallelArray
    ~Attributes
    ~Coordinate
-   ~CoordinateSpace
+   ~CoordinateSet
    ~ScalarField
    ~Group
    ~TensorField
@@ -29,7 +29,7 @@ Classes
    core/attributes
    core/paralellarray
    core/coordinate
-   core/coordinatespace
+   core/coordinateset
    core/scalarfield
    core/group
    core/tensorfield
