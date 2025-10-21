@@ -79,6 +79,10 @@ def _split_sections(lines):
     LasImportError
         If the file structure violates LAS standards or has invalid sections.
     """
+
+    # This function is only called by MPI rank 0.
+    # raise does not need to be collective_raise
+
     las_version = None
     las_wrap = None
     las_delimiter = ' '
@@ -389,6 +393,29 @@ class LasSubSection():
         self._entries = list_
         self._type = type_
 
+    def __contains__(self, item):
+        """
+        Check if an entry with the given mnemonic exists in this LAS subsection.
+
+        Parameters
+        ----------
+        item : str
+            The mnemonic to look for in the subsection entries.
+
+        Returns
+        -------
+        bool
+            True if an entry with the mnemonic exists, False otherwise.
+
+        Examples
+        --------
+
+        >>> 'DPHI' in las_subsection
+        True
+        """
+        contains = len([k for k in self._entries if k['mnem'] == item])>0
+        return mpi_comm.bcast(contains, root=0)
+
     def __getitem__(self, key):
         """
         Access an entry by integer index or mnemonic string.
@@ -472,7 +499,53 @@ class LasSubSection():
                 for k in matching_entries:
                     out.append(f"{prepend}|-[{k}] {_print_data(self._entries[k])}")
             else:
-                raise Exception('What is happening?...')
+                raise Exception('What is happening? Have you tampered with the Las objects?...')
+        out = mpi_comm.bcast(out, root=0)
+        return out
+
+    def find_path(self, pattern, prepend=''):
+        """
+        Find all entries with mnemonics matching the given Unix shell-style wildcard
+        pattern and return their mnemonics.
+
+        Parameters
+        ----------
+        pattern : str
+            Pattern to search for, using Unix shell-style wildcards (e.g., '*NMR*').
+
+        Returns
+        -------
+        list of str
+            List of matching mnemonics.
+
+        Examples
+        --------
+        Find all mnemonics containing 'NMR' in Curve data section:
+
+        .. code-block:: python
+            import rockverse as rv
+            las_data = rv.read_las('/path/to/las/file.las')
+            paths = las_data['Curve/data'].find_path('*NMR*')
+            for p in paths:
+                print(p)
+
+        Related Tutorials
+        -----------------
+        .. nblinkgallery::
+            ../../../tutorials/data/welllog/importinglas
+        """
+        out = []
+        matching_entries = [k for k, v in enumerate(self._entries) if fnmatch.fnmatch(v['mnem'], pattern)]
+        if matching_entries:
+            if self._type == 'parameters':
+                for k in matching_entries:
+                    out.append(f"{prepend}{self._entries[k]['mnem']}")
+            elif self._type == 'data':
+                for k in matching_entries:
+                    out.append(f"{prepend}{self._entries[k]['mnem']}")
+            else:
+                raise Exception('What is happening? Have you tampered with the Las objects?...')
+        out = mpi_comm.bcast(out, root=0)
         return out
 
     def find(self, pattern):
@@ -533,7 +606,6 @@ class LasSubSection():
             ../../../tutorials/data/welllog/importinglas
         """
         self.find("*")
-
 
 class LasParam(LasSubSection):
     """
@@ -655,6 +727,108 @@ class LasSection():
         """
         return LasData(self._data)
 
+    def __contains__(self, item):
+        """
+        Check if 'parameters' or 'data' subsection exists in this LAS section.
+
+        Parameters
+        ----------
+        item : str
+            The name of the subsection to check for. Expected values are 'parameters' or 'data'.
+
+        Returns
+        -------
+        bool
+            True if the subsection exists, False otherwise.
+
+        Examples
+        --------
+
+        >>> 'parameters' in las_section
+        True
+
+        """
+        return item in ('parameters', 'data')
+
+    def __getitem__(self, key):
+        """
+        Access the parameters or data subsections by key.
+        Supports nested access using forward slash ('/') notation for deeper access.
+
+        Parameters
+        ----------
+        key : str
+            Subsection name or nested key with '/' separator, e.g., 'parameters' or 'parameters/0'.
+
+        Returns
+        -------
+        LasSubSection or dict
+            The corresponding subsection object or entry dictionary.
+
+        Examples
+        --------
+
+        .. nblinkgallery::
+
+            ../../../tutorials/data/welllog/importinglas
+
+        """
+        if key == 'parameters':
+            return self.parameters
+        if key == 'data':
+            return self.data
+
+        pos = key.find('/')
+        if pos > 0:
+            if key[:pos] in ('parameters', 'data'):
+                return self[key[:pos]][key[pos+1:]]
+            collective_raise(KeyError(key[:pos]))
+
+        collective_raise(KeyError(key))
+
+    def find_path(self, pattern, prepend=''):
+        """
+        Find all entries with mnemonics matching the given Unix shell-style wildcard
+        pattern and return their full paths within the LAS Section hierarchy using
+        forward slash ('/') notation.
+
+        Parameters
+        ----------
+        pattern : str
+            Pattern to search for, using Unix shell-style wildcards (e.g., '*NMR*').
+
+        Returns
+        -------
+        list of str
+            List of full paths to matching entries, formatted as 'Subsection/Mnemonic'.
+
+        Examples
+        --------
+        Find all mnemonics containing 'NMR' and get their full paths:
+
+        .. code-block:: python
+            import rockverse as rv
+            las_data = rv.read_las('/path/to/las/file.las')
+            paths = las_data['Curve'].find_path('*NMR*')
+            for p in paths:
+                print(p)
+
+        Related Tutorials
+        -----------------
+        .. nblinkgallery::
+            ../../../tutorials/data/welllog/importinglas
+        """
+
+        out = []
+        out_parameter = self.parameters.find_path(pattern)
+        out_data = self.data.find_path(pattern)
+        if out_parameter:
+            out += [f"{prepend}parameters/{k}" for k in out_parameter]
+        if out_data:
+            out += [f"{prepend}data/{k}" for k in out_data]
+        out = mpi_comm.bcast(out, root=0)
+        return out
+
     def _find(self, pattern, prepend=''):
         """
         Find entries matching a pattern in their mnemonic using Unix shell-style
@@ -682,6 +856,7 @@ class LasSection():
         if out_data:
             out.append(f"{prepend}|- data:")
             out += [f"{prepend}|   {k}" for k in out_data]
+        out = mpi_comm.bcast(out, root=0)
         return out
 
     def find(self, pattern, prepend=''):
@@ -729,7 +904,7 @@ class LasSection():
             _lprint('<no match>')
 
 
-    def tree(self, prepend=''):
+    def tree(self):
         """
         Print a tree representation of the LAS section.
 
@@ -818,22 +993,58 @@ class Las():
         dict_.update({k: None for k in keys})
         return dict_.keys()
 
+    def __contains__(self, item):
+        """
+        Check if a given section name exists in the LAS object.
+
+        Parameters
+        ----------
+        item : str
+            The name of the LAS section to check for.
+
+        Returns
+        -------
+        bool
+            True if the section exists in the LAS data, False otherwise.
+
+        Examples
+        --------
+        >>> 'Curve' in las_data
+        True
+
+        .. nblinkgallery::
+
+            ../../../tutorials/data/welllog/importinglas
+
+        """
+        return item in self.section_keys()
+
     def __getitem__(self, key):
         """
         Access a LAS section by key.
+        Supports accessing nested subsections using forward slash ('/') notation.
+
 
         Parameters
         ----------
         key : str
-            The section name.
+            The section name or a full path to a nested subsection using '/' as a
+            separator. For example: 'Curve/parameters' or 'Well'.
 
         Returns
         -------
-        LasSection
-            The corresponding section object.
+        LasSection or LasParam or LasData or dict
+            The corresponding section object or section entry.
 
         Examples
         --------
+
+        Access top-level section:
+        >>> las_data['Curve']
+        Access nested subsection:
+        >>> las_data['Curve/parameters']
+        Access specific entry by mnemonic:
+        >>> las_data['Curve/parameters/PDAT']
 
         .. nblinkgallery::
 
@@ -844,11 +1055,62 @@ class Las():
             if mpi_rank == 0:
                 return LasParam(self.dict[key])
             return LasParam([])
-        if key not in self.section_keys():
-            collective_raise(KeyError(key))
-        if mpi_rank == 0:
-            return LasSection(self.dict[key])
-        return LasSection([])
+
+        if key in self.section_keys():
+            if mpi_rank == 0:
+                return LasSection(self.dict[key])
+            return LasSection([])
+
+        pos = key.find('/')
+        if pos > 0:
+            if key[:pos] in self.section_keys():
+                return self[key[:pos]][key[pos+1:]]
+            collective_raise(KeyError(key[:pos]))
+        collective_raise(KeyError(key))
+
+    def find_path(self, pattern):
+        """
+        Find all entries with mnemonics matching the given Unix shell-style wildcard pattern
+        and return their full paths within the LAS hierarchy using forward slash ('/') notation.
+
+        Parameters
+        ----------
+        pattern : str
+            Pattern to search for, using Unix shell-style wildcards (e.g., '*NMR*').
+
+        Returns
+        -------
+        list of str
+            List of full paths to matching entries, formatted as 'Section/Subsection/Mnemonic'.
+
+        Examples
+        --------
+        Find all mnemonics containing 'NMR' and get their full paths:
+
+        .. code-block:: python
+            import rockverse as rv
+            las_data = rv.read_las('/path/to/las/file.las')
+            paths = las_data.find_path('*NMR*')
+            for p in paths:
+                print(p)
+
+        Related Tutorials
+        -----------------
+        .. nblinkgallery::
+            ../../../tutorials/data/welllog/importinglas
+        """
+
+        main_out = []
+        aux_out = self['Well'].find_path(pattern, prepend="Well/")
+        if aux_out:
+            main_out += aux_out
+        for sec in self.section_keys():
+            if sec not in ('Well', 'Other'):
+                aux_out = self[sec].find_path(pattern, prepend=f"{sec}/")
+                if aux_out:
+                    main_out += aux_out
+        main_out = mpi_comm.bcast(main_out, root=0)
+        return main_out
 
     def _find(self, pattern):
         main_out = []
@@ -862,7 +1124,9 @@ class Las():
                 if aux_out:
                     main_out.append(f"|- {sec}")
                     main_out += aux_out
+        main_out = mpi_comm.bcast(main_out, root=0)
         return main_out
+
 
     def find(self, pattern):
         """
@@ -922,7 +1186,6 @@ class Las():
         """
         if '_initial_comments' in self.dict and self.dict['_initial_comments']:
             _lprint(self.dict['_initial_comments'])
-        print('8888888')
         self.find('*')
 
         if 'Other' in self.section_keys():

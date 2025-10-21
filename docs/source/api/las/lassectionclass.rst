@@ -22,8 +22,11 @@ Methods
 .. autosummary::
     :toctree: _autogen
 
+    ~LasSection.__getitem__
+    ~LasSection.__contains__
     ~LasSection.tree
     ~LasSection.find
+    ~LasSection.find_path
 
 Related tutorials
 -----------------

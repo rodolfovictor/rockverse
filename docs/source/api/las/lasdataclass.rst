@@ -14,8 +14,10 @@ Methods
     :toctree: _autogen
 
     ~LasData.__getitem__
+    ~LasData.__contains__
     ~LasData.tree
     ~LasData.find
+    ~LasData.find_path
     ~LasData.create_scalarfield
 
 Related tutorials

@@ -23,9 +23,11 @@ Methods
     :toctree: _autogen
 
     ~Las.__getitem__
+    ~Las.__contains__
     ~Las.section_keys
     ~Las.tree
     ~Las.find
+    ~Las.find_path
 
 Related tutorials
 -----------------

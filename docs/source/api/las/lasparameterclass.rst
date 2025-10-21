@@ -14,8 +14,10 @@ Methods
     :toctree: _autogen
 
     ~LasParam.__getitem__
+    ~LasParam.__contains__
     ~LasParam.tree
     ~LasParam.find
+    ~LasParam.find_path
 
 Related tutorials
 -----------------
