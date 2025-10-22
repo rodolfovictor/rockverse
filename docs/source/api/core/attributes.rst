@@ -7,6 +7,17 @@ rockverse.Attributes
 
 .. autoclass:: Attributes
 
+.. image:: class_Attributes_light.png
+  :alt: RockVerse logo for white background
+  :class: only-light,
+  :align: center
+
+.. image:: class_Attributes_dark.png
+  :alt: RockVerse logo for black background
+  :class: only-dark
+  :align: center
+
+
 Attributes
 ----------
 

@@ -7,6 +7,17 @@ rockverse.ParallelArray
 
 .. autoclass:: ParallelArray
 
+.. image:: class_ParallelArray_light.png
+  :alt: RockVerse logo for white background
+  :class: only-light,
+  :align: center
+
+.. image:: class_ParallelArray_dark.png
+  :alt: RockVerse logo for black background
+  :class: only-dark
+  :align: center
+
+
 Attributes
 ----------
 
@@ -33,13 +44,12 @@ Methods
 .. autosummary::
     :toctree: _autogen
 
+    ~ParallelArray.__getitem__
+    ~ParallelArray.__setitem__
     ~ParallelArray.chunk_slice_index
     ~ParallelArray.clean_chunks
     ~ParallelArray.h5_dump
-    ~ParallelArray.__getitem__
-    ~ParallelArray.__setitem__
     ~ParallelArray.get_plot_label
-
 
 
 Related tutorials

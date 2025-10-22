@@ -1,11 +1,11 @@
-.. _Group class:
+.. _FieldGroup class:
 
-rockverse.Group
-===============
+rockverse.FieldGroup
+====================
 
 .. currentmodule:: rockverse
 
-.. autoclass:: Group
+.. autoclass:: FieldGroup
 
 Attributes
 ----------
@@ -22,6 +22,5 @@ Methods
     :toctree: _autogen
 
     ~Group.__getitem__
-    ~Group.create_group
     ~Group.create_array
     ~Group.create_coordinate

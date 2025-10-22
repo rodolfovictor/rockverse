@@ -20,7 +20,6 @@ Basic data types
 ================
 
 .. autosummary::
-  :toctree: _autogen
 
   ~rockverse.Attributes
   ~rockverse.ParallelArray
@@ -28,6 +27,7 @@ Basic data types
   ~rockverse.CoordinateSet
   ~rockverse.ScalarField
   ~rockverse.Group
+  ~rockverse.FieldGroup
 
 .. toctree::
   :hidden:
@@ -39,6 +39,7 @@ Basic data types
   api/core/coordinateset
   api/core/scalarfield
   api/core/group
+  api/core/fieldgroup
 
 
 .. _core module creation functions:
@@ -56,6 +57,7 @@ Create new data
   ~rockverse.array
   ~rockverse.coordinate
   ~rockverse.create_group
+  ~rockverse.create_fieldgroup
   ~rockverse.open
 
 Importing from other formats

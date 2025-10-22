@@ -33,11 +33,11 @@ Methods
 .. autosummary::
     :toctree: _autogen
 
+    ~Coordinate.__getitem__
+    ~Coordinate.__setitem__
     ~Coordinate.chunk_slice_index
     ~Coordinate.clean_chunks
     ~Coordinate.h5_dump
-    ~Coordinate.__getitem__
-    ~Coordinate.__setitem__
     ~Coordinate.get_plot_label
     ~Coordinate.closest_value
     ~Coordinate.closest_index

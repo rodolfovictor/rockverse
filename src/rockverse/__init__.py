@@ -58,6 +58,7 @@ from rockverse.core.coordinates import coordinate, Coordinate, CoordinateSet
 
 # Core data creation functions
 from rockverse.core.group import Group, create_group
+from rockverse.core.fieldgroup import FieldGroup, create_fieldgroup
 from rockverse.core.scalarfield import ScalarField
 from rockverse.core.tensorfield import create_tensorfield
 

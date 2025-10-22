@@ -54,6 +54,9 @@ class ParallelArray:
         self._attrs = Attributes(zarray)
         self._attrs['_ROCKVERSE_DATATYPE'] = 'ParallelArray'
 
+    def __array__(self):
+        return self[...]
+
     @property
     def zarray(self):
         """
