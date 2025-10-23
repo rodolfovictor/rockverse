@@ -6,6 +6,8 @@ rockverse.FieldGroup
 .. currentmodule:: rockverse
 
 .. autoclass:: FieldGroup
+    :show-inheritance:
+
 
 Attributes
 ----------
@@ -23,4 +25,3 @@ Methods
 
     ~Group.__getitem__
     ~Group.create_array
-    ~Group.create_coordinate

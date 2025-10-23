@@ -19,7 +19,7 @@ class Group():
 
     .. note::
         This class should not be directly instantiated. Use the
-        :ref:`creation functions <core module creation functions>` instead.
+        :func:`create_group <rockverse.create_group>` function instead.
 
     Parameters
     ----------
@@ -108,7 +108,7 @@ class Group():
         kwargs['path'] = f"{self.zgroup.path}/{path}"
         kwargs['overwrite'] = overwrite
         return create_array(**kwargs)
-    
+
     def create_coordinate(self, path, data, overwrite=False, parent_attrs=None, **kwargs):
         """
         Create a new coordinate object within this group with the specified name.
@@ -138,7 +138,7 @@ class Group():
         self._create_parents(**temp)
         kwargs['store'] = self.zgroup.store
         kwargs['path'] = f"{self.zgroup.path}/{path}"
-        kwargs['overwrite'] = overwrite       
+        kwargs['overwrite'] = overwrite
         kwargs['chunks'] = None
         return coordinate(data, **kwargs)
 

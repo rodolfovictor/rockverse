@@ -20,8 +20,8 @@ class Coordinate(ParallelArray):
     consistency and efficient parallel access.
 
     .. note::
-        This class should not be instantiated directly. It is managed by
-        RockVerse :ref:`creation functions <core module creation functions>`.
+        This class should not be instantiated directly. Use the
+        :func:`coordinate <rockverse.coordinate>` function instead.
 
     Parameters
     ----------

@@ -13,7 +13,7 @@ class FieldGroup(Group):
 
     .. note::
         This class should not be directly instantiated. Use the
-        :ref:`creation functions <core module creation functions>` instead.
+        :func:`create_fieldgroup <rockverse.create_fieldgroup>` function instead.
 
     Parameters
     ----------
@@ -21,14 +21,31 @@ class FieldGroup(Group):
         An existing Zarr group to be managed in parallel.
     """
 
-    def __init__(self, zgroup, coords):
+    def __init__(self, zgroup):
         super().__init__(zgroup)
         self.attrs['_ROCKVERSE_DATATYPE'] = 'FieldGroup'
-        coords = [f'_coord{k}' for k in range(len(zgroup.array_keys())) if '_coord{k}' in zgroup.array_keys()]
-        self._coords = CoordinateSet(coords)
+        keys = list(zgroup.keys())
+        coords = [self[k] for k in keys if k.startswith('_coord')]
+        print(coords)
+        self._coords = CoordinateSet(*coords)
 
-    def create_group(*args, **kwargs):
+    @property
+    def coords(self):
+        """
+        The :class:`CoordinateSet` describing the coordinates for each dimension.
+        """
+        return self._coords
+
+    def create_group(self, *args, **kwargs):
         collective_raise(NameError('FieldGroups cannot contain other groups.'))
+
+    def _create_parents(self, *args, **kwargs):
+        if path.find('/') > 0:
+            collective_raise(NameError('FieldGroups cannot contain other groups.'))
+
+    def create_coordinate(self, *args, **kwargs):
+        collective_raise(NameError('FieldGroups cannot create new coordinates.'))
+
 
 def create_fieldgroup(coords, store=None, path=None, overwrite=False, **kwargs):
     """
@@ -60,7 +77,7 @@ def create_fieldgroup(coords, store=None, path=None, overwrite=False, **kwargs):
 
     """
 
-    if ((not isinstance(coords, CoordinateSet)) or
+    if ((not isinstance(coords, CoordinateSet)) and
         (not isinstance(coords, (tuple, list)) or
          not all(hasattr(k, '__array__') for k in coords)
         )):
@@ -72,7 +89,8 @@ def create_fieldgroup(coords, store=None, path=None, overwrite=False, **kwargs):
     for k in range(len(coords)):
         coord = coords[k]
         group.create_coordinate(path=f'_coord{k}',
-                                data=coord[...],
-                                attrs=coord.attrs.as_dict())
+                                data=coord[...])
         if isinstance(coord, Coordinate):
-            group.attrs.update(coord.attrs.as_dict())
+            group[f'_coord{k}'].attrs.update(**coord.attrs.asdict())
+
+    return FieldGroup(group.zgroup)
