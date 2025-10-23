@@ -101,13 +101,16 @@ def convert_value_from_las2(value, null=None):
     if not value:
         return None
 
-    if all(k in '0123456789.-' for k in value): # Number
-        if '.' in value:
-            number = float(value)
-        else:
-            number = int(value)
-        if null is not None and abs(number - null) < 1e-10:
-            return np.nan
+    if all(k in '0123456789.-' for k in value): # Number?...
+        try:
+            if '.' in value:
+                number = float(value)
+            else:
+                number = int(value)
+            if null is not None and abs(number - null) < 1e-10:
+                return np.nan
+        except ValueError:
+            number = value
         return number
 
     # Everything failed, just trim
