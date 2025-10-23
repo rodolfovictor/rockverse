@@ -20,13 +20,10 @@ class FieldGroup(Group):
     zgroup : zarr.group.Group
         An existing Zarr group to be managed in parallel.
     """
-
     def __init__(self, zgroup):
         super().__init__(zgroup)
-        self.attrs['_ROCKVERSE_DATATYPE'] = 'FieldGroup'
         keys = list(zgroup.keys())
         coords = [self[k] for k in keys if k.startswith('_coord')]
-        print(coords)
         self._coords = CoordinateSet(*coords)
 
     @property
@@ -36,15 +33,27 @@ class FieldGroup(Group):
         """
         return self._coords
 
+    @property
+    def array_keys(self):
+        return tuple([k for k in self.zgroup.array_keys() if not k.startswith('_coord')])
+
     def create_group(self, *args, **kwargs):
         collective_raise(NameError('FieldGroups cannot contain other groups.'))
 
-    def _create_parents(self, *args, **kwargs):
+    def _create_parents(self, path, *args, **kwargs):
         if path.find('/') > 0:
-            collective_raise(NameError('FieldGroups cannot contain other groups.'))
+            collective_raise(NameError(f'{path}: FieldGroups cannot contain other groups.'))
 
     def create_coordinate(self, *args, **kwargs):
         collective_raise(NameError('FieldGroups cannot create new coordinates.'))
+
+    def create_array(self, path, overwrite=False, parent_attrs=None, **kwargs):
+        if 'shape' in kwargs:
+            collective_raise(TypeError("You can't pass 'shape' as a parameter. Array shape will be the coordinate space shape."))
+        kwargs['shape'] = self.coords.shape
+
+        super().create_array(path=path, overwrite=overwrite, parent_attrs=None, **kwargs)
+        return self[path]
 
 
 def create_fieldgroup(coords, store=None, path=None, overwrite=False, **kwargs):
@@ -84,6 +93,7 @@ def create_fieldgroup(coords, store=None, path=None, overwrite=False, **kwargs):
         collective_raise(TypeError("Expected CoordinateSet or a list of array-like objects for coords."))
 
     group = create_group(store=store, path=path, overwrite=overwrite, **kwargs)
+    group.attrs['_ROCKVERSE_DATATYPE'] = 'FieldGroup'
 
     # Coordinates will be copied
     for k in range(len(coords)):

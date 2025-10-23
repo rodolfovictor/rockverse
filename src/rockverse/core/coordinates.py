@@ -194,6 +194,17 @@ class CoordinateSet:
     def __len__(self):
         return len(self._coordinates)
 
+    def __iter__(self):
+        """
+        Iterate over the Coordinate objects in the CoordinateSet.
+
+        Returns
+        -------
+        iterator
+            An iterator over the Coordinate instances contained in this set.
+        """
+        return iter(self._coordinates)
+
     def _get_attr(self, key):
         value = None
         with collective_only_rank0_runs():
@@ -202,6 +213,10 @@ class CoordinateSet:
         comm.barrier()
         value = comm.bcast(value, root=0)
         return value
+
+    @property
+    def shape(self):
+        return tuple(k.shape[0] for k in self)
 
     @property
     def names(self):

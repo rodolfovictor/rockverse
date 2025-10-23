@@ -16,7 +16,8 @@ from rockverse.las.las3 import break_las3_line, assemble_las3_dict
 from rockverse.errors import collective_raise, collective_only_rank0_runs
 import rockverse._assert as _assert
 from rockverse.core.parallelarray import array
-from rockverse.core.coordinates import coordinate
+from rockverse.core.coordinates import coordinate, Coordinate, CoordinateSet
+from rockverse.core.fieldgroup import FieldGroup, create_fieldgroup
 from rockverse.core.scalarfield import ScalarField
 from rockverse.configure import config
 mpi_comm = config.mpi_comm
@@ -374,6 +375,30 @@ def _print_data(data):
         str = f"{str} | {data['association']}"
     return str
 
+
+class LasEntry(dict):
+
+    def as_parallelarray(self, **kwargs):
+        parray = array(data=self['value'],
+                       name=self['mnem'],
+                       unit=self['unit'],
+                       description=self['description'],
+                       **kwargs)
+        if 'code' in self and self['code']:
+            parray.attrs['code'] = self['code']
+        return parray
+
+    def as_coordinate(self, **kwargs):
+        parray = coordinate(data=self['value'],
+                            name=self['mnem'],
+                            unit=self['unit'],
+                            description=self['description'],
+                            **kwargs)
+        if 'code' in self and self['code']:
+            parray.attrs['code'] = self['code']
+        return parray
+
+
 class LasSubSection():
     """
     Base class representing a collection of LAS section entries, either
@@ -415,6 +440,10 @@ class LasSubSection():
         """
         contains = len([k for k in self._entries if k['mnem'] == item])>0
         return mpi_comm.bcast(contains, root=0)
+
+    def __len__(self):
+        length = len(self._entries)
+        return mpi_comm.bcast(length, root=0)
 
     def __getitem__(self, key):
         """
@@ -470,7 +499,9 @@ class LasSubSection():
                         raise KeyError(f'multiple entries for {key}')
                     value = self._entries[ind[0]]
         value = mpi_comm.bcast(value, root=0)
-        return value
+        entry = LasEntry()
+        entry.update(value)
+        return entry
 
     def _find(self, pattern, prepend=''):
         """
@@ -635,25 +666,8 @@ class LasData(LasSubSection):
     def __init__(self, list_):
         super().__init__(list_, 'data')
 
-    def create_scalarfield(self, column, coordinate_column=None, **kwargs):
+    def create_fieldgroup(self, columns=None, coordinate_column=None, chunks=None, **kwargs):
         """
-        Create a RockVerse ScalarField object from a data entry.
-
-        Parameters
-        ----------
-        column : int or str
-            Index or mnemonic of the data column to use as ScalarField data.
-        coordinate_column : int or str, optional
-            Index or mnemonic of the coordinate column to use as coordinates.
-            Defaults to 0 (the first entry in the LAS section).
-        **kwargs
-            Additional keyword arguments for coordinate and array creation.
-
-        Returns
-        -------
-        ScalarField
-            A RockVerse ScalarField object constructed from the specified columns.
-
         Examples
         --------
 
@@ -662,26 +676,17 @@ class LasData(LasSubSection):
             ../../../tutorials/data/welllog/importinglas
 
         """
-        array_dict = self[column]
-        coordinate_dict = self[0] if coordinate_column is None else self[coordinate_column]
-        array_dict = mpi_comm.bcast(array_dict, root=0)
-        coordinate_dict = mpi_comm.bcast(coordinate_dict, root=0)
-
-        top_path = '' if 'path' not in kwargs else kwargs['path']
-        kwargs['path'] = f"{top_path}/coords/0" if top_path else "coords/0"
-        coord = coordinate(data=coordinate_dict['value'],
-                           name=coordinate_dict['mnem'],
-                           unit=coordinate_dict['unit'],
-                           description=coordinate_dict['description'],
-                           **kwargs)
-        kwargs['path'] = f"{top_path}/array" if top_path else "array"
-        parray = array(data=array_dict['value'],
-                       name=array_dict['mnem'],
-                       unit=array_dict['unit'],
-                       description=array_dict['description'],
-                       **kwargs)
-        parray.attrs['code'] = array_dict['code'] if 'code' in array_dict and array_dict['code'] else ''
-        return ScalarField(parray, coords=(coord,))
+        coord = self[0] if coordinate_column is None else self[coordinate_column]
+        coords = CoordinateSet(coord.as_coordinate(),)
+        field_group = create_fieldgroup(coords=coords, **kwargs)
+        columns_ = columns if columns is not None else [k['mnem'] for k in self._entries if k['mnem'] != coord['mnem']]
+        for col in columns_:
+            key = self[col]['mnem']
+            array = self[col].as_parallelarray()
+            field_group.create_array(key, dtype=array.dtype)
+            field_group[key][...] = array[...]
+            field_group[key].attrs.update(array.attrs.asdict())
+        return field_group
 
 
 class LasSection():
