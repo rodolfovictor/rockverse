@@ -167,6 +167,22 @@ class Group():
             "'Group' object does not support item assignment. "
             "See the documentation for the available creation functions."))
 
+    def array_keys(self):
+        keys = None
+        if mpi_rank == 0:
+            keys = [k for k in self.zgroup.keys()
+                    if '_ROCKVERSE_DATATYPE' in self.zgroup[k].attrs
+                    and self.zgroup[k].attrs['_ROCKVERSE_DATATYPE'] == 'ParallelArray']
+        return tuple(mpi_comm.bcast(keys, root=0))
+
+    def coord_keys(self):
+        keys = None
+        if mpi_rank == 0:
+            keys = [k for k in self.zgroup.keys()
+                    if '_ROCKVERSE_DATATYPE' in self.zgroup[k].attrs
+                    and self.zgroup[k].attrs['_ROCKVERSE_DATATYPE'] == 'Coordinate']
+        return tuple(mpi_comm.bcast(keys, root=0))
+
 
 def create_group(store=None, path=None, overwrite=False, **kwargs):
     """

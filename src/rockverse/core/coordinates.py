@@ -216,7 +216,7 @@ class CoordinateSet:
 
     @property
     def shape(self):
-        return tuple(k.shape[0] for k in self)
+        return tuple(k.shape[0] for k in self._coordinates)
 
     @property
     def names(self):

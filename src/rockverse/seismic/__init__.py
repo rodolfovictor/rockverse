@@ -376,6 +376,7 @@ def import_segy(filename,
     ilines = comm.bcast(ilines, root=0)
     xlines = comm.bcast(xlines, root=0)
     offsets = comm.bcast(offsets, root=0)
+    print(offsets)
     samples = comm.bcast(samples, root=0)
     data_type = np.dtype(comm.bcast(data_type, root=0))
 

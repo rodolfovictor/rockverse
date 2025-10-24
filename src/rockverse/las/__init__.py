@@ -713,14 +713,21 @@ class LasData(LasSubSection):
             ../../../tutorials/data/welllog/importinglas
 
         """
+        field_group = create_fieldgroup(**kwargs)
+
         coord = self[0] if coordinate_column is None else self[coordinate_column]
-        coords = CoordinateSet(coord.as_coordinate(),)
-        field_group = create_fieldgroup(coords=coords, **kwargs)
+        field_group.create_coordinate(data=coord['value'],
+                                      path=coord['mnem'],
+                                      unit=coord['unit'],
+                                      description=coord['description'])
+        if 'code' in self and self['code']:
+            field_group[coord['mnem']].attrs['code'] = coord['code']
+
         columns_ = columns if columns is not None else [k['mnem'] for k in self._entries if k['mnem'] != coord['mnem']]
         for col in columns_:
             key = self[col]['mnem']
             array = self[col].as_parallelarray()
-            field_group.create_array(key, dtype=array.dtype)
+            field_group.create_array(key, dtype=array.dtype, coords=(coord['mnem'],))
             field_group[key][...] = array[...]
             field_group[key].attrs.update(array.attrs.asdict())
         return field_group
