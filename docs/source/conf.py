@@ -72,6 +72,7 @@ exclude_patterns = []
 html_theme = 'pydata_sphinx_theme'
 html_last_updated_fmt = ""
 html_show_sourcelink = False
+html_favicon = "_static/RockVerse_logo_model2_for_white_background_facecolor_transparent_True.png"
 html_theme_options = {
     "logo": {
         "image_light": "_static/RockVerse_logo_model3_for_white_background_facecolor_transparent_True.png",

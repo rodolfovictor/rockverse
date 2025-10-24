@@ -15,6 +15,7 @@ Methods
 
     ~LasParam.__getitem__
     ~LasParam.__contains__
+    ~LasParam.__len__
     ~LasParam.tree
     ~LasParam.find
     ~LasParam.find_path

@@ -17,6 +17,7 @@ Classes
    ~LasSection
    ~LasParam
    ~LasData
+   ~LasEntry
 
 .. toctree::
    :hidden:
@@ -25,6 +26,7 @@ Classes
    las/lassectionclass
    las/lasparameterclass
    las/lasdataclass
+   las/lasentryclass
 
 
 Related functions

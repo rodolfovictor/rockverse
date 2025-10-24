@@ -15,7 +15,7 @@ from rockverse.las.las2 import break_las2_line, assemble_las2_dict
 from rockverse.las.las3 import break_las3_line, assemble_las3_dict
 from rockverse.errors import collective_raise, collective_only_rank0_runs
 import rockverse._assert as _assert
-from rockverse.core.parallelarray import array
+from rockverse.core.parallelarray import array, ParallelArray
 from rockverse.core.coordinates import coordinate, Coordinate, CoordinateSet
 from rockverse.core.fieldgroup import FieldGroup, create_fieldgroup
 from rockverse.core.scalarfield import ScalarField
@@ -377,8 +377,26 @@ def _print_data(data):
 
 
 class LasEntry(dict):
+    """
+    Represents a single entry in a LAS section.
+    A LasEntry object is a dictionary-like object that contains information about
+    a specific entry in a LAS section. It provides a convenient way to access and
+    manipulate the entry's properties.
+    """
 
     def as_parallelarray(self, **kwargs):
+        """
+        Convert the entry to a parallel array.
+
+        Parameters
+        ----------
+            **kwargs: keyword arguments to pass to the array constructor.
+
+        Returns
+        --------
+            ParallelArray
+                The parallel array with the LAS entry info.
+        """
         parray = array(data=self['value'],
                        name=self['mnem'],
                        unit=self['unit'],
@@ -389,6 +407,18 @@ class LasEntry(dict):
         return parray
 
     def as_coordinate(self, **kwargs):
+        """
+        Convert the entry to a coordinate object.
+
+        Parameters
+        ----------
+            **kwargs: keyword arguments to pass to the coordinate constructor.
+
+        Returns
+        -------
+            Coordinate:
+                The coordinate object with the LAS entry info.
+        """
         parray = coordinate(data=self['value'],
                             name=self['mnem'],
                             unit=self['unit'],
@@ -442,8 +472,15 @@ class LasSubSection():
         return mpi_comm.bcast(contains, root=0)
 
     def __len__(self):
-        length = len(self._entries)
-        return mpi_comm.bcast(length, root=0)
+        """
+        Enable compatibility with the built-in len() function.
+
+        Returns
+        -------
+
+        int
+            The number of entries in the subsection.
+        """
 
     def __getitem__(self, key):
         """

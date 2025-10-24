@@ -15,10 +15,11 @@ Methods
 
     ~LasData.__getitem__
     ~LasData.__contains__
+    ~LasData.__len__
     ~LasData.tree
     ~LasData.find
     ~LasData.find_path
-    ~LasData.create_scalarfield
+    ~LasData.create_fieldgroup
 
 Related tutorials
 -----------------
